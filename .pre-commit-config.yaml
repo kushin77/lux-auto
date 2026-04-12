@@ -1,0 +1,118 @@
+# Pre-commit Configuration
+# Enforces security scanning, code quality checks, and credential scanning
+# ALL checks must PASS before commit is allowed
+
+repos:
+  # General file checks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+        args: ['--maxkb=1000']
+      - id: check-merge-conflict
+      - id: check-case-conflict
+      - id: detect-private-key
+      - id: debug-statements
+      - id: mixed-line-ending
+
+  # Credential scanning (CRITICAL for enterprise)
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.4.0
+    hooks:
+      - id: detect-secrets
+        args: ['--baseline', '.secrets.baseline']
+
+  # Git-secrets scanner
+  - repo: https://github.com/awslabs/git-secrets
+    rev: master
+    hooks:
+      - id: git-secrets
+
+  # Python code quality
+  - repo: https://github.com/psf/black
+    rev: 23.12.1
+    hooks:
+      - id: black
+        language_version: python3.11
+        args: ['--line-length=120']
+
+  - repo: https://github.com/astral-sh/ruff
+    rev: v0.1.8
+    hooks:
+      - id: ruff
+        args: ['--fix', '--line-length=120']
+
+  - repo: https://github.com/pylint-dev/pylint
+    rev: pylint-3.0.3
+    hooks:
+      - id: pylint
+        args: ['--disable=all', '--enable=E,F', '--max-line-length=120']
+        additional_dependencies: ['sqlalchemy', 'fastapi', 'pydantic']
+
+  # Type checking
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.7.1
+    hooks:
+      - id: mypy
+        args: ['--ignore-missing-imports', '--no-error-summary']
+        additional_dependencies: ['fastapi', 'pydantic', 'sqlalchemy']
+
+  # Security scanning with Bandit
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.7.5
+    hooks:
+      - id: bandit
+        args: ['-ll', '--skip', 'B008,B101']
+        exclude: ^tests/
+
+  # YAML validation
+  - repo: https://github.com/adrienverge/yamllint
+    rev: v1.32.0
+    hooks:
+      - id: yamllint
+        args: ['-d', '{extends: relaxed, rules: {line-length: {max: 120}}}']
+
+  # JSON validation
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: check-json
+
+  # Docker security scanning (if Docker available)
+  - repo: https://github.com/hadolint/hadolint
+    rev: v2.13.0
+    hooks:
+      - id: hadolint-docker
+        args: ['--ignore', 'DL3008', '--ignore', 'DL3009']
+
+  # Terraform validation
+  - repo: https://github.com/terraform-docs/terraform-docs
+    rev: v0.17.0
+    hooks:
+      - id: terraform-fmt
+
+  - repo: https://github.com/antonbabenko/pre-commit-terraform
+    rev: v1.85.0
+    hooks:
+      - id: terraform_validate
+      - id: tflint
+
+ci:
+  autofix_commit_msg: |
+    🔧 chore: Auto-fix code style and security issues
+    
+    - Fixed trailing whitespace
+    - Formatted code with Black and Ruff
+    - Updated import statements
+  autofix_prs: true
+  autoupdate_branch: ''
+  autoupdate_commit_msg: '⬆️ chore: Pre-commit hook auto-update'
+  autoupdate_schedule: weekly
+  skip:
+    - bandit  # Requires additional deps
+    - mypy    # Requires additional deps
+    - pylint  # Requires additional deps
+  submodules: false

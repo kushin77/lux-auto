@@ -1,0 +1,417 @@
+{
+  "pageId": "0",
+  "applicationId": "0",
+  "name": "Deal Management Dashboard",
+  "slug": "deal-management",
+  "layouts": [
+    {
+      "viewMode": false,
+      "dsl": {
+        "widgetName": "MainContainer",
+        "backgroundColor": "rgb(252, 252, 252)",
+        "rightColumn": 24,
+        "snapRows": 75,
+        "detachFromLayout": true,
+        "autoHeight": false,
+        "isCanvas": true,
+        "canExtend": true,
+        "version": 100,
+        "minHeight": 400,
+        "children": [
+          {
+            "widgetName": "Header",
+            "type": "CONTAINER_WIDGET",
+            "topRow": 0,
+            "leftColumn": 0,
+            "rightColumn": 24,
+            "bottomRow": 5,
+            "key": "header",
+            "children": [
+              {
+                "widgetName": "Title",
+                "type": "TEXT_WIDGET",
+                "text": "Deal Management Dashboard",
+                "fontSize": "24px",
+                "fontWeight": "600",
+                "textColor": "#1a202c",
+                "topRow": 1,
+                "leftColumn": 1,
+                "rightColumn": 15
+              },
+              {
+                "widgetName": "RefreshButton",
+                "type": "BUTTON_WIDGET",
+                "label": "Refresh Data",
+                "onClick": "{{ dealsTable.clearCache(); dealsTable.data }}",
+                "topRow": 1,
+                "leftColumn": 20,
+                "rightColumn": 24
+              }
+            ]
+          },
+          {
+            "widgetName": "FilterContainer",
+            "type": "CONTAINER_WIDGET",
+            "topRow": 5,
+            "leftColumn": 0,
+            "rightColumn": 24,
+            "bottomRow": 10,
+            "key": "filters",
+            "children": [
+              {
+                "widgetName": "StatusFilter",
+                "type": "SELECT_WIDGET",
+                "label": "Status",
+                "options": [
+                  { "label": "All", "value": "" },
+                  { "label": "New", "value": "new" },
+                  { "label": "Reviewing", "value": "reviewing" },
+                  { "label": "Approved", "value": "approved" },
+                  { "label": "Rejected", "value": "rejected" }
+                ],
+                "topRow": 5.5,
+                "leftColumn": 0.5,
+                "rightColumn": 6,
+                "value": ""
+              },
+              {
+                "widgetName": "MakeFilter",
+                "type": "SELECT_WIDGET",
+                "label": "Make",
+                "options": [],
+                "allowClearance": true,
+                "topRow": 5.5,
+                "leftColumn": 6.5,
+                "rightColumn": 12,
+                "value": ""
+              },
+              {
+                "widgetName": "MarginFilter",
+                "type": "RANGE_SLIDER_WIDGET",
+                "label": "Margin %",
+                "min": 0,
+                "max": 100,
+                "value": [0, 100],
+                "topRow": 5.5,
+                "leftColumn": 12.5,
+                "rightColumn": 18
+              },
+              {
+                "widgetName": "ClearFilters",
+                "type": "BUTTON_WIDGET",
+                "label": "Clear Filters",
+                "onClick": "{{ statusFilter.setValue(''); makeFilter.setValue(''); marginFilter.setValue([0, 100]) }}",
+                "topRow": 8,
+                "leftColumn": 20,
+                "rightColumn": 24
+              }
+            ]
+          },
+          {
+            "widgetName": "StatsContainer",
+            "type": "CONTAINER_WIDGET",
+            "topRow": 10,
+            "leftColumn": 0,
+            "rightColumn": 24,
+            "bottomRow": 14,
+            "key": "stats",
+            "children": [
+              {
+                "widgetName": "TotalDealsCard",
+                "type": "STAT_BOX_WIDGET",
+                "title": "Total Deals",
+                "subtitle": "All time",
+                "metric": "{{ dealsQuery.data?.length || 0 }}",
+                "topRow": 10.5,
+                "leftColumn": 0.5,
+                "rightColumn": 6
+              },
+              {
+                "widgetName": "NewDealsCard",
+                "type": "STAT_BOX_WIDGET",
+                "title": "New Deals",
+                "subtitle": "Requires review",
+                "metric": "{{ dealsQuery.data?.filter(d => d.status === 'new').length || 0 }}",
+                "topRow": 10.5,
+                "leftColumn": 6.5,
+                "rightColumn": 12
+              },
+              {
+                "widgetName": "AvgMarginCard",
+                "type": "STAT_BOX_WIDGET",
+                "title": "Avg Margin",
+                "subtitle": "Approved deals",
+                "metric": "{{ (dealsQuery.data?.filter(d => d.status === 'approved').reduce((sum, d) => sum + (d.estimated_profit_margin || 0), 0) / (dealsQuery.data?.filter(d => d.status === 'approved').length || 1) || 0).toFixed(1) }}%",
+                "topRow": 10.5,
+                "leftColumn": 12.5,
+                "rightColumn": 18
+              },
+              {
+                "widgetName": "YTDRevenueCard",
+                "type": "STAT_BOX_WIDGET",
+                "title": "Total Potential Revenue",
+                "subtitle": "All approved deals",
+                "metric": "${{ (dealsQuery.data?.filter(d => d.status === 'approved').reduce((sum, d) => sum + (d.estimated_profit_margin || 0) * (d.listing_price || 0) / 100, 0) || 0).toLocaleString() }}",
+                "topRow": 10.5,
+                "leftColumn": 18.5,
+                "rightColumn": 24
+              }
+            ]
+          },
+          {
+            "widgetName": "DealsTableContainer",
+            "type": "CONTAINER_WIDGET",
+            "topRow": 14,
+            "leftColumn": 0,
+            "rightColumn": 24,
+            "bottomRow": 50,
+            "key": "deals-table",
+            "children": [
+              {
+                "widgetName": "dealsTable",
+                "type": "TABLE_WIDGET_V2",
+                "columnOrder": ["id", "vin", "year", "make", "model", "listing_price", "mmr_value", "discount_pct", "deal_score", "estimated_profit_margin", "status", "created_at", "actions"],
+                "columns": {
+                  "id": {
+                    "index": 0,
+                    "label": "ID",
+                    "width": 50,
+                    "columnType": "number",
+                    "isDerived": false
+                  },
+                  "vin": {
+                    "index": 1,
+                    "label": "VIN",
+                    "width": 100,
+                    "columnType": "text"
+                  },
+                  "year": {
+                    "index": 2,
+                    "label": "Year",
+                    "width": 60,
+                    "columnType": "number"
+                  },
+                  "make": {
+                    "index": 3,
+                    "label": "Make",
+                    "width": 80,
+                    "columnType": "text"
+                  },
+                  "model": {
+                    "index": 4,
+                    "label": "Model",
+                    "width": 100,
+                    "columnType": "text"
+                  },
+                  "listing_price": {
+                    "index": 5,
+                    "label": "Listing Price",
+                    "width": 120,
+                    "columnType": "currency",
+                    "currencyCode": "USD"
+                  },
+                  "mmr_value": {
+                    "index": 6,
+                    "label": "MMR Value",
+                    "width": 120,
+                    "columnType": "currency",
+                    "currencyCode": "USD"
+                  },
+                  "discount_pct": {
+                    "index": 7,
+                    "label": "Discount %",
+                    "width": 100,
+                    "columnType": "number"
+                  },
+                  "deal_score": {
+                    "index": 8,
+                    "label": "Deal Score",
+                    "width": 100,
+                    "columnType": "number"
+                  },
+                  "estimated_profit_margin": {
+                    "index": 9,
+                    "label": "Margin %",
+                    "width": 100,
+                    "columnType": "number"
+                  },
+                  "status": {
+                    "index": 10,
+                    "label": "Status",
+                    "width": 100,
+                    "columnType": "text"
+                  },
+                  "created_at": {
+                    "index": 11,
+                    "label": "Created",
+                    "width": 150,
+                    "columnType": "date"
+                  },
+                  "actions": {
+                    "index": 12,
+                    "label": "Actions",
+                    "width": 150,
+                    "columnType": "button",
+                    "isDerived": true
+                  }
+                },
+                "dataSource": "{{ dealsQuery.data }}",
+                "primaryColumns": {},
+                "onRowClick": "{{ showModal.clearValue(); dealModal.setData(selectedRow.data); showModal.setValue(true) }}",
+                "topRow": 14.5,
+                "leftColumn": 0,
+                "rightColumn": 24,
+                "bottomRow": 35,
+                "key": "deals-table"
+              }
+            ]
+          },
+          {
+            "widgetName": "DealModal",
+            "type": "MODAL_WIDGET",
+            "canOutsideClickClose": true,
+            "width": 600,
+            "title": "Deal Details",
+            "topRow": 0,
+            "leftColumn": 0,
+            "rightColumn": 0,
+            "bottomRow": 0,
+            "key": "deal-modal",
+            "visible": "{{ showModal.value }}",
+            "children": [
+              {
+                "widgetName": "ModalContent",
+                "type": "CONTAINER_WIDGET",
+                "children": [
+                  {
+                    "widgetName": "DealDetailsForm",
+                    "type": "FORM_WIDGET",
+                    "submitButtonText": "Save Changes",
+                    "resetButtonText": "Cancel",
+                    "onSubmit": "{{ updateDealQuery.trigger() }}",
+                    "children": [
+                      {
+                        "widgetName": "VINField",
+                        "type": "TEXT_INPUT",
+                        "label": "VIN",
+                        "disabled": true,
+                        "value": "{{ dealModal.data.vin }}"
+                      },
+                      {
+                        "widgetName": "YearField",
+                        "type": "NUMBER_INPUT",
+                        "label": "Year",
+                        "value": "{{ dealModal.data.year }}"
+                      },
+                      {
+                        "widgetName": "MakeField",
+                        "type": "TEXT_INPUT",
+                        "label": "Make",
+                        "value": "{{ dealModal.data.make }}"
+                      },
+                      {
+                        "widgetName": "ModelField",
+                        "type": "TEXT_INPUT",
+                        "label": "Model",
+                        "value": "{{ dealModal.data.model }}"
+                      },
+                      {
+                        "widgetName": "TrimField",
+                        "type": "TEXT_INPUT",
+                        "label": "Trim",
+                        "value": "{{ dealModal.data.trim }}"
+                      },
+                      {
+                        "widgetName": "ListingPriceField",
+                        "type": "NUMBER_INPUT",
+                        "label": "Listing Price",
+                        "value": "{{ dealModal.data.listing_price }}"
+                      },
+                      {
+                        "widgetName": "MMRValueField",
+                        "type": "NUMBER_INPUT",
+                        "label": "MMR Value",
+                        "value": "{{ dealModal.data.mmr_value }}"
+                      },
+                      {
+                        "widgetName": "StatusField",
+                        "type": "SELECT_WIDGET",
+                        "label": "Status",
+                        "options": [
+                          { "label": "New", "value": "new" },
+                          { "label": "Reviewing", "value": "reviewing" },
+                          { "label": "Approved", "value": "approved" },
+                          { "label": "Rejected", "value": "rejected" }
+                        ],
+                        "value": "{{ dealModal.data.status }}"
+                      },
+                      {
+                        "widgetName": "NotesField",
+                        "type": "TEXT_AREA",
+                        "label": "Internal Notes",
+                        "rows": 4,
+                        "value": "{{ dealModal.data.internal_notes }}"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "datasources": [
+    {
+      "name": "dealsQuery",
+      "type": "REST_API",
+      "url": "{{ baseUrl }}/api/v2/deals",
+      "method": "GET",
+      "headers": {
+        "Authorization": "Bearer {{ appsmith.user.authToken }}"
+      },
+      "params": [],
+      "pluginId": "restapi",
+      "datasourceUrl": "api",
+      "commands": [
+        {
+          "name": "GET",
+          "displayName": "GET",
+          "template": "{{ baseUrl }}/api/v2/deals?status={{ statusFilter.value || '' }}&make={{ makeFilter.value || '' }}&margin_min={{ marginFilter.value[0] }}&margin_max={{ marginFilter.value[1] }}"
+        },
+        {
+          "name": "POST",
+          "displayName": "POST",
+          "template": "{{ baseUrl }}/api/v2/deals"
+        }
+      ]
+    },
+    {
+      "name": "updateDealQuery",
+      "type": "REST_API",
+      "url": "{{ baseUrl }}/api/v2/deals/{{ dealModal.data.id }}",
+      "method": "PUT",
+      "headers": {
+        "Authorization": "Bearer {{ appsmith.user.authToken }}"
+      },
+      "body": {
+        "vin": "{{ dealModal.data.vin }}",
+        "year": "{{ dealModal.data.year }}",
+        "make": "{{ dealModal.data.make }}",
+        "model": "{{ dealModal.data.model }}",
+        "trim": "{{ dealModal.data.trim }}",
+        "listing_price": "{{ dealModal.data.listing_price }}",
+        "mmr_value": "{{ dealModal.data.mmr_value }}",
+        "status": "{{ dealModal.data.status }}",
+        "internal_notes": "{{ dealModal.data.internal_notes }}"
+      },
+      "pluginId": "restapi",
+      "datasourceUrl": "api"
+    }
+  ],
+  "settings": {
+    "baseUrl": "https://lux.kushnir.cloud",
+    "enableSourceMaps": true
+  }
+}

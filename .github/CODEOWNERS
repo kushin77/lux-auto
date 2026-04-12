@@ -1,0 +1,61 @@
+# CODEOWNERS: Define domain responsibility and review requirements
+# When a PR modifies files matching these patterns, the listed owners get:
+# - Auto-request for review
+# - Veto power (approval required) on high-risk domains
+
+# Global defaults (any file)
+*                                    @kushin77
+
+# Architecture & Infrastructure
+/docs/adr/                           @kushin77
+/docs/architecture/                  @kushin77
+/.github/workflows/                  @kushin77
+/terraform/                          @kushin77
+docker-compose.yml                   @kushin77
+Dockerfile.*                         @kushin77
+
+# Security-critical code
+/backend/auth/                       @kushin77
+/security/                           @kushin77
+/backend/database/models.py          @kushin77
+
+# Core business logic
+/backend/api/                        @kushin77
+/backend/routers/                    @kushin77
+/backend/main.py                     @kushin77
+
+# Database & persistence
+/backend/database/                   @kushin77
+/scripts/*sql*                       @kushin77
+
+# Deployment & Infrastructure
+/scripts/deploy.sh                   @kushin77
+/scripts/init-db.sql                 @kushin77
+/scripts/rollback.sh                 @kushin77
+
+# Observability & Monitoring
+/backend/monitoring.py               @kushin77
+/backend/caching.py                  @kushin77
+
+# CI/CD Policies
+/.github/                            @kushin77
+/.gitsecrets                         @kushin77
+
+# Test suites
+/tests/                              @kushin77
+
+# Configuration & Environment
+/config/                             @kushin77
+/.env*                               @kushin77
+/pytest.ini                          @kushin77
+
+# Appsmith Dashboards (requires domain knowledge)
+/appsmith/                           @kushin77
+
+# Backstage Catalog & Developer Portal
+/backstage/                          @kushin77
+
+# Documentation (all changes require owner review)
+README.md                            @kushin77
+CONTRIBUTING.md                      @kushin77
+*.md                                 @kushin77

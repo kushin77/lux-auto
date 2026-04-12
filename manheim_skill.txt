@@ -1,0 +1,38 @@
+## skills/manheim-deal-scan.md
+
+```
+Manheim Wholesale Deal Scan — Agent SOP
+
+When asked to find deals at Manheim or scan the auction:
+
+1. Ask for search criteria if not provided:
+   - Target makes/models (or "any")
+   - Year range
+   - Max mileage
+   - Min condition grade (default 3.0)
+   - Location filter (optional — specific auction sites)
+   - Deal threshold % below MMR (default 15%)
+
+2. Run the deal scanner:
+   python manheim_deal_finder.py
+   (or trigger via scheduled task)
+
+3. Interpret results:
+   - Score 80–100: Strong buy candidate — flag immediately
+   - Score 60–79: Good deal — worth reviewing condition report
+   - Score 40–59: Marginal — check transport cost vs. margin
+   - Below 40: Pass
+
+4. For top 5 deals, pull condition report and summarize:
+   - Any major damage or mechanical flags
+   - Frame/structural issues = disqualify
+   - Cosmetic only = confirm deal
+
+5. Output format: deal table + top 3 written summaries with buy/pass recommendation
+
+6. Optional: send morning brief with top deals via Gmail MCP
+
+Key metric — "estimated net margin" already accounts for 8% friction 
+(transport ~$500, recon avg ~$800, auction fees ~$400).
+Adjust FRICTION_RATE in .env if your actual costs differ.
+```

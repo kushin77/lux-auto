@@ -1,0 +1,189 @@
+# AutoArb — Production Infrastructure
+# Deploys: EKS cluster, RDS Postgres, ElastiCache Redis, MSK Kafka, S3, CloudFront
+# BYOC variant: swap provider block for customer's AWS account via assume_role
+
+terraform {
+  required_providers {
+    aws = { source = "hashicorp/aws", version = "~> 5.0" }
+  }
+  backend "s3" {
+    bucket = "autoarb-terraform-state"
+    key    = "prod/terraform.tfstate"
+    region = "us-east-1"
+    encrypt = true
+  }
+}
+
+variable "env"         { default = "prod" }
+variable "tenant_id"   { default = "shared" }  # override for BYOC tenants
+variable "region"      { default = "us-east-1" }
+
+locals {
+  name   = "autoarb-${var.env}"
+  tags   = { Product = "AutoArb", Env = var.env, Tenant = var.tenant_id, ManagedBy = "terraform" }
+}
+
+# ── VPC ───────────────────────────────────────────────────────────────────────
+module "vpc" {
+  source  = "terraform-aws-modules/vpc/aws"
+  version = "~> 5.0"
+  name    = "${local.name}-vpc"
+  cidr    = "10.0.0.0/16"
+  azs     = ["${var.region}a", "${var.region}b", "${var.region}c"]
+  private_subnets = ["10.0.1.0/24", "10.0.2.0/24", "10.0.3.0/24"]
+  public_subnets  = ["10.0.101.0/24", "10.0.102.0/24", "10.0.103.0/24"]
+  enable_nat_gateway   = true
+  single_nat_gateway   = var.env != "prod"
+  enable_dns_hostnames = true
+  tags = local.tags
+}
+
+# ── EKS ───────────────────────────────────────────────────────────────────────
+module "eks" {
+  source  = "terraform-aws-modules/eks/aws"
+  version = "~> 20.0"
+  cluster_name    = "${local.name}-eks"
+  cluster_version = "1.30"
+  vpc_id          = module.vpc.vpc_id
+  subnet_ids      = module.vpc.private_subnet_ids
+  cluster_endpoint_public_access = true
+
+  eks_managed_node_groups = {
+    api = {
+      instance_types = ["t3.medium"]
+      min_size = 2; max_size = 10; desired_size = 3
+      labels = { role = "api" }
+    }
+    agent = {
+      instance_types = ["c5.xlarge"]  # compute-optimized for LangGraph agents
+      min_size = 1; max_size = 20; desired_size = 2
+      labels = { role = "agent" }
+    }
+    ml = {
+      instance_types = ["g4dn.xlarge"]  # GPU for ML retraining (Phase 3)
+      min_size = 0; max_size = 4; desired_size = 0
+      labels = { role = "ml" }
+    }
+  }
+  tags = local.tags
+}
+
+# ── RDS Postgres ──────────────────────────────────────────────────────────────
+resource "aws_db_subnet_group" "main" {
+  name       = "${local.name}-db-subnet"
+  subnet_ids = module.vpc.private_subnet_ids
+  tags       = local.tags
+}
+
+resource "aws_db_instance" "postgres" {
+  identifier        = "${local.name}-postgres"
+  engine            = "postgres"
+  engine_version    = "16.2"
+  instance_class    = "db.t3.medium"
+  allocated_storage = 100
+  storage_encrypted = true
+  multi_az          = var.env == "prod"
+
+  db_name  = "autoarb"
+  username = "autoarb_admin"
+  password = data.aws_secretsmanager_secret_version.db_password.secret_string
+
+  db_subnet_group_name   = aws_db_subnet_group.main.name
+  vpc_security_group_ids = [aws_security_group.rds.id]
+
+  # pgvector extension enabled at cluster init
+  parameter_group_name = aws_db_parameter_group.postgres.name
+
+  backup_retention_period = 7
+  deletion_protection     = var.env == "prod"
+  skip_final_snapshot     = var.env != "prod"
+  tags = local.tags
+}
+
+resource "aws_db_parameter_group" "postgres" {
+  name   = "${local.name}-pg16"
+  family = "postgres16"
+  parameter { name = "shared_preload_libraries"; value = "pg_stat_statements,pgvector" }
+  tags = local.tags
+}
+
+# ── ElastiCache Redis ─────────────────────────────────────────────────────────
+resource "aws_elasticache_replication_group" "redis" {
+  replication_group_id = "${local.name}-redis"
+  description          = "AutoArb MMR cache + session store"
+  node_type            = "cache.t3.medium"
+  num_cache_clusters   = var.env == "prod" ? 2 : 1
+  port                 = 6379
+  subnet_group_name    = aws_elasticache_subnet_group.redis.name
+  security_group_ids   = [aws_security_group.redis.id]
+  at_rest_encryption_enabled  = true
+  transit_encryption_enabled  = true
+  tags = local.tags
+}
+
+resource "aws_elasticache_subnet_group" "redis" {
+  name       = "${local.name}-redis-subnet"
+  subnet_ids = module.vpc.private_subnet_ids
+}
+
+# ── MSK Kafka ─────────────────────────────────────────────────────────────────
+resource "aws_msk_cluster" "kafka" {
+  cluster_name           = "${local.name}-kafka"
+  kafka_version          = "3.6.0"
+  number_of_broker_nodes = 3
+
+  broker_node_group_info {
+    instance_type   = "kafka.t3.small"
+    client_subnets  = module.vpc.private_subnet_ids
+    security_groups = [aws_security_group.kafka.id]
+    storage_info {
+      ebs_storage_info { volume_size = 100 }
+    }
+  }
+
+  encryption_info {
+    encryption_in_transit { client_broker = "TLS" }
+  }
+  tags = local.tags
+}
+
+# ── S3 (vehicle images + title docs) ─────────────────────────────────────────
+resource "aws_s3_bucket" "assets" {
+  bucket = "${local.name}-assets-${data.aws_caller_identity.current.account_id}"
+  tags   = local.tags
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "assets" {
+  bucket = aws_s3_bucket.assets.id
+  rule { apply_server_side_encryption_by_default { sse_algorithm = "AES256" } }
+}
+
+resource "aws_s3_bucket_public_access_block" "assets" {
+  bucket                  = aws_s3_bucket.assets.id
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+# ── Secrets ───────────────────────────────────────────────────────────────────
+resource "aws_secretsmanager_secret" "app_secrets" {
+  name = "${local.name}/app-secrets"
+  tags = local.tags
+}
+
+# App reads: MANHEIM_CLIENT_ID, MANHEIM_CLIENT_SECRET, ANTHROPIC_API_KEY,
+# STRIPE_SECRET_KEY, DOCUSIGN_API_KEY, CLERK_SECRET_KEY
+
+data "aws_secretsmanager_secret_version" "db_password" {
+  secret_id = "${local.name}/db-password"
+}
+
+data "aws_caller_identity" "current" {}
+
+# ── Outputs ───────────────────────────────────────────────────────────────────
+output "eks_cluster_endpoint"  { value = module.eks.cluster_endpoint }
+output "rds_endpoint"          { value = aws_db_instance.postgres.endpoint }
+output "redis_endpoint"        { value = aws_elasticache_replication_group.redis.primary_endpoint_address }
+output "kafka_bootstrap"       { value = aws_msk_cluster.kafka.bootstrap_brokers_tls }
+output "s3_assets_bucket"      { value = aws_s3_bucket.assets.bucket }

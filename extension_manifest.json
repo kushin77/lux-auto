@@ -1,0 +1,23 @@
+{
+  "manifest_version": 3,
+  "name": "Manheim Deal Finder",
+  "version": "1.0.0",
+  "description": "Overlay MMR deal scores on Manheim listings. Auto-trigger selling workflows.",
+  "permissions": ["storage", "alarms", "notifications", "scripting", "activeTab"],
+  "host_permissions": [
+    "https://*.manheim.com/*",
+    "http://localhost:8000/*"
+  ],
+  "background": { "service_worker": "background.js" },
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": { "32": "icons/icon32.png" }
+  },
+  "content_scripts": [{
+    "matches": ["https://*.manheim.com/*"],
+    "js": ["content.js"],
+    "css": ["overlay.css"],
+    "run_at": "document_idle"
+  }],
+  "icons": { "32": "icons/icon32.png", "128": "icons/icon128.png" }
+}

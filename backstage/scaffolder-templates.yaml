@@ -1,0 +1,639 @@
+# Backstage Scaffolder Templates
+
+Scaffolder templates in Backstage help teams create standardized services, components, and configurations.
+
+---
+
+## Python API Service Template
+
+```yaml
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: python-api-service
+  title: Python API Service
+  description: Create a new Python (FastAPI/Flask) API service with standard structure
+  tags:
+    - python
+    - api
+    - service
+spec:
+  owner: team-backend
+  type: service
+  parameters:
+    - title: Service Information
+      required:
+        - name
+        - owner
+      properties:
+        name:
+          title: Service Name
+          type: string
+          description: "Unique name for the service (e.g., inventory-api, billing-service)"
+          pattern: "^[a-z][a-z0-9-]*$"
+        description:
+          title: Description
+          type: string
+          description: What does this service do?
+        owner:
+          title: Team/Owner
+          type: string
+          enum:
+            - team-backend
+            - team-platform
+    - title: Technology Stack
+      required:
+        - framework
+        - python_version
+      properties:
+        framework:
+          title: Framework
+          type: string
+          description: Web framework to use
+          enum:
+            - fastapi
+            - flask
+        python_version:
+          title: Python Version
+          type: string
+          enum:
+            - "3.11"
+            - "3.12"
+        include_postgres:
+          title: Include PostgreSQL Support
+          type: boolean
+          default: true
+        include_redis:
+          title: Include Redis Cache
+          type: boolean
+          default: false
+    - title: Integration & Deployment
+      properties:
+        with_tests:
+          title: Include Unit Tests
+          type: boolean
+          default: true
+        with_docs:
+          title: Include API Documentation
+          type: boolean
+          default: true
+        github_repo:
+          title: GitHub Repository URL
+          type: string
+          description: "Leave empty to create new repo at kushin77/[service-name]"
+  steps:
+    - id: fetch-base
+      name: Fetch Base Template
+      action: fetch:template
+      input:
+        url: ./templates/python-api-base
+        values:
+          name: ${{ parameters.name }}
+          description: ${{ parameters.description }}
+          owner: ${{ parameters.owner }}
+          framework: ${{ parameters.framework }}
+          python_version: ${{ parameters.python_version }}
+    - id: fetch-postgres
+      if: ${{ parameters.include_postgres }}
+      name: Fetch PostgreSQL Integration
+      action: fetch:template
+      input:
+        url: ./templates/postgres-integration
+    - id: fetch-redis
+      if: ${{ parameters.include_redis }}
+      name: Fetch Redis Integration
+      action: fetch:template
+      input:
+        url: ./templates/redis-integration
+    - id: publish
+      name: Publish to GitHub
+      action: publish:github
+      input:
+        allowedHosts:
+          - github.com
+        description: ${{ parameters.description }}
+        repoUrl: github.com?owner=kushin77&repo=${{ parameters.name }}
+    - id: register
+      name: Register in Backstage Catalog
+      action: catalog:register
+      input:
+        repoContentsUrl: ${{ steps.publish.output.repoContentsUrl }}
+        catalogInfoPath: /catalog-info.yaml
+  output:
+    links:
+      - title: GitHub Repository
+        url: ${{ steps.publish.output.repoUrl }}
+      - title: Service Catalog
+        url: https://backstage.lux.kushnir.cloud/catalog/default/service/${{ parameters.name }}
+
+---
+
+## Database Migration Template
+
+```yaml
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: database-migration
+  title: Create Database Migration
+  description: Generate a new database migration file with Alembic
+  tags:
+    - database
+    - migration
+    - devops
+spec:
+  owner: team-devops
+  type: other
+  parameters:
+    - title: Migration Details
+      required:
+        - migration_name
+        - service
+      properties:
+        service:
+          title: Service
+          type: string
+          description: Which service needs this migration?
+          enum:
+            - lux-fastapi-backend
+            - other-service
+        migration_name:
+          title: Migration Name
+          type: string
+          description: "Describe the change (e.g., add-deals-table, add-user-roles)"
+          pattern: "^[a-z0-9-]+$"
+        description:
+          title: Description
+          type: string
+          description: Detailed description of database changes
+        is_breaking:
+          title: Breaking Change
+          type: boolean
+          description: Does this migration require downtime?
+          default: false
+  steps:
+    - id: generate-migration
+      name: Generate Migration File
+      action: debug:log
+      input:
+        message: "Generating migration: ${{ parameters.migration_name }}"
+    - id: create-migration
+      name: Create Migration
+      action: fetch:template
+      input:
+        url: ./templates/alembic-migration
+        values:
+          migration_name: ${{ parameters.migration_name }}
+          description: ${{ parameters.description }}
+          timestamp: ${{ now() }}
+  output:
+    links:
+      - title: Migration File
+        url: "migrations/alembic/${{ parameters.migration_name }}.py"
+
+---
+
+## API Documentation Template
+
+```yaml
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: api-documentation
+  title: Create API Documentation
+  description: Generate OpenAPI/AsyncAPI documentation for your service
+  tags:
+    - documentation
+    - api
+spec:
+  owner: team-frontend
+  type: other
+  parameters:
+    - title: API Information
+      required:
+        - api_name
+        - api_version
+      properties:
+        api_name:
+          title: API Name
+          type: string
+          description: Name of the API
+        api_version:
+          title: API Version
+          type: string
+          enum:
+            - "1.0"
+            - "2.0"
+            - "3.0"
+        api_type:
+          title: API Type
+          type: string
+          enum:
+            - REST
+            - GraphQL
+            - WebSocket
+            - gRPC
+        base_path:
+          title: Base Path
+          type: string
+          description: "e.g., /api/v2"
+        auth_type:
+          title: Authentication
+          type: string
+          enum:
+            - Bearer Token
+            - API Key
+            - OAuth2
+            - None
+  steps:
+    - id: fetch-docs
+      name: Fetch Documentation Template
+      action: fetch:template
+      input:
+        url: ./templates/api-docs
+        values:
+          api_name: ${{ parameters.api_name }}
+          api_version: ${{ parameters.api_version }}
+          api_type: ${{ parameters.api_type }}
+          base_path: ${{ parameters.base_path }}
+          auth_type: ${{ parameters.auth_type }}
+  output:
+    links:
+      - title: OpenAPI Spec
+        url: "docs/openapi.yaml"
+
+---
+
+## Docker Configuration Template
+
+```yaml
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: docker-configuration
+  title: Docker Configuration
+  description: Generate Dockerfile and docker-compose configuration
+  tags:
+    - docker
+    - devops
+    - infrastructure
+spec:
+  owner: team-devops
+  type: other
+  parameters:
+    - title: Service Details
+      required:
+        - service_name
+        - base_image
+      properties:
+        service_name:
+          title: Service Name
+          type: string
+        base_image:
+          title: Base Image
+          type: string
+          enum:
+            - python:3.11-alpine
+            - python:3.11
+            - node:18-alpine
+            - golang:1.21-alpine
+        expose_port:
+          title: Expose Port
+          type: number
+          default: 8000
+        include_healthcheck:
+          title: Include Health Check
+          type: boolean
+          default: true
+  steps:
+    - id: fetch-docker
+      name: Generate Docker Files
+      action: fetch:template
+      input:
+        url: ./templates/docker-config
+        values:
+          service_name: ${{ parameters.service_name }}
+          base_image: ${{ parameters.base_image }}
+          expose_port: ${{ parameters.expose_port }}
+          include_healthcheck: ${{ parameters.include_healthcheck }}
+  output:
+    links:
+      - title: Dockerfile
+        url: Dockerfile
+      - title: docker-compose.yml
+        url: docker-compose.yml
+
+---
+
+## Monitoring Dashboard Template
+
+```yaml
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: monitoring-dashboard
+  title: Create Monitoring Dashboard
+  description: Generate Grafana dashboard configuration for your service
+  tags:
+    - monitoring
+    - observability
+    - operations
+spec:
+  owner: team-devops
+  type: other
+  parameters:
+    - title: Dashboard Details
+      required:
+        - service_name
+        - metrics_type
+      properties:
+        service_name:
+          title: Service Name
+          type: string
+          description: Name of service to monitor
+        dashboard_title:
+          title: Dashboard Title
+          type: string
+          description: Display title for dashboard
+        metrics_type:
+          title: Metrics Type
+          type: string
+          enum:
+            - API Performance
+            - Database
+            - Cache
+            - Business Metrics
+            - Resource Usage
+        include_alerts:
+          title: Include Alert Rules
+          type: boolean
+          default: true
+  steps:
+    - id: fetch-dashboard
+      name: Generate Dashboard
+      action: fetch:template
+      input:
+        url: ./templates/grafana-dashboard
+        values:
+          service_name: ${{ parameters.service_name }}
+          dashboard_title: ${{ parameters.dashboard_title }}
+          metrics_type: ${{ parameters.metrics_type }}
+          include_alerts: ${{ parameters.include_alerts }}
+  output:
+    links:
+      - title: Dashboard JSON
+        url: "dashboards/grafana-${{ parameters.service_name }}.json"
+
+---
+
+## Integration Test Suite Template
+
+```yaml
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: integration-tests
+  title: Integration Test Suite
+  description: Generate integration tests for API services
+  tags:
+    - testing
+    - qa
+    - ci-cd
+spec:
+  owner: team-backend
+  type: other
+  parameters:
+    - title: Test Configuration
+      required:
+        - api_endpoint
+        - test_framework
+      properties:
+        api_endpoint:
+          title: API Endpoint
+          type: string
+          description: "e.g., https://api.service.local"
+        test_framework:
+          title: Test Framework
+          type: string
+          enum:
+            - pytest
+            - unittest
+            - jest
+        include_load_tests:
+          title: Include Load Tests
+          type: boolean
+          default: false
+        include_security_tests:
+          title: Include Security Tests
+          type: boolean
+          default: true
+  steps:
+    - id: fetch-tests
+      name: Generate Test Files
+      action: fetch:template
+      input:
+        url: ./templates/integration-tests
+        values:
+          api_endpoint: ${{ parameters.api_endpoint }}
+          test_framework: ${{ parameters.test_framework }}
+          include_load_tests: ${{ parameters.include_load_tests }}
+          include_security_tests: ${{ parameters.include_security_tests }}
+  output:
+    links:
+      - title: Test Suite
+        url: tests/integration/
+
+---
+
+## Environment Configuration Template
+
+```yaml
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: environment-config
+  title: Environment Configuration
+  description: Create environment-specific configuration files
+  tags:
+    - configuration
+    - devops
+spec:
+  owner: team-devops
+  type: other
+  parameters:
+    - title: Environment Setup
+      required:
+        - environment
+        - service_name
+      properties:
+        environment:
+          title: Environment
+          type: string
+          enum:
+            - development
+            - staging
+            - production
+        service_name:
+          title: Service Name
+          type: string
+        config_type:
+          title: Configuration Type
+          type: string
+          enum:
+            - ".env file"
+            - "docker-compose"
+            - "kubernetes"
+            - "terraform"
+  steps:
+    - id: fetch-config
+      name: Generate Configuration
+      action: fetch:template
+      input:
+        url: ./templates/env-config/${{ parameters.environment }}
+        values:
+          service_name: ${{ parameters.service_name }}
+          config_type: ${{ parameters.config_type }}
+  output:
+    links:
+      - title: Configuration Files
+        url: config/${{ parameters.environment }}/
+```
+
+---
+
+## Using Scaffolder Templates
+
+### Step 1: Access Scaffolder
+
+1. Go to Backstage: `https://backstage.lux.kushnir.cloud`
+2. Click **Create** (top navigation)
+3. Browse available templates
+
+### Step 2: Fill in Parameters
+
+1. Select a template (e.g., "Python API Service")
+2. Fill out the required fields
+3. Review the template preview
+4. Click **Review** to see what will be created
+
+### Step 3: Create Service
+
+1. Click **Create** to execute the template
+2. Scaffolder will:
+   - Generate files from template
+   - Create GitHub repository
+   - Register in Backstage catalog
+   - Create initial infrastructure
+3. View output links to access new service
+
+### Step 4: Next Steps
+
+After creation:
+1. Clone the new repository
+2. Install dependencies
+3. Configure CI/CD pipelines
+4. Deploy to staging environment
+5. Register additional documentation
+
+---
+
+## Best Practices
+
+### Template Development
+
+- **Keep templates simple**: Focus on one task per template
+- **Use sensible defaults**: Minimize required parameters
+- **Provide examples**: Show output and expected results
+- **Test thoroughly**: Test template before publishing
+- **Document clearly**: Include description and usage examples
+
+### Naming Conventions
+
+Services:
+```
+[team]-[function]-[type]
+Examples: inventory-api, user-service, billing-worker
+```
+
+Templates:
+```
+[technology]-[component]-[feature]
+Examples: python-api-service, docker-configuration, aws-lambda-function
+```
+
+### Security Best Practices
+
+- Never include secrets in templates
+- Use environment variables for sensitive data
+- Implement validation in template parameters
+- Audit template usage
+- Rotate API keys regularly
+
+---
+
+## Troubleshooting
+
+### Template Not Appearing
+
+1. Check template YAML syntax: `yamllint template.yaml`
+2. Verify template is registered in Backstage catalog
+3. Restart Backstage service
+4. Clear browser cache
+
+### Execution Fails
+
+1. Check Backstage logs: `docker logs lux-backstage`
+2. Verify template references are correct
+3. Test individual actions separately
+4. Check file and network permissions
+
+### Output Links Broken
+
+1. Verify repository was created successfully
+2. Check GitHub integration is configured
+3. Confirm paths in output section are correct
+4. Test paths manually in filesystem
+
+---
+
+## Advanced Configuration
+
+### Custom Actions
+
+Create custom Scaffolder actions for Lux-Auto-specific tasks:
+
+```yaml
+# example-custom-action.js
+module.exports = {
+  id: 'custom:notify-team',
+  description: 'Send Slack notification to team',
+  async handler(ctx) {
+    const { slackWebhook, message } = ctx.input;
+    // Implementation...
+  }
+};
+```
+
+### Template Variables
+
+Available variables in templates:
+- `${{ parameters.* }}` - User input parameters
+- `${{ steps.*.output.* }}` - Step outputs
+- `${{ now() }}` - Current timestamp
+- `${{ uuid() }}` - Generate UUID
+
+### Conditional Steps
+
+Execute steps based on parameters:
+```yaml
+- id: conditional-step
+  if: ${{ parameters.include_postgres }}
+  action: fetch:template
+  input:
+    url: ./templates/postgres
+```
+
+---
+
+Last Updated: April 12, 2026
+Version: 1.0

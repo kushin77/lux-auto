@@ -1,0 +1,485 @@
+# Backstage Service Catalog Configuration
+
+Backstage is the developer and operations platform for Lux-Auto. It provides:
+- **Service Catalog**: Discover and manage all services
+- **API Catalog**: Browse available APIs
+- **Component Ownership**: Track owners and dependencies
+- **Operational Dashboards**: Monitor system health
+- **Scaffolder**: Create standardized services
+- **Tech Docs**: Centralized documentation
+
+---
+
+## Entity Registration
+
+### APIs
+
+#### REST APIs
+
+```yaml
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: lux-deals-api
+  namespace: default
+  title: Deals API
+  description: REST API for deal management
+spec:
+  type: openapi
+  owner: team-backend
+  lifecycle: production
+  definition: |
+    openapi: 3.0.0
+    info:
+      title: Deals API v2
+      version: 2.0.0
+      description: API for creating, reading, updating, and managing vehicle deals
+    servers:
+      - url: https://lux.kushnir.cloud/api/v2
+    paths:
+      /deals:
+        get:
+          summary: List all deals
+          parameters:
+            - name: status
+              in: query
+              schema:
+                type: string
+                enum: [new, reviewing, approved, rejected]
+            - name: page
+              in: query
+              schema:
+                type: integer
+            - name: per_page
+              in: query
+              schema:
+                type: integer
+          responses:
+            '200':
+              description: List of deals
+        post:
+          summary: Create a new deal
+          requestBody:
+            required: true
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    vin:
+                      type: string
+                    year:
+                      type: integer
+                    make:
+                      type: string
+                    model:
+                      type: string
+          responses:
+            '201':
+              description: Deal created
+      /deals/{id}:
+        get:
+          summary: Get deal details
+          parameters:
+            - name: id
+              in: path
+              required: true
+              schema:
+                type: integer
+          responses:
+            '200':
+              description: Deal details
+        put:
+          summary: Update deal
+          parameters:
+            - name: id
+              in: path
+              required: true
+              schema:
+                type: integer
+          responses:
+            '200':
+              description: Deal updated
+        delete:
+          summary: Delete deal
+          parameters:
+            - name: id
+              in: path
+              required: true
+              schema:
+                type: integer
+          responses:
+            '204':
+              description: Deal deleted
+
+---
+
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: lux-buyers-api
+  namespace: default
+  title: Buyers API
+  description: REST API for buyer network management
+spec:
+  type: openapi
+  owner: team-backend
+  lifecycle: production
+
+---
+
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: lux-analytics-api
+  namespace: default
+  title: Analytics API
+  description: REST API for analytics and reporting
+spec:
+  type: openapi
+  owner: team-backend
+  lifecycle: production
+
+---
+
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: lux-websocket-api
+  namespace: default
+  title: WebSocket API
+  description: Real-time updates for deals and notifications
+spec:
+  type: websocket
+  owner: team-backend
+  lifecycle: production
+  definition: |
+    ws://backstage.lux.kushnir.cloud/api/v2/ws
+```
+
+### Core Services
+
+```yaml
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: lux-fastapi-backend
+  namespace: default
+  title: FastAPI Backend
+  description: >-
+    Main REST API service for Lux-Auto. Handles deal management, buyer network,
+    analytics, and WebSocket real-time updates.
+  links:
+    - url: https://lux.kushnir.cloud
+      title: Live API
+    - url: https://github.com/kushin77/lux-auto
+      title: Source Code
+  tags:
+    - api
+    - backend
+    - python
+spec:
+  type: service
+  owner: team-backend
+  lifecycle: production
+  system: lux-auto-platform
+  dependsOn:
+    - resource:default/postgres-db
+    - resource:default/redis-cache
+  providesApis:
+    - lux-deals-api
+    - lux-buyers-api
+    - lux-analytics-api
+    - lux-websocket-api
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: lux-appsmith-portal
+  namespace: default
+  title: Appsmith Portal
+  description: >-
+    Low-code UI platform for deal management, buyer network, analytics dashboards,
+    and admin settings.
+  links:
+    - url: https://appsmith.lux.kushnir.cloud
+      title: Appsmith Portal
+    - url: https://appsmith.com/docs
+      title: Appsmith Docs
+  tags:
+    - frontend
+    - portal
+    - lowcode
+spec:
+  type: website
+  owner: team-frontend
+  lifecycle: production
+  system: lux-auto-platform
+  dependsOn:
+    - component:default/lux-fastapi-backend
+  consumesApis:
+    - lux-deals-api
+    - lux-buyers-api
+    - lux-analytics-api
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: lux-backstage-catalog
+  namespace: default
+  title: Backstage Catalog Portal
+  description: Service registry, API catalog, and operational tools for Lux-Auto
+  links:
+    - url: https://backstage.lux.kushnir.cloud
+      title: Backstage Portal
+  tags:
+    - catalog
+    - operations
+    - internal-tools
+spec:
+  type: service
+  owner: team-devops
+  lifecycle: production
+  system: lux-auto-platform
+  dependsOn:
+    - resource:default/postgres-db
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Resource
+metadata:
+  name: postgres-db
+  namespace: default
+  title: PostgreSQL Database
+  description: Primary database for all Lux-Auto services
+  links:
+    - url: https://www.postgresql.org/docs
+      title: PostgreSQL Docs
+  tags:
+    - database
+    - critical
+spec:
+  type: database
+  owner: team-devops
+  lifecycle: production
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Resource
+metadata:
+  name: redis-cache
+  namespace: default
+  title: Redis Cache
+  description: In-memory cache for performance optimization
+  tags:
+    - cache
+    - performance
+spec:
+  type: storage
+  owner: team-devops
+  lifecycle: production
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: System
+metadata:
+  name: lux-auto-platform
+  namespace: default
+  title: Lux-Auto Deal Management Platform
+  description: >-
+    Complete deal management platform including REST APIs, web portals,
+    analytics, and operational tools.
+spec:
+  owner: team-platform
+  domain: business
+```
+
+### Teams & Groups
+
+```yaml
+---
+apiVersion: backstage.io/v1alpha1
+kind: Group
+metadata:
+  name: team-backend
+  namespace: default
+  title: Backend Team
+  description: Team responsible for API development and backend services
+spec:
+  type: team
+  profile:
+    displayName: Backend Team
+    email: backend@lux-auto.com
+  memberOf:
+    - engineering
+  members:
+    - dev-lead-1
+    - dev-2
+    - dev-3
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Group
+metadata:
+  name: team-frontend
+  namespace: default
+  title: Frontend Team
+  description: Team responsible for web portals and UI
+spec:
+  type: team
+  profile:
+    displayName: Frontend Team
+    email: frontend@lux-auto.com
+  memberOf:
+    - engineering
+  members:
+    - ui-lead
+    - ui-dev-1
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Group
+metadata:
+  name: team-devops
+  namespace: default
+  title: DevOps Team
+  description: Team responsible for infrastructure and operations
+spec:
+  type: team
+  profile:
+    displayName: DevOps Team
+    email: devops@lux-auto.com
+  memberOf:
+    - operations
+  members:
+    - devops-lead
+    - sre-1
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Group
+metadata:
+  name: engineering
+  namespace: default
+  title: Engineering Department
+  description: All engineering teams
+spec:
+  type: department
+  profile:
+    displayName: Engineering
+    email: engineering@lux-auto.com
+  members:
+    - team-backend
+    - team-frontend
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Group
+metadata:
+  name: operations
+  namespace: default
+  title: Operations Department
+  description: Operations and SRE teams
+spec:
+  type: department
+  profile:
+    displayName: Operations
+    email: operations@lux-auto.com
+  members:
+    - team-devops
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: User
+metadata:
+  name: current-user
+  namespace: default
+  title: Current User
+spec:
+  profile:
+    displayName: Authenticated User
+    email: user@lux-auto.com
+  memberOf:
+    - engineering
+```
+
+---
+
+## Catalog Database Setup
+
+The Backstage catalog is stored in the PostgreSQL database. To initialize:
+
+```sql
+-- Create Backstage entities table
+CREATE TABLE IF NOT EXISTS catalog_entities (
+    id UUID PRIMARY KEY,
+    entity_ref VARCHAR(255) UNIQUE NOT NULL,
+    kind VARCHAR(50) NOT NULL,
+    namespace VARCHAR(50) NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    metadata JSONB NOT NULL,
+    spec JSONB NOT NULL,
+    relations JSONB,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_kind_namespace (kind, namespace),
+    INDEX idx_entity_ref (entity_ref)
+);
+
+-- Create catalog relationships table
+CREATE TABLE IF NOT EXISTS catalog_relations (
+    source_entity_ref VARCHAR(255) NOT NULL,
+    target_entity_ref VARCHAR(255) NOT NULL,
+    type VARCHAR(50) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (source_entity_ref, target_entity_ref, type),
+    FOREIGN KEY (source_entity_ref) REFERENCES catalog_entities(entity_ref),
+    FOREIGN KEY (target_entity_ref) REFERENCES catalog_entities(entity_ref)
+);
+```
+
+---
+
+## Importing Entities into Backstage
+
+### Option 1: Manual YAML Registration
+
+1. Access Backstage at `https://backstage.lux.kushnir.cloud`
+2. Go to **Create** → **Register Entity**
+3. Paste YAML entity definition
+4. Click **Analyze**
+5. Click **Import** to register
+
+### Option 2: GitHub Integration
+
+1. Create `catalog-info.yaml` in repository root
+2. Configure GitHub token in Backstage
+3. Add repository URL in **Settings** → **Integrations**
+4. Entities are auto-registered
+
+### Option 3: Bulk Import
+
+1. Prepare YAML files in `/catalog/entities/` directory
+2. Run migration:
+   ```bash
+   docker exec lux-backstage \
+     backstage-cli catalog:load --directory /catalog/entities
+   ```
+
+---
+
+## Next Steps
+
+1. Register entities in Backstage catalog
+2. Configure operational dashboards
+3. Create scaffolder templates
+4. Set up tech docs and documentation
+5. Configure authentication/RBAC
+
+---
+
+Last Updated: April 12, 2026
+Version: 1.0

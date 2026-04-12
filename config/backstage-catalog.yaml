@@ -1,0 +1,120 @@
+/*
+  Backstage Configuration for Lux-Auto
+  
+  Service catalog, templates, and operational tooling
+*/
+
+kind: Domain
+metadata:
+  name: lux-auto-domain
+  description: Lux-Auto automated arbitrage platform
+spec:
+  owner: group:platform-team
+  
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: fastapi-backend
+  namespace: default
+  description: Lux-Auto FastAPI backend service
+  links:
+    - url: https://lux.kushnir.cloud/api/v2
+      title: API Documentation
+    -url: https://github.com/kushin77/lux-auto
+      title: Source Code
+spec:
+  type: service
+  owner: group:platform-team
+  lifecycle: production
+  system: lux-auto
+  dependsOn:
+    - resource:postgres-database
+    - resource:redis-cache
+  providesApis:
+    - deals-api
+    - buyers-api
+    - analytics-api
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: appsmith-portal
+  namespace: default
+  description: Lux-Auto low-code deal management portal
+spec:
+  type: website
+  owner: group:platform-team
+  lifecycle: production
+  system: lux-auto
+  dependsOn:
+    - component:fastapi-backend
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: postgres-database
+  namespace: default
+  description: PostgreSQL database for Lux-Auto
+spec:
+  type: service
+  owner: group:platform-team
+  lifecycle: production
+  system: lux-auto
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: redis-cache
+  namespace: default
+  description: Redis cache for performance optimization
+spec:
+  type: service
+  owner: group:platform-team
+  lifecycle: production
+  system: lux-auto
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: deals-api
+  namespace: default
+  description: Deal management REST API
+spec:
+  type: openapi
+  owner: group:platform-team
+  lifecycle: production
+  definition:
+    $text: ./openapi/deals-api.yaml
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: buyers-api
+  namespace: default
+  description: Buyer management REST API
+spec:
+  type: openapi
+  owner: group:platform-team
+  lifecycle: production
+  definition:
+    $text: ./openapi/buyers-api.yaml
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: analytics-api
+  namespace: default
+  description: Analytics and reporting REST API
+spec:
+  type: openapi
+  owner: group:platform-team
+  lifecycle: production
+  definition:
+    $text: ./openapi/analytics-api.yaml

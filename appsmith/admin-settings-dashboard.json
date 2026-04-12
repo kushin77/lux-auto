@@ -1,0 +1,613 @@
+{
+  "pageId": "3",
+  "applicationId": "0",
+  "name": "Admin Settings",
+  "slug": "admin-settings",
+  "layouts": [
+    {
+      "viewMode": false,
+      "dsl": {
+        "widgetName": "MainContainer",
+        "backgroundColor": "rgb(252, 252, 252)",
+        "rightColumn": 24,
+        "snapRows": 75,
+        "detachFromLayout": true,
+        "autoHeight": false,
+        "isCanvas": true,
+        "canExtend": true,
+        "version": 100,
+        "minHeight": 400,
+        "children": [
+          {
+            "widgetName": "Header",
+            "type": "CONTAINER_WIDGET",
+            "topRow": 0,
+            "leftColumn": 0,
+            "rightColumn": 24,
+            "bottomRow": 4,
+            "key": "header",
+            "children": [
+              {
+                "widgetName": "Title",
+                "type": "TEXT_WIDGET",
+                "text": "Admin Settings",
+                "fontSize": "24px",
+                "fontWeight": "600",
+                "textColor": "#1a202c",
+                "topRow": 1,
+                "leftColumn": 1,
+                "rightColumn": 24
+              }
+            ]
+          },
+          {
+            "widgetName": "TabContainer",
+            "type": "TAB_WIDGET",
+            "topRow": 4,
+            "leftColumn": 0,
+            "rightColumn": 24,
+            "bottomRow": 60,
+            "tabs": [
+              {
+                "id": "users-tab",
+                "label": "User Management",
+                "children": [
+                  {
+                    "widgetName": "UsersToolbar",
+                    "type": "CONTAINER_WIDGET",
+                    "topRow": 0,
+                    "leftColumn": 0,
+                    "rightColumn": 24,
+                    "bottomRow": 3,
+                    "children": [
+                      {
+                        "widgetName": "AddUserButton",
+                        "type": "BUTTON_WIDGET",
+                        "label": "+ Add User",
+                        "onClick": "{{ userModal.setData({}); showUserModal.setValue(true) }}",
+                        "topRow": 0.5,
+                        "leftColumn": 0.5,
+                        "rightColumn": 5
+                      },
+                      {
+                        "widgetName": "SearchUsers",
+                        "type": "TEXT_INPUT",
+                        "placeholder": "Search by email...",
+                        "topRow": 0.5,
+                        "leftColumn": 5.5,
+                        "rightColumn": 12
+                      },
+                      {
+                        "widgetName": "RoleFilter",
+                        "type": "SELECT_WIDGET",
+                        "label": "Role",
+                        "options": [
+                          { "label": "All Roles", "value": "" },
+                          { "label": "SUPER_ADMIN", "value": "SUPER_ADMIN" },
+                          { "label": "ADMIN", "value": "ADMIN" },
+                          { "label": "ANALYST", "value": "ANALYST" },
+                          { "label": "VIEWER", "value": "VIEWER" }
+                        ],
+                        "topRow": 0.5,
+                        "leftColumn": 12.5,
+                        "rightColumn": 18
+                      }
+                    ]
+                  },
+                  {
+                    "widgetName": "usersTable",
+                    "type": "TABLE_WIDGET_V2",
+                    "columnOrder": ["id", "email", "name", "roles", "status", "last_login", "date_created", "actions"],
+                    "columns": {
+                      "id": {
+                        "label": "ID",
+                        "width": 50,
+                        "columnType": "number"
+                      },
+                      "email": {
+                        "label": "Email",
+                        "width": 180,
+                        "columnType": "text"
+                      },
+                      "name": {
+                        "label": "Name",
+                        "width": 140,
+                        "columnType": "text"
+                      },
+                      "roles": {
+                        "label": "Roles",
+                        "width": 150,
+                        "columnType": "text"
+                      },
+                      "status": {
+                        "label": "Status",
+                        "width": 100,
+                        "columnType": "text"
+                      },
+                      "last_login": {
+                        "label": "Last Login",
+                        "width": 150,
+                        "columnType": "date"
+                      },
+                      "date_created": {
+                        "label": "Created",
+                        "width": 150,
+                        "columnType": "date"
+                      },
+                      "actions": {
+                        "label": "Actions",
+                        "width": 120,
+                        "columnType": "button"
+                      }
+                    },
+                    "dataSource": "{{ usersQuery.data || [] }}",
+                    "onRowClick": "{{ userModal.setData(selectedRow.data); showUserModal.setValue(true) }}",
+                    "topRow": 3.5,
+                    "leftColumn": 0,
+                    "rightColumn": 24,
+                    "bottomRow": 25
+                  }
+                ]
+              },
+              {
+                "id": "api-keys-tab",
+                "label": "API Keys",
+                "children": [
+                  {
+                    "widgetName": "APIKeysToolbar",
+                    "type": "CONTAINER_WIDGET",
+                    "topRow": 0,
+                    "leftColumn": 0,
+                    "rightColumn": 24,
+                    "bottomRow": 3,
+                    "children": [
+                      {
+                        "widgetName": "GenerateKeyButton",
+                        "type": "BUTTON_WIDGET",
+                        "label": "+ Generate New Key",
+                        "onClick": "{{ apiKeyModal.setData({}); showAPIKeyModal.setValue(true) }}",
+                        "topRow": 0.5,
+                        "leftColumn": 0.5,
+                        "rightColumn": 8
+                      }
+                    ]
+                  },
+                  {
+                    "widgetName": "apiKeysTable",
+                    "type": "TABLE_WIDGET_V2",
+                    "columnOrder": ["name", "created_by", "scopes", "created_at", "expires_at", "last_used", "status", "actions"],
+                    "columns": {
+                      "name": {
+                        "label": "Name",
+                        "width": 150,
+                        "columnType": "text"
+                      },
+                      "created_by": {
+                        "label": "Created By",
+                        "width": 140,
+                        "columnType": "text"
+                      },
+                      "scopes": {
+                        "label": "Scopes",
+                        "width": 200,
+                        "columnType": "text"
+                      },
+                      "created_at": {
+                        "label": "Created",
+                        "width": 130,
+                        "columnType": "date"
+                      },
+                      "expires_at": {
+                        "label": "Expires",
+                        "width": 130,
+                        "columnType": "date"
+                      },
+                      "last_used": {
+                        "label": "Last Used",
+                        "width": 130,
+                        "columnType": "date"
+                      },
+                      "status": {
+                        "label": "Status",
+                        "width": 80,
+                        "columnType": "text"
+                      },
+                      "actions": {
+                        "label": "Actions",
+                        "width": 120,
+                        "columnType": "button"
+                      }
+                    },
+                    "dataSource": "{{ apiKeysQuery.data || [] }}",
+                    "topRow": 3.5,
+                    "leftColumn": 0,
+                    "rightColumn": 24,
+                    "bottomRow": 25
+                  }
+                ]
+              },
+              {
+                "id": "audit-log-tab",
+                "label": "Audit Logs",
+                "children": [
+                  {
+                    "widgetName": "AuditFilters",
+                    "type": "CONTAINER_WIDGET",
+                    "topRow": 0,
+                    "leftColumn": 0,
+                    "rightColumn": 24,
+                    "bottomRow": 4,
+                    "children": [
+                      {
+                        "widgetName": "UserFilterAudit",
+                        "type": "TEXT_INPUT",
+                        "placeholder": "User email...",
+                        "topRow": 0.5,
+                        "leftColumn": 0.5,
+                        "rightColumn": 6
+                      },
+                      {
+                        "widgetName": "ActionFilterAudit",
+                        "type": "SELECT_WIDGET",
+                        "label": "Action",
+                        "options": [
+                          { "label": "All", "value": "" },
+                          { "label": "Create", "value": "create" },
+                          { "label": "Update", "value": "update" },
+                          { "label": "Delete", "value": "delete" },
+                          { "label": "Login", "value": "login" },
+                          { "label": "Approve", "value": "approve" }
+                        ],
+                        "topRow": 0.5,
+                        "leftColumn": 6.5,
+                        "rightColumn": 12
+                      },
+                      {
+                        "widgetName": "DateFilterAudit",
+                        "type": "DATE_RANGE_PICKER",
+                        "label": "Date Range",
+                        "topRow": 0.5,
+                        "leftColumn": 12.5,
+                        "rightColumn": 20
+                      }
+                    ]
+                  },
+                  {
+                    "widgetName": "auditLogsTable",
+                    "type": "TABLE_WIDGET_V2",
+                    "columnOrder": ["timestamp", "user", "action", "resource_type", "resource_id", "changes", "ip_address"],
+                    "columns": {
+                      "timestamp": {
+                        "label": "Time",
+                        "width": 150,
+                        "columnType": "date"
+                      },
+                      "user": {
+                        "label": "User",
+                        "width": 170,
+                        "columnType": "text"
+                      },
+                      "action": {
+                        "label": "Action",
+                        "width": 100,
+                        "columnType": "text"
+                      },
+                      "resource_type": {
+                        "label": "Resource Type",
+                        "width": 120,
+                        "columnType": "text"
+                      },
+                      "resource_id": {
+                        "label": "Resource ID",
+                        "width": 100,
+                        "columnType": "text"
+                      },
+                      "changes": {
+                        "label": "Changes",
+                        "width": 200,
+                        "columnType": "text"
+                      },
+                      "ip_address": {
+                        "label": "IP Address",
+                        "width": 140,
+                        "columnType": "text"
+                      }
+                    },
+                    "dataSource": "{{ auditLogsQuery.data || [] }}",
+                    "topRow": 4.5,
+                    "leftColumn": 0,
+                    "rightColumn": 24,
+                    "bottomRow": 25
+                  }
+                ]
+              },
+              {
+                "id": "system-settings-tab",
+                "label": "System Settings",
+                "children": [
+                  {
+                    "widgetName": "SystemSettingsForm",
+                    "type": "FORM_WIDGET",
+                    "topRow": 0.5,
+                    "leftColumn": 0.5,
+                    "rightColumn": 12,
+                    "bottomRow": 20,
+                    "submitButtonText": "Save Settings",
+                    "resetButtonText": "Cancel",
+                    "children": [
+                      {
+                        "widgetName": "SiteNameField",
+                        "type": "TEXT_INPUT",
+                        "label": "Site Name",
+                        "value": "{{ systemSettings.site_name || 'Lux-Auto' }}"
+                      },
+                      {
+                        "widgetName": "DomainField",
+                        "type": "TEXT_INPUT",
+                        "label": "Domain",
+                        "value": "{{ systemSettings.domain || '' }}"
+                      },
+                      {
+                        "widgetName": "MaxUploadSizeField",
+                        "type": "NUMBER_INPUT",
+                        "label": "Max Upload Size (MB)",
+                        "value": "{{ systemSettings.max_upload_size || 10 }}"
+                      },
+                      {
+                        "widgetName": "SessionTimeoutField",
+                        "type": "NUMBER_INPUT",
+                        "label": "Session Timeout (hours)",
+                        "value": "{{ systemSettings.session_timeout || 24 }}"
+                      },
+                      {
+                        "widgetName": "AuditLoggingToggle",
+                        "type": "CHECKBOX_WIDGET",
+                        "label": "Enable Audit Logging",
+                        "value": "{{ systemSettings.enable_audit_logging || true }}"
+                      },
+                      {
+                        "widgetName": "APIRateLimitField",
+                        "type": "NUMBER_INPUT",
+                        "label": "API Rate Limit (req/hour)",
+                        "value": "{{ systemSettings.api_rate_limit || 5000 }}"
+                      }
+                    ]
+                  },
+                  {
+                    "widgetName": "MaintenanceSection",
+                    "type": "CONTAINER_WIDGET",
+                    "topRow": 0.5,
+                    "leftColumn": 12.5,
+                    "rightColumn": 24,
+                    "bottomRow": 20,
+                    "children": [
+                      {
+                        "widgetName": "MaintenanceTitle",
+                        "type": "TEXT_WIDGET",
+                        "text": "Maintenance",
+                        "fontSize": "16px",
+                        "fontWeight": "600",
+                        "topRow": 0,
+                        "leftColumn": 0,
+                        "rightColumn": 12
+                      },
+                      {
+                        "widgetName": "BackupNowButton",
+                        "type": "BUTTON_WIDGET",
+                        "label": "Run Backup Now",
+                        "onClick": "{{ backupQuery.trigger() }}",
+                        "topRow": 1.5,
+                        "leftColumn": 0,
+                        "rightColumn": 5
+                      },
+                      {
+                        "widgetName": "ClearCacheButton",
+                        "type": "BUTTON_WIDGET",
+                        "label": "Clear Redis Cache",
+                        "onClick": "{{ clearCacheQuery.trigger() }}",
+                        "topRow": 3,
+                        "leftColumn": 0,
+                        "rightColumn": 5
+                      },
+                      {
+                        "widgetName": "VacuumDBButton",
+                        "type": "BUTTON_WIDGET",
+                        "label": "Vacuum Database",
+                        "onClick": "{{ vacuumQuery.trigger() }}",
+                        "topRow": 4.5,
+                        "leftColumn": 0,
+                        "rightColumn": 5
+                      },
+                      {
+                        "widgetName": "StatusText",
+                        "type": "TEXT_WIDGET",
+                        "text": "{{ maintenanceStatus || '' }}",
+                        "fontSize": "12px",
+                        "topRow": 6,
+                        "leftColumn": 0,
+                        "rightColumn": 12
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "widgetName": "UserModal",
+            "type": "MODAL_WIDGET",
+            "width": 600,
+            "title": "{{ userModal.data.id ? 'Edit User' : 'Add New User' }}",
+            "visible": "{{ showUserModal.value }}",
+            "children": [
+              {
+                "widgetName": "UserForm",
+                "type": "FORM_WIDGET",
+                "submitButtonText": "{{ userModal.data.id ? 'Save' : 'Create User' }}",
+                "resetButtonText": "Cancel",
+                "children": [
+                  {
+                    "widgetName": "EmailField",
+                    "type": "EMAIL_INPUT",
+                    "label": "Email",
+                    "required": true,
+                    "disabled": "{{ !!userModal.data.id }}",
+                    "value": "{{ userModal.data.email || '' }}"
+                  },
+                  {
+                    "widgetName": "NameField",
+                    "type": "TEXT_INPUT",
+                    "label": "Full Name",
+                    "value": "{{ userModal.data.name || '' }}"
+                  },
+                  {
+                    "widgetName": "RoleMultiselect",
+                    "type": "MULTISELECT_WIDGET",
+                    "label": "Roles",
+                    "options": [
+                      { "label": "Viewer", "value": "VIEWER" },
+                      { "label": "Analyst", "value": "ANALYST" },
+                      { "label": "Admin", "value": "ADMIN" },
+                      { "label": "Super Admin", "value": "SUPER_ADMIN" }
+                    ],
+                    "value": "{{ userModal.data.roles || [] }}"
+                  },
+                  {
+                    "widgetName": "StatusField",
+                    "type": "SELECT_WIDGET",
+                    "label": "Status",
+                    "options": [
+                      { "label": "Active", "value": "active" },
+                      { "label": "Inactive", "value": "inactive" }
+                    ],
+                    "value": "{{ userModal.data.status || 'active' }}"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "widgetName": "APIKeyModal",
+            "type": "MODAL_WIDGET",
+            "width": 600,
+            "title": "Generate API Key",
+            "visible": "{{ showAPIKeyModal.value }}",
+            "children": [
+              {
+                "widgetName": "APIKeyForm",
+                "type": "FORM_WIDGET",
+                "submitButtonText": "Generate Key",
+                "resetButtonText": "Cancel",
+                "children": [
+                  {
+                    "widgetName": "KeyNameField",
+                    "type": "TEXT_INPUT",
+                    "label": "Key Name",
+                    "required": true,
+                    "placeholder": "e.g., Analytics Pipeline",
+                    "value": "{{ apiKeyModal.data.name || '' }}"
+                  },
+                  {
+                    "widgetName": "ScopesMultiselect",
+                    "type": "MULTISELECT_WIDGET",
+                    "label": "Scopes",
+                    "options": [
+                      { "label": "read:deals", "value": "read:deals" },
+                      { "label": "write:deals", "value": "write:deals" },
+                      { "label": "approve:deals", "value": "approve:deals" },
+                      { "label": "read:buyers", "value": "read:buyers" },
+                      { "label": "write:buyers", "value": "write:buyers" },
+                      { "label": "read:analytics", "value": "read:analytics" }
+                    ],
+                    "value": "{{ apiKeyModal.data.scopes || [] }}",
+                    "required": true
+                  },
+                  {
+                    "widgetName": "ExpirationField",
+                    "type": "SELECT_WIDGET",
+                    "label": "Expiration",
+                    "options": [
+                      { "label": "30 days", "value": "30" },
+                      { "label": "90 days", "value": "90" },
+                      { "label": "1 year", "value": "365" },
+                      { "label": "Never", "value": "0" }
+                    ],
+                    "value": "{{ apiKeyModal.data.expiration || '90' }}"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "datasources": [
+    {
+      "name": "usersQuery",
+      "type": "REST_API",
+      "url": "{{ baseUrl }}/api/v2/users",
+      "method": "GET",
+      "headers": {
+        "Authorization": "Bearer {{ appsmith.user.authToken }}"
+      },
+      "pluginId": "restapi"
+    },
+    {
+      "name": "apiKeysQuery",
+      "type": "REST_API",
+      "url": "{{ baseUrl }}/api/v2/api-keys",
+      "method": "GET",
+      "headers": {
+        "Authorization": "Bearer {{ appsmith.user.authToken }}"
+      },
+      "pluginId": "restapi"
+    },
+    {
+      "name": "auditLogsQuery",
+      "type": "REST_API",
+      "url": "{{ baseUrl }}/api/v2/audit-logs",
+      "method": "GET",
+      "headers": {
+        "Authorization": "Bearer {{ appsmith.user.authToken }}"
+      },
+      "params": {
+        "user": "{{ userFilterAudit.value }}",
+        "action": "{{ actionFilterAudit.value }}",
+        "start_date": "{{ dateFilterAudit.startDate }}",
+        "end_date": "{{ dateFilterAudit.endDate }}"
+      },
+      "pluginId": "restapi"
+    },
+    {
+      "name": "backupQuery",
+      "type": "REST_API",
+      "url": "{{ baseUrl }}/api/v2/admin/backup",
+      "method": "POST",
+      "headers": {
+        "Authorization": "Bearer {{ appsmith.user.authToken }}"
+      },
+      "pluginId": "restapi"
+    },
+    {
+      "name": "clearCacheQuery",
+      "type": "REST_API",
+      "url": "{{ baseUrl }}/api/v2/admin/cache/clear",
+      "method": "POST",
+      "headers": {
+        "Authorization": "Bearer {{ appsmith.user.authToken }}"
+      },
+      "pluginId": "restapi"
+    },
+    {
+      "name": "vacuumQuery",
+      "type": "REST_API",
+      "url": "{{ baseUrl }}/api/v2/admin/db/vacuum",
+      "method": "POST",
+      "headers": {
+        "Authorization": "Bearer {{ appsmith.user.authToken }}"
+      },
+      "pluginId": "restapi"
+    }
+  ]
+}

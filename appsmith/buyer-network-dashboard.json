@@ -1,0 +1,386 @@
+{
+  "pageId": "1",
+  "applicationId": "0",
+  "name": "Buyer Network Management",
+  "slug": "buyer-network",
+  "layouts": [
+    {
+      "viewMode": false,
+      "dsl": {
+        "widgetName": "MainContainer",
+        "backgroundColor": "rgb(252, 252, 252)",
+        "rightColumn": 24,
+        "snapRows": 75,
+        "detachFromLayout": true,
+        "autoHeight": false,
+        "isCanvas": true,
+        "canExtend": true,
+        "version": 100,
+        "minHeight": 400,
+        "children": [
+          {
+            "widgetName": "Header",
+            "type": "CONTAINER_WIDGET",
+            "topRow": 0,
+            "leftColumn": 0,
+            "rightColumn": 24,
+            "bottomRow": 5,
+            "key": "header",
+            "children": [
+              {
+                "widgetName": "Title",
+                "type": "TEXT_WIDGET",
+                "text": "Buyer Network Management",
+                "fontSize": "24px",
+                "fontWeight": "600",
+                "textColor": "#1a202c",
+                "topRow": 1,
+                "leftColumn": 1,
+                "rightColumn": 15
+              },
+              {
+                "widgetName": "AddBuyerButton",
+                "type": "BUTTON_WIDGET",
+                "label": "+ Add Buyer",
+                "onClick": "{{ buyerModal.setData({}); showBuyerModal.setValue(true) }}",
+                "topRow": 1,
+                "leftColumn": 19,
+                "rightColumn": 24
+              }
+            ]
+          },
+          {
+            "widgetName": "FilterContainer",
+            "type": "CONTAINER_WIDGET",
+            "topRow": 5,
+            "leftColumn": 0,
+            "rightColumn": 24,
+            "bottomRow": 10,
+            "key": "filters",
+            "children": [
+              {
+                "widgetName": "SearchBuyer",
+                "type": "TEXT_INPUT",
+                "label": "Search",
+                "placeholder": "Name or email...",
+                "topRow": 5.5,
+                "leftColumn": 0.5,
+                "rightColumn": 6
+              },
+              {
+                "widgetName": "StatusFilter",
+                "type": "SELECT_WIDGET",
+                "label": "Status",
+                "options": [
+                  { "label": "All", "value": "" },
+                  { "label": "Active", "value": "active" },
+                  { "label": "Inactive", "value": "inactive" },
+                  { "label": "Pending", "value": "pending" }
+                ],
+                "topRow": 5.5,
+                "leftColumn": 6.5,
+                "rightColumn": 12,
+                "value": ""
+              },
+              {
+                "widgetName": "RegionFilter",
+                "type": "SELECT_WIDGET",
+                "label": "Region",
+                "options": [],
+                "allowClearance": true,
+                "topRow": 5.5,
+                "leftColumn": 12.5,
+                "rightColumn": 18
+              },
+              {
+                "widgetName": "ClearFilters",
+                "type": "BUTTON_WIDGET",
+                "label": "Reset",
+                "onClick": "{{ searchBuyer.setValue(''); statusFilter.setValue(''); regionFilter.setValue('') }}",
+                "topRow": 8,
+                "leftColumn": 20,
+                "rightColumn": 24
+              }
+            ]
+          },
+          {
+            "widgetName": "StatsContainer",
+            "type": "CONTAINER_WIDGET",
+            "topRow": 10,
+            "leftColumn": 0,
+            "rightColumn": 24,
+            "bottomRow": 14,
+            "key": "stats",
+            "children": [
+              {
+                "widgetName": "TotalBuyersCard",
+                "type": "STAT_BOX_WIDGET",
+                "title": "Total Buyers",
+                "subtitle": "Active network",
+                "metric": "{{ buyersQuery.data?.length || 0 }}",
+                "topRow": 10.5,
+                "leftColumn": 0.5,
+                "rightColumn": 6
+              },
+              {
+                "widgetName": "ActiveBuyersCard",
+                "type": "STAT_BOX_WIDGET",
+                "title": "Active Buyers",
+                "subtitle": "Last 30 days",
+                "metric": "{{ buyersQuery.data?.filter(b => b.status === 'active').length || 0 }}",
+                "topRow": 10.5,
+                "leftColumn": 6.5,
+                "rightColumn": 12
+              },
+              {
+                "widgetName": "AvgScoreCard",
+                "type": "STAT_BOX_WIDGET",
+                "title": "Avg Match Score",
+                "subtitle": "All buyers",
+                "metric": "{{ (buyersQuery.data?.reduce((sum, b) => sum + (b.match_score || 0), 0) / (buyersQuery.data?.length || 1) || 0).toFixed(1) }}",
+                "topRow": 10.5,
+                "leftColumn": 12.5,
+                "rightColumn": 18
+              },
+              {
+                "widgetName": "DealsClosedCard",
+                "type": "STAT_BOX_WIDGET",
+                "title": "Total Deals Closed",
+                "subtitle": "All time",
+                "metric": "{{ buyersQuery.data?.reduce((sum, b) => sum + (b.deals_closed || 0), 0) || 0 }}",
+                "topRow": 10.5,
+                "leftColumn": 18.5,
+                "rightColumn": 24
+              }
+            ]
+          },
+          {
+            "widgetName": "BuyersTableContainer",
+            "type": "CONTAINER_WIDGET",
+            "topRow": 14,
+            "leftColumn": 0,
+            "rightColumn": 24,
+            "bottomRow": 45,
+            "key": "buyers-table",
+            "children": [
+              {
+                "widgetName": "buyersTable",
+                "type": "TABLE_WIDGET_V2",
+                "columnOrder": ["id", "name", "email", "phone", "company", "region", "match_score", "deals_closed", "status", "last_contact", "actions"],
+                "columns": {
+                  "id": {
+                    "index": 0,
+                    "label": "ID",
+                    "width": 50,
+                    "columnType": "number"
+                  },
+                  "name": {
+                    "index": 1,
+                    "label": "Name",
+                    "width": 120,
+                    "columnType": "text"
+                  },
+                  "email": {
+                    "index": 2,
+                    "label": "Email",
+                    "width": 150,
+                    "columnType": "text"
+                  },
+                  "phone": {
+                    "index": 3,
+                    "label": "Phone",
+                    "width": 120,
+                    "columnType": "text"
+                  },
+                  "company": {
+                    "index": 4,
+                    "label": "Company",
+                    "width": 140,
+                    "columnType": "text"
+                  },
+                  "region": {
+                    "index": 5,
+                    "label": "Region",
+                    "width": 100,
+                    "columnType": "text"
+                  },
+                  "match_score": {
+                    "index": 6,
+                    "label": "Match Score",
+                    "width": 100,
+                    "columnType": "number"
+                  },
+                  "deals_closed": {
+                    "index": 7,
+                    "label": "Deals Closed",
+                    "width": 100,
+                    "columnType": "number"
+                  },
+                  "status": {
+                    "index": 8,
+                    "label": "Status",
+                    "width": 100,
+                    "columnType": "text"
+                  },
+                  "last_contact": {
+                    "index": 9,
+                    "label": "Last Contact",
+                    "width": 140,
+                    "columnType": "date"
+                  },
+                  "actions": {
+                    "index": 10,
+                    "label": "Actions",
+                    "width": 150,
+                    "columnType": "button"
+                  }
+                },
+                "dataSource": "{{ buyersQuery.data }}",
+                "onRowClick": "{{ buyerModal.setData(selectedRow.data); showBuyerModal.setValue(true) }}",
+                "topRow": 14.5,
+                "leftColumn": 0,
+                "rightColumn": 24,
+                "bottomRow": 35
+              }
+            ]
+          },
+          {
+            "widgetName": "BuyerModal",
+            "type": "MODAL_WIDGET",
+            "width": 600,
+            "title": "{{ buyerModal.data.id ? 'Edit Buyer' : 'Add New Buyer' }}",
+            "visible": "{{ showBuyerModal.value }}",
+            "children": [
+              {
+                "widgetName": "BuyerForm",
+                "type": "FORM_WIDGET",
+                "submitButtonText": "{{ buyerModal.data.id ? 'Save Changes' : 'Create Buyer' }}",
+                "resetButtonText": "Cancel",
+                "onSubmit": "{{ buyerModal.data.id ? updateBuyerQuery.trigger() : createBuyerQuery.trigger() }}",
+                "children": [
+                  {
+                    "widgetName": "NameField",
+                    "type": "TEXT_INPUT",
+                    "label": "Full Name",
+                    "required": true,
+                    "value": "{{ buyerModal.data.name || '' }}"
+                  },
+                  {
+                    "widgetName": "EmailField",
+                    "type": "EMAIL_INPUT",
+                    "label": "Email",
+                    "required": true,
+                    "value": "{{ buyerModal.data.email || '' }}"
+                  },
+                  {
+                    "widgetName": "PhoneField",
+                    "type": "TEXT_INPUT",
+                    "label": "Phone",
+                    "value": "{{ buyerModal.data.phone || '' }}"
+                  },
+                  {
+                    "widgetName": "CompanyField",
+                    "type": "TEXT_INPUT",
+                    "label": "Company",
+                    "value": "{{ buyerModal.data.company || '' }}"
+                  },
+                  {
+                    "widgetName": "RegionField",
+                    "type": "SELECT_WIDGET",
+                    "label": "Region",
+                    "options": [
+                      { "label": "Northeast", "value": "northeast" },
+                      { "label": "Southeast", "value": "southeast" },
+                      { "label": "Midwest", "value": "midwest" },
+                      { "label": "Southwest", "value": "southwest" },
+                      { "label": "West", "value": "west" }
+                    ],
+                    "value": "{{ buyerModal.data.region || '' }}"
+                  },
+                  {
+                    "widgetName": "StatusField",
+                    "type": "SELECT_WIDGET",
+                    "label": "Status",
+                    "options": [
+                      { "label": "Active", "value": "active" },
+                      { "label": "Inactive", "value": "inactive" },
+                      { "label": "Pending", "value": "pending" }
+                    ],
+                    "value": "{{ buyerModal.data.status || 'pending' }}"
+                  },
+                  {
+                    "widgetName": "PreferencesField",
+                    "type": "TEXT_AREA",
+                    "label": "Vehicle Preferences",
+                    "placeholder": "E.g., Toyota, Honda, 2015-2020, under $15k",
+                    "rows": 3,
+                    "value": "{{ buyerModal.data.preferences || '' }}"
+                  },
+                  {
+                    "widgetName": "NotesField",
+                    "type": "TEXT_AREA",
+                    "label": "Internal Notes",
+                    "rows": 3,
+                    "value": "{{ buyerModal.data.internal_notes || '' }}"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "datasources": [
+    {
+      "name": "buyersQuery",
+      "type": "REST_API",
+      "url": "{{ baseUrl }}/api/v2/buyers",
+      "method": "GET",
+      "headers": {
+        "Authorization": "Bearer {{ appsmith.user.authToken }}"
+      },
+      "pluginId": "restapi"
+    },
+    {
+      "name": "createBuyerQuery",
+      "type": "REST_API",
+      "url": "{{ baseUrl }}/api/v2/buyers",
+      "method": "POST",
+      "headers": {
+        "Authorization": "Bearer {{ appsmith.user.authToken }}"
+      },
+      "body": {
+        "name": "{{ buyerModal.data.name }}",
+        "email": "{{ buyerModal.data.email }}",
+        "phone": "{{ buyerModal.data.phone }}",
+        "company": "{{ buyerModal.data.company }}",
+        "region": "{{ buyerModal.data.region }}",
+        "status": "{{ buyerModal.data.status }}",
+        "preferences": "{{ buyerModal.data.preferences }}",
+        "internal_notes": "{{ buyerModal.data.internal_notes }}"
+      },
+      "pluginId": "restapi"
+    },
+    {
+      "name": "updateBuyerQuery",
+      "type": "REST_API",
+      "url": "{{ baseUrl }}/api/v2/buyers/{{ buyerModal.data.id }}",
+      "method": "PUT",
+      "headers": {
+        "Authorization": "Bearer {{ appsmith.user.authToken }}"
+      },
+      "body": {
+        "name": "{{ buyerModal.data.name }}",
+        "email": "{{ buyerModal.data.email }}",
+        "phone": "{{ buyerModal.data.phone }}",
+        "company": "{{ buyerModal.data.company }}",
+        "region": "{{ buyerModal.data.region }}",
+        "status": "{{ buyerModal.data.status }}",
+        "preferences": "{{ buyerModal.data.preferences }}",
+        "internal_notes": "{{ buyerModal.data.internal_notes }}"
+      },
+      "pluginId": "restapi"
+    }
+  ]
+}

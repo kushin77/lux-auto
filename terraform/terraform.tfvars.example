@@ -1,0 +1,46 @@
+# Lux-Auto Terraform Configuration Example
+# Copy to terraform.tfvars and populate with real values from Google Secret Manager
+# NEVER commit terraform.tfvars - it contains secrets
+
+environment = "development"
+domain = "lux.kushnir.cloud"
+
+# Database Configuration
+database_name     = "lux_prod"
+database_user     = "lux_admin"
+database_password = "YOUR_DB_PASSWORD_FROM_GSM"
+
+# Redis Configuration
+redis_password = "YOUR_REDIS_PASSWORD_FROM_GSM"
+
+# OAuth2 Configuration (from Google Cloud Console)
+oauth_client_id      = "YOUR_GOOGLE_CLIENT_ID_FROM_GSM"
+oauth_client_secret  = "YOUR_GOOGLE_CLIENT_SECRET_FROM_GSM"
+oauth_cookie_secret  = "YOUR_OAUTH2_COOKIE_SECRET_BASE64_FROM_GSM"
+
+# FastAPI Configuration
+fastapi_secret_key = "YOUR_FASTAPI_SECRET_KEY_BASE64_FROM_GSM"
+
+# Email Configuration
+acme_email        = "akushnir@bioenergystrategies.com"
+admin_user_email  = "akushnir@bioenergystrategies.com"
+
+# Port Configuration (default values shown)
+postgres_port         = 5432
+redis_port            = 6379
+fastapi_port          = 8000
+oauth2_proxy_port     = 4180
+caddy_http_port       = 80
+caddy_https_port      = 443
+
+# Monitoring & Logging
+enable_monitoring = true
+log_level         = "INFO"
+
+# Tags for resource tracking
+tags = {
+  Project     = "Lux-Auto"
+  Environment = "development"
+  ManagedBy   = "Terraform"
+  CostCenter  = "Engineering"
+}

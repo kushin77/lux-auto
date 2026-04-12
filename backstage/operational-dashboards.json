@@ -1,0 +1,697 @@
+# Backstage Operational Dashboards Configuration
+
+Backstage provides operational dashboards for monitoring system health, tracking dependencies, and managing the service landscape.
+
+---
+
+## Dashboard Types & Configuration
+
+### System Overview Dashboard
+
+Provides a high-level view of all services, their status, and health.
+
+```json
+{
+  "id": "system-overview",
+  "title": "System Overview",
+  "description": "Health and status of all services in Lux-Auto",
+  "type": "overview",
+  "sections": [
+    {
+      "id": "service-status",
+      "title": "Service Status",
+      "type": "service-grid",
+      "components": [
+        {
+          "service": "lux-fastapi-backend",
+          "displayName": "FastAPI Backend",
+          "healthCheck": "https://lux.kushnir.cloud/health",
+          "metrics": ["uptime", "response_time", "error_rate"]
+        },
+        {
+          "service": "lux-appsmith-portal",
+          "displayName": "Appsmith Portal",
+          "healthCheck": "https://appsmith.lux.kushnir.cloud/api/v1/health",
+          "metrics": ["uptime", "user_sessions"]
+        },
+        {
+          "service": "lux-backstage-catalog",
+          "displayName": "Backstage Catalog",
+          "healthCheck": "https://backstage.lux.kushnir.cloud/api/health",
+          "metrics": ["uptime", "entity_count"]
+        }
+      ]
+    },
+    {
+      "id": "infrastructure",
+      "title": "Infrastructure",
+      "type": "resource-status",
+      "resources": [
+        {
+          "name": "PostgreSQL",
+          "type": "database",
+          "status": "GET /api/v2/admin/health/postgres",
+          "metrics": ["connections", "disk_usage", "query_time"]
+        },
+        {
+          "name": "Redis",
+          "type": "cache",
+          "status": "GET /api/v2/admin/health/redis",
+          "metrics": ["memory_usage", "hit_rate", "evictions"]
+        },
+        {
+          "name": "Docker Containers",
+          "type": "containers",
+          "metrics": ["cpu_usage", "memory_usage", "restart_count"]
+        }
+      ]
+    },
+    {
+      "id": "recent-deployments",
+      "title": "Recent Deployments",
+      "type": "deployment-timeline",
+      "limit": 10,
+      "showBy": ["timestamp", "service", "version", "status"]
+    }
+  ]
+}
+```
+
+### Service Dependency Graph
+
+Visualizes relationships and dependencies between services, databases, and APIs.
+
+```json
+{
+  "id": "dependency-graph",
+  "title": "Service Dependency Graph",
+  "type": "graph",
+  "description": "Visual representation of service dependencies and relationships",
+  "nodes": [
+    {
+      "id": "lux-fastapi-backend",
+      "label": "FastAPI Backend",
+      "type": "service",
+      "status": "health_endpoint",
+      "color": "#4CAF50"
+    },
+    {
+      "id": "lux-appsmith-portal",
+      "label": "Appsmith Portal",
+      "type": "website",
+      "status": "health_endpoint",
+      "color": "#2196F3"
+    },
+    {
+      "id": "lux-backstage-catalog",
+      "label": "Backstage Catalog",
+      "type": "service",
+      "status": "health_endpoint",
+      "color": "#2196F3"
+    },
+    {
+      "id": "postgres-db",
+      "label": "PostgreSQL",
+      "type": "database",
+      "status": "health_endpoint",
+      "color": "#FF9800"
+    },
+    {
+      "id": "redis-cache",
+      "label": "Redis Cache",
+      "type": "storage",
+      "status": "health_endpoint",
+      "color": "#F44336"
+    },
+    {
+      "id": "github",
+      "label": "GitHub",
+      "type": "external",
+      "color": "#757575"
+    }
+  ],
+  "edges": [
+    {
+      "source": "lux-fastapi-backend",
+      "target": "postgres-db",
+      "label": "reads/writes",
+      "type": "critical"
+    },
+    {
+      "source": "lux-fastapi-backend",
+      "target": "redis-cache",
+      "label": "caches",
+      "type": "dependency"
+    },
+    {
+      "source": "lux-appsmith-portal",
+      "target": "lux-fastapi-backend",
+      "label": "calls API",
+      "type": "critical"
+    },
+    {
+      "source": "lux-backstage-catalog",
+      "target": "postgres-db",
+      "label": "reads/writes",
+      "type": "critical"
+    },
+    {
+      "source": "lux-fastapi-backend",
+      "target": "github",
+      "label": "webhooks",
+      "type": "optional"
+    }
+  ]
+}
+```
+
+### API Health Dashboard
+
+Monitors all APIs and their performance metrics.
+
+```json
+{
+  "id": "api-health",
+  "title": "API Health Dashboard",
+  "type": "apis",
+  "sections": [
+    {
+      "id": "api-status",
+      "title": "API Status",
+      "apis": [
+        {
+          "id": "deals-api",
+          "name": "Deals API",
+          "baseUrl": "https://lux.kushnir.cloud/api/v2",
+          "metrics": {
+            "availability": "GET /deals with rate limiting",
+            "latency": "p50, p95, p99 response times",
+            "errors": "5xx and 4xx error rates",
+            "rateLimit": "requests per hour tracking"
+          }
+        },
+        {
+          "id": "buyers-api",
+          "name": "Buyers API",
+          "baseUrl": "https://lux.kushnir.cloud/api/v2",
+          "metrics": {
+            "availability": "GET /buyers uptime",
+            "latency": "response time percentiles",
+            "errors": "error rate tracking",
+            "rateLimit": "concurrent request limit"
+          }
+        },
+        {
+          "id": "analytics-api",
+          "name": "Analytics API",
+          "baseUrl": "https://lux.kushnir.cloud/api/v2",
+          "metrics": {
+            "availability": "GET /analytics uptime",
+            "latency": "query performance",
+            "errors": "error rate",
+            "cache-hit": "Redis cache hit rate"
+          }
+        },
+        {
+          "id": "websocket-api",
+          "name": "WebSocket API",
+          "baseUrl": "wss://lux.kushnir.cloud/api/v2",
+          "metrics": {
+            "connections": "active connection count",
+            "latency": "message delivery time",
+            "errors": "message delivery failures",
+            "throughput": "messages per second"
+          }
+        }
+      ]
+    },
+    {
+      "id": "rate-limiting",
+      "title": "Rate Limiting Status",
+      "displayMetrics": [
+        "current_requests_per_hour",
+        "limit_by_role",
+        "top_consumers",
+        "rate_limit_violations"
+      ]
+    },
+    {
+      "id": "api-endpoints",
+      "title": "Endpoint Performance",
+      "displayMetrics": [
+        "endpoint",
+        "method",
+        "avg_response_time",
+        "error_rate",
+        "total_requests"
+      ]
+    }
+  ]
+}
+```
+
+### Resource Monitoring Dashboard
+
+Tracks system resources like disk, memory, CPU, and connections.
+
+```json
+{
+  "id": "resource-monitoring",
+  "title": "Resource Monitoring",
+  "type": "resources",
+  "refreshInterval": 30,
+  "sections": [
+    {
+      "id": "database-metrics",
+      "title": "Database Metrics",
+      "metrics": [
+        {
+          "name": "Connection Pool Usage",
+          "query": "SELECT count(*) FROM pg_stat_activity;",
+          "threshold": {
+            "warning": 30,
+            "critical": 40
+          },
+          "unit": "connections"
+        },
+        {
+          "name": "Active Queries",
+          "query": "SELECT count(*) FROM pg_stat_activity WHERE state='active';",
+          "unit": "queries"
+        },
+        {
+          "name": "Database Size",
+          "query": "SELECT pg_database_size('lux_prod') / 1024.0 / 1024.0;",
+          "unit": "MB",
+          "threshold": {
+            "warning": 25000,
+            "critical": 40000
+          }
+        },
+        {
+          "name": "Slow Queries",
+          "query": "SELECT count(*) FROM pg_stat_statements WHERE mean_time > 1000;",
+          "unit": "queries",
+          "threshold": {
+            "warning": 5,
+            "critical": 10
+          }
+        },
+        {
+          "name": "Table Bloat",
+          "query": "SELECT count(*) FROM pg_stat_user_tables WHERE n_tup_dead > 1000;",
+          "unit": "tables",
+          "threshold": {
+            "warning": 2,
+            "critical": 5
+          }
+        }
+      ]
+    },
+    {
+      "id": "cache-metrics",
+      "title": "Cache Metrics",
+      "metrics": [
+        {
+          "name": "Memory Usage",
+          "query": "INFO memory",
+          "unit": "%",
+          "threshold": {
+            "warning": 75,
+            "critical": 90
+          }
+        },
+        {
+          "name": "Hit Rate",
+          "query": "INFO stats",
+          "unit": "%",
+          "threshold": {
+            "warning": 70,
+            "critical": 50
+          }
+        },
+        {
+          "name": "Evictions",
+          "query": "INFO stats",
+          "unit": "keys/second",
+          "threshold": {
+            "warning": 100,
+            "critical": 500
+          }
+        }
+      ]
+    },
+    {
+      "id": "container-metrics",
+      "title": "Container Metrics",
+      "metrics": [
+        {
+          "name": "CPU Usage",
+          "source": "docker stats",
+          "unit": "%",
+          "threshold": {
+            "warning": 70,
+            "critical": 85
+          }
+        },
+        {
+          "name": "Memory Usage",
+          "source": "docker stats",
+          "unit": "%",
+          "threshold": {
+            "warning": 75,
+            "critical": 90
+          }
+        },
+        {
+          "name": "Disk I/O",
+          "source": "docker stats",
+          "unit": "MB/s"
+        },
+        {
+          "name": "Container Restarts",
+          "source": "docker inspect",
+          "unit": "count",
+          "threshold": {
+            "warning": 1,
+            "critical": 3
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Audit & Compliance Dashboard
+
+Tracks compliance, security events, and audit trail.
+
+```json
+{
+  "id": "audit-compliance",
+  "title": "Audit & Compliance",
+  "type": "audit",
+  "sections": [
+    {
+      "id": "security-events",
+      "title": "Security Events",
+      "events": [
+        {
+          "type": "failed_login",
+          "displayName": "Failed Login Attempts",
+          "threshold": 5,
+          "period": "1 hour",
+          "action": "alert"
+        },
+        {
+          "type": "permission_denied",
+          "displayName": "Permission Denied",
+          "threshold": 10,
+          "period": "1 hour",
+          "action": "alert"
+        },
+        {
+          "type": "data_access",
+          "displayName": "Sensitive Data Access",
+          "logAll": true,
+          "action": "log"
+        },
+        {
+          "type": "api_key_created",
+          "displayName": "API Key Created",
+          "logAll": true,
+          "requiresApproval": true
+        },
+        {
+          "type": "role_changed",
+          "displayName": "Role Assignment Changed",
+          "logAll": true,
+          "action": "notify"
+        }
+      ]
+    },
+    {
+      "id": "compliance-metrics",
+      "title": "Compliance Metrics",
+      "metrics": [
+        {
+          "name": "User Access Review",
+          "period": "monthly",
+          "dueDate": "last-day-of-month",
+          "status": "tracking"
+        },
+        {
+          "name": "Security Audit",
+          "period": "quarterly",
+          "dueDate": "quarter-end",
+          "status": "tracking"
+        },
+        {
+          "name": "Data Retention",
+          "description": "Logs retained for 7 years",
+          "status": "compliant"
+        },
+        {
+          "name": "Encryption",
+          "description": "All data encrypted at rest and in transit",
+          "status": "compliant"
+        }
+      ]
+    },
+    {
+      "id": "audit-log-summary",
+      "title": "Audit Log Summary",
+      "displayMetrics": [
+        "total_events_24h",
+        "unique_users_24h",
+        "failed_operations",
+        "admin_actions",
+        "sensitive_operations"
+      ]
+    }
+  ]
+}
+```
+
+### Team & Ownership Dashboard
+
+Shows team ownership, responsibilities, and communication.
+
+```json
+{
+  "id": "team-ownership",
+  "title": "Team & Ownership",
+  "type": "teams",
+  "sections": [
+    {
+      "id": "service-ownership",
+      "title": "Service Ownership",
+      "displayColumns": [
+        "service_name",
+        "owner_team",
+        "primary_contact",
+        "on_call_schedule",
+        "last_deployment",
+        "health_status"
+      ]
+    },
+    {
+      "id": "team-members",
+      "title": "Team Members",
+      "teams": [
+        {
+          "name": "Backend Team",
+          "email": "backend@lux-auto.com",
+          "slackChannel": "#backend",
+          "onCallGroup": "backend-oncall-${week}",
+          "members": [
+            {
+              "email": "dev-lead@lux-auto.com",
+              "role": "Lead",
+              "services": ["lux-fastapi-backend"]
+            }
+          ]
+        },
+        {
+          "name": "DevOps Team",
+          "email": "devops@lux-auto.com",
+          "slackChannel": "#devops",
+          "onCallGroup": "devops-oncall-${week}",
+          "members": [
+            {
+              "email": "devops-lead@lux-auto.com",
+              "role": "Lead",
+              "services": ["infrastructure", "monitoring"]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "escalation-policy",
+      "title": "Escalation Policies",
+      "policies": [
+        {
+          "severity": "critical",
+          "firstResponder": "on-call-engineer",
+          "escalateAfter": "15-minutes",
+          "escalateTo": "team-lead"
+        },
+        {
+          "severity": "high",
+          "firstResponder": "on-call-engineer",
+          "escalateAfter": "30-minutes",
+          "escalateTo": "manager"
+        }
+      ]
+    }
+  ]
+}
+```
+
+---
+
+## Dashboard Integration
+
+### Grafana Integration
+
+Connect to Grafana dashboards from Backstage:
+
+```yaml
+apiVersion: backstage.io/v1alpha1
+kind: Dashboard
+metadata:
+  name: lux-auto-grafana
+  title: Grafana Integration
+spec:
+  provider: grafana
+  url: https://lux.kushnir.cloud/grafana
+  dashboards:
+    - id: api-health
+      title: API Health
+      description: Real-time API performance metrics
+      tags: [api, performance]
+    - id: database-health
+      title: Database Health
+      description: PostgreSQL metrics and health
+      tags: [database, infrastructure]
+    - id: resource-utilization
+      title: Resource Utilization
+      description: CPU, memory, disk usage
+      tags: [infrastructure, resources]
+```
+
+### PagerDuty Integration
+
+Link incidents and on-call schedules:
+
+```yaml
+apiVersion: backstage.io/v1alpha1
+kind: OnCall
+metadata:
+  name: lux-auto-oncall
+  title: On-Call Schedule
+spec:
+  provider: pagerduty
+  schedules:
+    - id: backend-oncall
+      service: lux-fastapi-backend
+      escalationPolicy: backend-escalation
+    - id: devops-oncall
+      service: infrastructure
+      escalationPolicy: devops-escalation
+```
+
+### Datadog Integration
+
+Monitor real-time metrics:
+
+```yaml
+apiVersion: backstage.io/v1alpha1
+kind: Monitoring
+metadata:
+  name: lux-auto-datadog
+  title: Datadog Monitoring
+spec:
+  provider: datadog
+  organizations:
+    - name: Lux-Auto
+      apiKey: ${DATADOG_API_KEY}
+      metrics:
+        - api_response_time
+        - error_rate
+        - db_query_time
+        - cache_hit_rate
+```
+
+---
+
+## Setup Instructions
+
+### 1. Register Dashboard Entities
+
+```bash
+# Register all dashboards in Backstage
+curl -X POST \
+  https://backstage.lux.kushnir.cloud/api/catalog/entities \
+  -H "Content-Type: application/yaml" \
+  -d @dashboards/system-overview.yaml
+
+curl -X POST \
+  https://backstage.lux.kushnir.cloud/api/catalog/entities \
+  -H "Content-Type: application/yaml" \
+  -d @dashboards/dependency-graph.yaml
+```
+
+### 2. Configure Data Sources
+
+1. Go to Backstage → **Settings**
+2. Configure API endpoints for each data source
+3. Test connections
+4. Save configurations
+
+### 3. Enable Real-Time Updates
+
+```yaml
+# Enable WebSocket for real-time updates
+ws:
+  enabled: true
+  url: wss://backstage.lux.kushnir.cloud/api/ws
+  reconnect:
+    maxAttempts: 5
+    delayMs: 1000
+```
+
+### 4. Set Up Notifications
+
+Configure alerts to notify teams of critical issues:
+
+```yaml
+notifications:
+  slack:
+    webhookUrl: ${SLACK_WEBHOOK_URL}
+    channels:
+      - incidents
+      - alerts
+  email:
+    enabled: true
+    recipients:
+      - ops@lux-auto.com
+```
+
+---
+
+## Accessing Dashboards
+
+1. **System Overview**: `backstage.lux.kushnir.cloud/dashboards/system-overview`
+2. **Dependency Graph**: `backstage.lux.kushnir.cloud/dashboards/dependency-graph`
+3. **API Health**: `backstage.lux.kushnir.cloud/dashboards/api-health`
+4. **Resource Monitoring**: `backstage.lux.kushnir.cloud/dashboards/resource-monitoring`
+5. **Audit & Compliance**: `backstage.lux.kushnir.cloud/dashboards/audit-compliance`
+6. **Team & Ownership**: `backstage.lux.kushnir.cloud/dashboards/team-ownership`
+
+---
+
+Last Updated: April 12, 2026
+Version: 1.0

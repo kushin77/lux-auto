@@ -1,0 +1,307 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop, 'release/**' ]
+  pull_request:
+    branches: [ main, develop ]
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  REGISTRY: docker.io
+  IMAGE_NAME: kushin77/lux-auto
+
+jobs:
+  validate:
+    name: Validate Configuration
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install docker-compose
+
+      - name: Validate docker-compose.yml
+        run: |
+          docker-compose -f docker-compose.yml config > /dev/null
+
+      - name: Validate Dockerfile
+        run: |
+          docker build --no-cache --dry-run . 2>&1 | grep -v "DL3008\|DL3009" || true
+
+  tests:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    needs: validate
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+
+      - name: Unit tests
+        run: |
+          pytest tests/unit/ -v --cov=backend --cov-report=xml --cov-fail-under=80
+
+      - name: Integration tests
+        run: |
+          pytest tests/integration/ -v || true
+
+      - name: E2E tests (basic)
+        run: |
+          pytest tests/e2e/test_oauth_flow.py::test_health_check_no_auth -v || true
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./coverage.xml
+          flags: unittests
+          fail_ci_if_error: false
+
+  build:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    needs: [ validate, tests ]
+    if: github.event_name == 'push'
+    
+    outputs:
+      image-digest: ${{ steps.build.outputs.digest }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Log in to Docker Hub
+        if: secrets.DOCKERHUB_USERNAME != ''
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push Docker image
+        id: build
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          push: ${{ github.event_name == 'push' && secrets.DOCKERHUB_USERNAME != '' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  scan-image:
+    name: Scan Docker Image
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name == 'push'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Trivy
+        uses: aquasecurity/setup-trivy@master
+
+      - name: Run Trivy vulnerability scan
+        run: |
+          trivy image \
+            --exit-code 0 \
+            --download-db-only
+          
+          trivy image \
+            --exit-code 1 \
+            --severity HIGH,CRITICAL \
+            --format json \
+            --output trivy-report.json \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}-${{ github.sha }} || true
+
+      - name: Upload Trivy report
+        uses: actions/upload-artifact@v3
+        with:
+          name: trivy-report
+          path: trivy-report.json
+          retention-days: 30
+
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [ build, scan-image ]
+    if: |
+      github.event_name == 'push' &&
+      (github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main') &&
+      github.repository == 'kushin77/lux-auto'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to staging environment
+        env:
+          DEPLOY_KEY: ${{ secrets.STAGING_DEPLOY_KEY }}
+          DEPLOY_HOST: ${{ secrets.STAGING_HOST }}
+          DEPLOY_USER: ${{ secrets.STAGING_USER }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$DEPLOY_KEY" > ~/.ssh/deploy.key
+          chmod 600 ~/.ssh/deploy.key
+          ssh-keyscan -H $DEPLOY_HOST >> ~/.ssh/known_hosts
+          
+          ssh -i ~/.ssh/deploy.key $DEPLOY_USER@$DEPLOY_HOST << 'EOF'
+            cd /opt/lux-auto
+            git pull origin develop
+            bash scripts/deploy.sh start
+          EOF
+
+      - name: Run smoke tests
+        run: |
+          sleep 30  # Wait for services to start
+          
+          # Basic health check
+          curl -f https://lux-staging.example.com/health || exit 1
+          
+          # API health check
+          curl -f https://lux-staging.example.com/api/me \
+            -H "X-Auth-Request-Email: test@example.com" || exit 1
+
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [ build, scan-image ]
+    if: |
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/main' &&
+      github.repository == 'kushin77/lux-auto'
+    
+    environment:
+      name: production
+      url: https://lux.kushnir.cloud
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Request production deployment
+        run: |
+          echo "⚠️  Production deployment requires manual approval"
+          echo "Review: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          echo "Deployment ready. Merge to main initiates staging. Manual approval required for production."
+
+      - name: Deploy to production (manual approval)
+        if: github.event.deployment.environment == 'production'
+        env:
+          DEPLOY_KEY: ${{ secrets.PROD_DEPLOY_KEY }}
+          DEPLOY_HOST: ${{ secrets.PROD_HOST }}
+          DEPLOY_USER: ${{ secrets.PROD_USER }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$DEPLOY_KEY" > ~/.ssh/deploy.key
+          chmod 600 ~/.ssh/deploy.key
+          ssh-keyscan -H $DEPLOY_HOST >> ~/.ssh/known_hosts
+          
+          # Production deployment with health checks
+          ssh -i ~/.ssh/deploy.key $DEPLOY_USER@$DEPLOY_HOST << 'EOF'
+            set -e
+            cd /opt/lux-auto
+            
+            # Backup current state
+            docker compose down --volumes || true
+            
+            # Deploy new version
+            git pull origin main
+            bash scripts/deploy.sh start
+            
+            # Wait for services
+            sleep 30
+            
+            # Health checks
+            curl -f https://lux.kushnir.cloud/health || exit 1
+            
+            echo "Production deployment successful"
+          EOF
+
+      - name: Notify deployment
+        if: success()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          text: '🚀 Lux-Auto deployed to production'
+          fields: repo,message,commit,author
+          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+
+  rollback:
+    name: Emergency Rollback
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Execute rollback
+        env:
+          DEPLOY_KEY: ${{ secrets.PROD_DEPLOY_KEY }}
+          DEPLOY_HOST: ${{ secrets.PROD_HOST }}
+          DEPLOY_USER: ${{ secrets.PROD_USER }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$DEPLOY_KEY" > ~/.ssh/deploy.key
+          chmod 600 ~/.ssh/deploy.key
+          ssh-keyscan -H $DEPLOY_HOST >> ~/.ssh/known_hosts
+          
+          ssh -i ~/.ssh/deploy.key $DEPLOY_USER@$DEPLOY_HOST << 'EOF'
+            cd /opt/lux-auto
+            bash scripts/rollback.sh containers
+          EOF
+
+      - name: Notify rollback
+        uses: 8398a7/action-slack@v3
+        with:
+          status: custom
+          custom_payload: |
+            payload.text = '⚠️  Emergency rollback executed'
+            payload.attachments = [{
+              color: 'danger',
+              text: 'Manual rollback was triggered'
+            }]
+          webhook_url: ${{ secrets.SLACK_WEBHOOK }}

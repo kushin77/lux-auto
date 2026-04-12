@@ -1,0 +1,248 @@
+{
+  "pageId": "2",
+  "applicationId": "0",
+  "name": "Analytics Dashboard",
+  "slug": "analytics",
+  "layouts": [
+    {
+      "viewMode": false,
+      "dsl": {
+        "widgetName": "MainContainer",
+        "backgroundColor": "rgb(252, 252, 252)",
+        "rightColumn": 24,
+        "snapRows": 75,
+        "detachFromLayout": true,
+        "autoHeight": false,
+        "isCanvas": true,
+        "canExtend": true,
+        "version": 100,
+        "minHeight": 400,
+        "children": [
+          {
+            "widgetName": "Header",
+            "type": "CONTAINER_WIDGET",
+            "topRow": 0,
+            "leftColumn": 0,
+            "rightColumn": 24,
+            "bottomRow": 5,
+            "key": "header",
+            "children": [
+              {
+                "widgetName": "Title",
+                "type": "TEXT_WIDGET",
+                "text": "Analytics & Reporting",
+                "fontSize": "24px",
+                "fontWeight": "600",
+                "textColor": "#1a202c",
+                "topRow": 1,
+                "leftColumn": 1,
+                "rightColumn": 15
+              },
+              {
+                "widgetName": "DateRangeFilter",
+                "type": "DATE_RANGE_PICKER",
+                "label": "Date Range",
+                "topRow": 1,
+                "leftColumn": 16,
+                "rightColumn": 24
+              }
+            ]
+          },
+          {
+            "widgetName": "KPIContainer",
+            "type": "CONTAINER_WIDGET",
+            "topRow": 5,
+            "leftColumn": 0,
+            "rightColumn": 24,
+            "bottomRow": 15,
+            "key": "kpis",
+            "children": [
+              {
+                "widgetName": "DealsPerMonthCard",
+                "type": "STAT_BOX_WIDGET",
+                "title": "Deals/Month",
+                "subtitle": "YTD average",
+                "metric": "{{ (analyticsQuery.data?.deals_per_month || 0).toFixed(1) }}",
+                "trend": "{{ analyticsQuery.data?.deals_trend || 0 }}%",
+                "topRow": 5.5,
+                "leftColumn": 0.5,
+                "rightColumn": 6
+              },
+              {
+                "widgetName": "AvgProfitCard",
+                "type": "STAT_BOX_WIDGET",
+                "title": "Avg Profit/Deal",
+                "subtitle": "All time",
+                "metric": "${{ (analyticsQuery.data?.avg_profit || 0).toLocaleString() }}",
+                "topRow": 5.5,
+                "leftColumn": 6.5,
+                "rightColumn": 12
+              },
+              {
+                "widgetName": "WinRateCard",
+                "type": "STAT_BOX_WIDGET",
+                "title": "Win Rate",
+                "subtitle": "Reviewed deals",
+                "metric": "{{ (analyticsQuery.data?.win_rate || 0).toFixed(1) }}%",
+                "topRow": 5.5,
+                "leftColumn": 12.5,
+                "rightColumn": 18
+              },
+              {
+                "widgetName": "TotalRevenueCard",
+                "type": "STAT_BOX_WIDGET",
+                "title": "Total Revenue",
+                "subtitle": "YTD",
+                "metric": "${{ (analyticsQuery.data?.ytd_revenue || 0).toLocaleString() }}",
+                "topRow": 5.5,
+                "leftColumn": 18.5,
+                "rightColumn": 24
+              }
+            ]
+          },
+          {
+            "widgetName": "ChartsContainer",
+            "type": "CONTAINER_WIDGET",
+            "topRow": 15,
+            "leftColumn": 0,
+            "rightColumn": 24,
+            "bottomRow": 35,
+            "key": "charts",
+            "children": [
+              {
+                "widgetName": "DealsOverTimeChart",
+                "type": "CHART_WIDGET",
+                "chartType": "LINE_CHART",
+                "title": "Deals Over Time",
+                "xAxisLabel": "Month",
+                "yAxisLabel": "Number of Deals",
+                "dataSource": "{{ analyticsQuery.data?.deals_timeline || [] }}",
+                "topRow": 15.5,
+                "leftColumn": 0.5,
+                "rightColumn": 12
+              },
+              {
+                "widgetName": "MarginDistributionChart",
+                "type": "CHART_WIDGET",
+                "chartType": "HISTOGRAM",
+                "title": "Profit Margin Distribution",
+                "xAxisLabel": "Margin %",
+                "yAxisLabel": "Number of Deals",
+                "dataSource": "{{ analyticsQuery.data?.margin_distribution || [] }}",
+                "topRow": 15.5,
+                "leftColumn": 12.5,
+                "rightColumn": 24
+              },
+              {
+                "widgetName": "VehicleTypeChart",
+                "type": "CHART_WIDGET",
+                "chartType": "PIE_CHART",
+                "title": "Deals by Vehicle Type",
+                "dataSource": "{{ analyticsQuery.data?.deals_by_type || [] }}",
+                "topRow": 25.5,
+                "leftColumn": 0.5,
+                "rightColumn": 12
+              },
+              {
+                "widgetName": "BuyerMatchChart",
+                "type": "CHART_WIDGET",
+                "chartType": "BAR_CHART",
+                "title": "Top 10 Buyers by Deals",
+                "xAxisLabel": "Buyer",
+                "yAxisLabel": "Deals Closed",
+                "dataSource": "{{ analyticsQuery.data?.top_buyers || [] }}",
+                "topRow": 25.5,
+                "leftColumn": 12.5,
+                "rightColumn": 24
+              }
+            ]
+          },
+          {
+            "widgetName": "ReportsContainer",
+            "type": "CONTAINER_WIDGET",
+            "topRow": 35,
+            "leftColumn": 0,
+            "rightColumn": 24,
+            "bottomRow": 42,
+            "key": "reports",
+            "children": [
+              {
+                "widgetName": "ReportsTitle",
+                "type": "TEXT_WIDGET",
+                "text": "Reports & Exports",
+                "fontSize": "18px",
+                "fontWeight": "600",
+                "topRow": 35.5,
+                "leftColumn": 0.5,
+                "rightColumn": 24
+              },
+              {
+                "widgetName": "ExportCSVButton",
+                "type": "BUTTON_WIDGET",
+                "label": "Export as CSV",
+                "onClick": "{{ analyticsQuery.exportData('csv') }}",
+                "topRow": 37,
+                "leftColumn": 0.5,
+                "rightColumn": 5
+              },
+              {
+                "widgetName": "ExportPDFButton",
+                "type": "BUTTON_WIDGET",
+                "label": "Export as PDF",
+                "onClick": "{{ analyticsQuery.exportData('pdf') }}",
+                "topRow": 37,
+                "leftColumn": 5.5,
+                "rightColumn": 10
+              },
+              {
+                "widgetName": "ScheduleReportButton",
+                "type": "BUTTON_WIDGET",
+                "label": "Schedule Report",
+                "onClick": "{{ showReportModal.setValue(true) }}",
+                "topRow": 37,
+                "leftColumn": 10.5,
+                "rightColumn": 15
+              },
+              {
+                "widgetName": "ViewComplianceButton",
+                "type": "BUTTON_WIDGET",
+                "label": "Compliance Report",
+                "onClick": "{{ complianceQuery.trigger() }}",
+                "topRow": 37,
+                "leftColumn": 15.5,
+                "rightColumn": 20
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "datasources": [
+    {
+      "name": "analyticsQuery",
+      "type": "REST_API",
+      "url": "{{ baseUrl }}/api/v2/analytics",
+      "method": "GET",
+      "headers": {
+        "Authorization": "Bearer {{ appsmith.user.authToken }}"
+      },
+      "params": {
+        "start_date": "{{ dateRangeFilter.startDate }}",
+        "end_date": "{{ dateRangeFilter.endDate }}"
+      },
+      "pluginId": "restapi",
+      "responseType": "JSON"
+    },
+    {
+      "name": "complianceQuery",
+      "type": "REST_API",
+      "url": "{{ baseUrl }}/api/v2/analytics/compliance",
+      "method": "GET",
+      "headers": {
+        "Authorization": "Bearer {{ appsmith.user.authToken }}"
+      },
+      "pluginId": "restapi"
+    }
+  ]
+}

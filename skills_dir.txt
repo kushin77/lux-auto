@@ -1,0 +1,89 @@
+# Skills Directory
+> Each file is a reusable SOP. Invoke with: "use skill: [filename]"
+> Add 3-5 per week. They compound.
+
+---
+
+## skills/new-product-scaffold.md
+```
+When scaffolding a new product in Alex's portfolio:
+1. Create mono-repo structure: /apps, /packages, /infra, /docs
+2. Initialize: Go backend (Gin/Chi), React+Vite frontend (shadcn/ui), FastAPI for ML services
+3. Add: Dockerfile + docker-compose.dev.yml, Helm chart skeleton, Terraform module skeleton
+4. Create: README.md (operator-grade), ARCHITECTURE.md, openapi.yaml (OpenAPI 3.1)
+5. Configure: GitLab CI pipeline (.gitlab-ci.yml) with SAST, lint, build, push stages
+6. Add: Vault secret path conventions in config/, .env.example with all vars documented
+7. License tiers file: TIERS.md with Community/Pro/Enterprise/Sovereign definitions
+8. Default dark mode UI with Linear aesthetic
+```
+
+---
+
+## skills/architecture-doc.md
+```
+When creating an architecture document:
+1. Start with a one-paragraph "What this is" summary
+2. System diagram (ASCII or Mermaid) showing all major components and data flows
+3. Component table: Name | Role | Tech | Port/Interface
+4. Data flow section: numbered step-by-step flow for primary use case
+5. Deployment models section: SaaS / BYOC / Air-gapped differences
+6. Security section: auth model, secret management, network boundaries
+7. Scaling section: horizontal scaling strategy, bottlenecks
+8. Dependencies table: Name | Version | License | Sovereign alternative
+```
+
+---
+
+## skills/cold-outreach-email.md
+```
+When writing a cold outreach email for one of Alex's products:
+1. Subject: specific, outcome-focused, no spam triggers
+2. Opening: reference something specific about their company/role (1 sentence)
+3. Problem statement: name the pain point they likely have (1 sentence)
+4. Solution hook: what the product does, tied to their pain (2 sentences)
+5. Proof point: one concrete metric or customer outcome
+6. CTA: single, low-friction ask (15-min call or reply with interest)
+7. Tone: peer-to-peer, no buzzwords, no "I hope this finds you well"
+8. Sign-off: Alex | [Product] | [one-line value prop]
+```
+
+---
+
+## skills/pr-description.md
+```
+When writing a pull request description:
+1. Title: [type]: brief description (feat/fix/chore/refactor)
+2. Summary: what changed and why (3-5 sentences)
+3. Changes table: File/Component | What Changed | Why
+4. Testing: what was tested, how to verify
+5. Screenshots: include if UI changes
+6. Breaking changes: call out explicitly with migration steps if any
+7. Linked issues: reference GitLab issue numbers
+```
+
+---
+
+## skills/morning-brief.md
+```
+Morning intelligence brief (scheduled task):
+1. Pull Gmail: unread emails flagged as important — summarize each in one line
+2. Pull Calendar: today's events with times and any prep needed
+3. Active product status: any CI failures, alerts, or pending PRs (if connected)
+4. Three priorities for today based on current project focus
+5. Format: clean markdown, scannable in under 60 seconds
+6. Deliver at 8:00 AM ET
+```
+
+---
+
+## skills/competitor-analysis.md
+```
+When analyzing a competitor for one of Alex's products:
+1. Company overview: funding, team size, founded, target market
+2. Product features table vs Alex's product: Feature | Them | Us | Advantage
+3. Pricing model: tiers, price points, free tier details
+4. Deployment model: SaaS-only? BYOC? Air-gap? (sovereign gap = our moat)
+5. G2/Capterra sentiment: top 3 complaints from reviews
+6. Go-to-market: ICP, channels, messaging
+7. Our differentiation: 3-bullet sovereign/air-gap/white-label advantage statement
+```

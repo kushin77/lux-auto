@@ -1,0 +1,54 @@
+# Agent Memory — Alex
+> Auto-updated by agent when corrections or new preferences are learned.
+> Format: [YYYY-MM-DD] — entry
+
+---
+
+## Preferences
+
+### Code Style
+- [2026-04-12] Prefers complete, deployable files over partial snippets — always finish the file
+- [2026-04-12] Default to dark mode UI with Linear/Vercel/Stripe aesthetic
+- [2026-04-12] shadcn/ui + Tailwind is the preferred component stack for React apps
+- [2026-04-12] All AI inference defaults to Ollama unless explicitly told otherwise
+
+### Architecture
+- [2026-04-12] Air-gap / sovereign deployment must always be considered — no hardcoded SaaS dependencies
+- [2026-04-12] Vault OIDC over static credentials — never suggest AWS access keys or similar
+- [2026-04-12] Avoid "blockchain" / "crypto" language — use "distributed trust network" or "content-addressed storage"
+- [2026-04-12] Multi-tenant architecture by default on all SaaS products
+
+### Communication
+- [2026-04-12] Skip disclaimers and caveats — Alex has 15 years cloud experience, treat as peer
+- [2026-04-12] When scope escalation is requested ("10X it", "enterprise grade"), go all the way — don't hold back
+- [2026-04-12] Prefers tables and structured output for comparisons and architecture decisions
+
+### Business / Product
+- [2026-04-12] All products support SaaS + BYOC + air-gapped — never design for SaaS-only
+- [2026-04-12] White-label / OEM packaging is a requirement, not an afterthought
+- [2026-04-12] License tiers: Community → Pro → Enterprise → Sovereign (~$12K/mo ceiling seen in VaultOS)
+
+---
+
+## Corrections Log
+> Append agent errors and corrections here so they don't repeat.
+
+<!-- Example format:
+[2026-04-12] Suggested localStorage in artifact — not supported in Claude.ai artifacts, use React state instead
+-->
+
+---
+
+## Session Notes
+> Temporary working notes per project/session.
+
+### AnimForge (Current Focus)
+- Stack: ComfyUI, LTX-Video, AdvancedLivePortrait, Piper TTS, Ollama, AnimateDiff
+- Target audience: IT/cybersecurity/DevOps orgs
+- Use case: Replace video agencies with sovereign on-prem AI production
+- Has: Content Bible (12 categories), eLearning/SCORM playbook, cert prep curricula
+
+### ReguMail
+- Portal recently built with admin + recipient RBAC views
+- DLP controls, OTP-gated secure message viewer
+- Security levels L0–L5 (PQC/E2EE architecture)

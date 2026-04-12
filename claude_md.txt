@@ -1,0 +1,87 @@
+# Agent Context — Alex
+
+## Identity & Role
+I am a solo solutions architect and independent software builder with ~15 years in cloud infrastructure. 
+Previously at CrowdStrike. I build a portfolio of enterprise-grade SaaS/BYOC/air-gapped products 
+targeting SMB through enterprise. I operate as the sole architect, engineer, and product owner.
+
+## Active Product Portfolio
+| Product | Category | Stage |
+|---|---|---|
+| **NexusShield** | CNAPP / Cybersecurity Platform | Active |
+| **VaultOS** | Enterprise Sovereign Storage | Active |
+| **FlowCI** | AI-Native CI/CD Platform | Active |
+| **GitPeak** | AI Branch Management SaaS | Active |
+| **AnimForge** | On-Prem AI Video/Animation Production | Active — Current Focus |
+| **ReguMail** | Secure Email / PQC Gateway | Active |
+| **EXPOSED.ai** | Real Estate Forensic Intelligence | Active |
+
+## Current Primary Focus
+**AnimForge** — Fully sovereign, on-premises AI animation and video production system.
+Stack: ComfyUI · LTX-Video · AdvancedLivePortrait · Piper TTS · Ollama · AnimateDiff
+Target: IT/cybersecurity/DevOps orgs replacing video agencies with sovereign AI production.
+
+## Technical Stack & Preferences
+
+### Infrastructure Philosophy
+- **Sovereign-first**: self-hosted, air-gap capable, zero vendor lock-in
+- **Zero static credentials**: Vault OIDC, Workload Identity Federation everywhere
+- **Local LLM default**: Ollama for all AI inference unless explicitly overridden
+- **GitOps**: ArgoCD, Terraform, single source of truth
+
+### Core Tech
+- **Cloud**: Multi-cloud (AWS/GCP/Azure) + on-prem/BYOC
+- **IaC**: Terraform (sovereign deployment default)
+- **Containers**: Kubernetes, Docker, Helm
+- **CI/CD**: GitLab CE (self-hosted), ArgoCD
+- **Secrets**: HashiCorp Vault (OIDC / AppRole)
+- **Languages**: Python, Go, TypeScript/React
+- **AI/ML**: Ollama, ComfyUI, LangGraph, CrewAI, Claude API
+- **Databases**: PostgreSQL, ClickHouse, Redis, Neo4j
+- **Messaging**: Kafka
+
+### Design Aesthetic
+- Dark mode by default (Linear/Vercel/Stripe-inspired)
+- FAANG-grade UI quality — no toy interfaces
+- Component libraries: shadcn/ui, Tailwind CSS
+- Dense information architecture — power user UIs
+
+## Working Preferences
+
+### Code Output
+- Production-ready, not scaffolding — complete, deployable code
+- Concise variable names for density; clarity over verbosity in naming
+- Always include error handling, logging, and observability hooks
+- Prefer modular architecture — avoid monolithic files
+- Include Dockerfile + docker-compose or Helm chart when relevant
+
+### Communication Style
+- Direct and technical — skip the preamble and caveats
+- Structured output: use headers and tables for complex responses
+- When I ask to "10X" or escalate scope, go full enterprise-grade
+- Don't ask clarifying questions unless truly blocked — make reasonable assumptions and state them
+
+### Documentation
+- README files should be operator-grade (installation, config, architecture diagram reference)
+- All configs should be heavily commented
+- API specs default to OpenAPI 3.1
+
+## MCP Integrations Active
+- Gmail
+- Google Calendar
+
+## Deployment Models I Support
+- **SaaS** (managed cloud)
+- **BYOC** (Bring Your Own Cloud — customer's infra, my control plane)
+- **Air-gapped** (fully offline, sovereign deployment)
+
+## Business Context
+- Licensing tiers typically: Free/Community → Pro → Enterprise → Sovereign
+- Target buyers: Platform Engineering, DevSecOps, IT Operations, CISOs
+- Avoid crypto/blockchain terminology — use "distributed trust network" etc.
+- All products should support white-label / OEM packaging
+
+## Memory File
+See `memory.md` for learned preferences, corrections, and session notes.
+**Instruction**: When I correct you, you make a mistake, or you learn a new preference — 
+append it to `memory.md` immediately.

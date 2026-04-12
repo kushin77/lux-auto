@@ -1,0 +1,90 @@
+/*
+  Appsmith Application Configuration
+  
+  This configuration file sets up the Appsmith low-code platform
+  for Lux-Auto's deal management portal.
+  
+  Generated configuration - customize as needed for your environment.
+*/
+
+{
+  "name": "Lux-Auto Portal",
+  "version": "1.0.0",
+  "organizationName": "Lux-Auto",
+  "description": "Low-code portal for automated vehicle arbitrage deal management",
+  
+  "appSettings": {
+    "theme": {
+      "primaryColor": "#1677ff",
+      "secondaryColor": "#722ed1",
+      "accentColor": "#ff4d4f"
+    },
+    "enableTelemetry": false,
+    "enableAnalytics": true
+  },
+  
+  "dataSources": {
+    "luxAutoAPI": {
+      "type": "REST_API",
+      "url": "https://lux.kushnir.cloud/api/v2",
+      "authentication": "OAuth2",
+      "headers": {
+        "Content-Type": "application/json"
+      }
+    }
+  },
+  
+  "pages": [
+    {
+      "name": "Deal Dashboard",
+      "url": "/deals",
+      "description": "Kanban board for deal pipeline management",
+      "icon": "chart"
+    },
+    {
+      "name": "Buyer Network",
+      "url": "/buyers",
+      "description": "Buyer profile management and matching",
+      "icon": "people"
+    },
+    {
+      "name": "Analytics",
+      "url": "/analytics",
+      "description": "Deal and buyer performance analytics",
+      "icon": "line-chart"
+    },
+    {
+      "name": "Admin Settings",
+      "url": "/admin",
+      "description": "System configuration and user management",
+      "icon": "setting",
+      "roleRestriction": "ADMIN"
+    }
+  ],
+  
+  "workflows": {
+    "dealApproval": {
+      "description": "Approve deal for bidding",
+      "status": "scanning",
+      "nextStatus": "scored"
+    },
+    "dealRejection": {
+      "description": "Reject deal with reason",
+      "status": "scoring",
+      "nextStatus": "closed"
+    },
+    "buyerImport": {
+      "description": "Import buyers from CSV",
+      "fileType": "csv",
+      "requiredFields": ["name", "email", "makes", "models", "priceMin", "priceMax"]
+    }
+  },
+  
+  "notifications": {
+    "dealStatusChanged": {
+      "type": "websocket",
+      "channel": "/ws/deals",
+      "triggers": ["status_changed", "bid_placed", "deal_won"]
+    }
+  }
+}
