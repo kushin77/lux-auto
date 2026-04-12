@@ -1,0 +1,93 @@
+global:
+  resolve_timeout: 10m
+  slack_api_url: "${SLACK_WEBHOOK_URL}"
+
+route:
+  receiver: "default"
+  group_by: ["alertname", "job", "severity"]
+  group_wait: 10s
+  group_interval: 10s
+  repeat_interval: 12h
+  
+  # Critical alerts → PagerDuty (on-call engineer)
+  routes:
+    - match:
+        severity: critical
+      receiver: "pagerduty"
+      group_wait: 5s
+      repeat_interval: 5m
+    
+    # Warning alerts → Slack #alerts
+    - match:
+        severity: warning
+      receiver: "slack-alerts"
+      group_wait: 30s
+      repeat_interval: 4h
+    
+    # Info alerts → Slack #general
+    - match:
+        severity: info
+      receiver: "slack-general"
+      group_wait: 5m
+      repeat_interval: 24h
+
+# Receivers define where alerts go
+receivers:
+  - name: "default"
+    slack_configs:
+      - channel: "#alerts"
+        title: "🚨 {{ .GroupLabels.alertname }}"
+        text: |
+          {{ range .Alerts }}
+          **Job:** {{ .Labels.job }}
+          **Severity:** {{ .Labels.severity }}
+          **Instance:** {{ .Labels.instance }}
+          **Message:** {{ .Annotations.description }}
+          {{ end }}
+        send_resolved: true
+        color: "{{ if eq .Status \"firing\" }}danger{{ else }}good{{ end }}"
+
+  - name: "slack-alerts"
+    slack_configs:
+      - channel: "#alerts"
+        title: "⚠️ [{{ .Status | toUpper }}] {{ .GroupLabels.alertname }}"
+        text: |
+          {{ range .Alerts }}
+          **Severity:** {{ .Labels.severity }}
+          **Instance:** {{ .Labels.instance }}
+          **Details:** {{ .Annotations.description }}
+          {{ end }}
+        send_resolved: true
+
+  - name: "slack-general"
+    slack_configs:
+      - channel: "#general"
+        title: "ℹ️ {{ .GroupLabels.alertname }}"
+        text: "{{ range .Alerts }}{{ .Annotations.description }}{{ end }}"
+        send_resolved: false
+
+  - name: "pagerduty"
+    pagerduty_configs:
+      - service_key: "${PAGERDUTY_SERVICE_KEY}"
+        description: "{{ .GroupLabels.alertname }}: {{ (index .Alerts 0).Annotations.description }}"
+        details:
+          firing: "{{ template \"pagerduty.default.instances\" .Alerts.Firing }}"
+          resolved: "{{ template \"pagerduty.default.instances\" .Alerts.Resolved }}"
+
+# Inhibition rules prevent duplicate alerts
+inhibit_rules:
+  # If service is down, don't alert on high latency
+  - source_match:
+      severity: "critical"
+      alertname: "ServiceDown"
+    target_match_re:
+      severity: "warning|info"
+    equal: ["job", "instance"]
+  
+  # If critical error rate, suppress high timeout warnings
+  - source_match:
+      severity: "critical"
+      alertname: "HighErrorRate"
+    target_match:
+      alertname: "HighLatency"
+    equal: ["job"]
