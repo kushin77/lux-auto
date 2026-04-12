@@ -1,0 +1,342 @@
+# Prometheus Alert Rules for Lux-Auto SLOs
+# Place in: monitoring/prometheus/alert_rules.yml
+# These rules enforce Service Level Objectives defined in docs/SLOs.md
+
+groups:
+  - name: backend_api_slos
+    interval: 30s
+    rules:
+
+      # High Error Rate (SLO: < 0.1% error rate)
+      - alert: HighErrorRate
+        expr: |
+          (increase(http_requests_total{status=~"5.."}[5m])
+          / increase(http_requests_total[5m])) > 0.001
+        for: 5m
+        severity: critical
+        labels:
+          slo: "error_rate"
+          team: "backend"
+        annotations:
+          summary: "Error rate exceeds 0.1% SLO"
+          description: |
+            Error rate is {{ $value | humanizePercentage }} over last 5 minutes.
+            SLO: < 0.1%
+            Action: Check logs for 5xx errors, identify service failure
+          dashboard: "https://grafana.lux.kushnir.cloud/d/backend-health"
+          runbook: "docs/runbooks/high-error-rate.md"
+
+      # High Latency p95 (SLO: < 200ms)
+      - alert: HighLatencyP95
+        expr: |
+          histogram_quantile(0.95, http_request_duration_seconds) > 0.2
+        for: 10m
+        severity: warning
+        labels:
+          slo: "latency_p95"
+          team: "backend"
+        annotations:
+          summary: "p95 latency exceeds 200ms SLO"
+          description: |
+            p95 latency: {{ $value | humanizeDuration }}
+            SLO: < 200ms
+            Action: Check slow query logs, analyze database load
+          dashboard: "https://grafana.lux.kushnir.cloud/d/backend-health"
+
+      # High Latency p99 (SLO: < 500ms)
+      - alert: HighLatencyP99
+        expr: |
+          histogram_quantile(0.99, http_request_duration_seconds) > 0.5
+        for: 10m
+        severity: warning
+        labels:
+          slo: "latency_p99"
+          team: "backend"
+        annotations:
+          summary: "p99 latency exceeds 500ms SLO"
+          description: |
+            p99 latency: {{ $value | humanizeDuration }}
+            SLO: < 500ms
+            Action: Identify outlier requests, optimize or cache
+
+  - name: database_slos
+    interval: 30s
+    rules:
+
+      # Database Down (SLO: 99.9% availability)
+      - alert: DatabaseDown
+        expr: pg_up == 0
+        for: 1m
+        severity: critical
+        labels:
+          slo: "availability"
+          team: "database"
+        annotations:
+          summary: "PostgreSQL database is down"
+          description: |
+            Database at {{ $labels.instance }} is not responding.
+            SLO: 99.9% availability
+            Action: Check database logs, verify network connectivity
+          runbook: "docs/runbooks/database-down.md"
+
+      # High Replication Lag (SLO: < 100ms)
+      - alert: HighReplicationLag
+        expr: pg_replication_lag_bytes > 100000000  # 100MB
+        for: 5m
+        severity: warning
+        labels:
+          slo: "replication_lag"
+          team: "database"
+        annotations:
+          summary: "PostgreSQL replication lag exceeds 100MB"
+          description: |
+            Replication lag: {{ $value | humanize }} bytes
+            SLO: < 100ms (< 100MB lag)
+            Action: Check replica performance, increase network capacity
+
+      # Disk Space Warning (SLO: < 80% used)
+      - alert: HighDiskUsage
+        expr: |
+          (pg_database_size_bytes / pg_fs_usage_max_bytes * 100) > 80
+        for: 10m
+        severity: warning
+        labels:
+          slo: "disk_space"
+          team: "database"
+        annotations:
+          summary: "Database disk usage exceeds 80%"
+          description: |
+            Disk usage: {{ $value | humanize }}%
+            SLO: < 80% used
+            Action: Archive old data, increase storage allocation, scale database
+
+      # Connection Pool Exhausted (SLO: < 80% max_connections)
+      - alert: ConnectionPoolExhausted
+        expr: |
+          pg_stat_activity_count > (pg_settings_max_connections * 0.8)
+        for: 2m
+        severity: critical
+        labels:
+          slo: "connection_pool"
+          team: "database"
+        annotations:
+          summary: "Database connection pool >80% exhausted"
+          description: |
+            Active connections: {{ $value }}
+            Max connections: {{ $value | divFloat 0.8 }}
+            SLO: < 80% of max_connections
+            Action: Scale backend instances, kill idle connections, investigate long queries
+
+  - name: oauth2_slos
+    interval: 30s
+    rules:
+
+      # High Auth Failure Rate (SLO: < 1% failures)
+      - alert: HighOAuthFailureRate
+        expr: |
+          (increase(oauth_token_exchange_failures_total[5m])
+          / increase(oauth_token_exchange_attempts_total[5m])) > 0.01
+        for: 5m
+        severity: warning
+        labels:
+          slo: "auth_success_rate"
+          team: "security"
+        annotations:
+          summary: "OAuth2 token exchange failure rate >1%"
+          description: |
+            Failure rate: {{ $value | humanizePercentage }}
+            SLO: < 1% failures
+            Action: Check Google OAuth status, verify client credentials
+          status_page: "https://status.google.com"
+
+      # Slow OAuth Token Exchange (SLO: < 500ms p95)
+      - alert: SlowOAuthTokenExchange
+        expr: |
+          histogram_quantile(0.95, oauth_token_exchange_duration_seconds) > 0.5
+        for: 5m
+        severity: warning
+        labels:
+          slo: "auth_latency"
+          team: "security"
+        annotations:
+          summary: "OAuth2 token exchange latency >500ms"
+          description: |
+            p95 latency: {{ $value | humanizeDuration }}
+            SLO: < 500ms
+            Action: Check Google API latency, increase timeout, add caching
+
+      # Session Validation Errors (SLO: < 0.1%)
+      - alert: SessionValidationErrors
+        expr: |
+          (increase(session_validation_errors_total[5m])
+          / increase(session_validations_total[5m])) > 0.001
+        for: 5m
+        severity: warning
+        labels:
+          slo: "session_validity"
+          team: "security"
+        annotations:
+          summary: "Session validation errors exceed 0.1%"
+          description: |
+            Error rate: {{ $value | humanizePercentage }}
+            SLO: < 0.1%
+            Action: Check database, verify tokens not corrupted, review auth code
+
+  - name: deployment_pipeline
+    interval: 30s
+    rules:
+
+      # CI Pipeline Failure
+      - alert: CIPipelineFailed
+        expr: |
+          increase(ci_pipeline_failures_total[1h]) > 0
+        for: 5m
+        severity: warning
+        labels:
+          slo: "deployment_reliability"
+          team: "devops"
+        annotations:
+          summary: "CI/CD pipeline failed in last hour"
+          description: |
+            Failed pipelines: {{ $value }}
+            Action: Check GitHub Actions logs, fix broken tests/linters
+          dashboard: "https://github.com/kushin77/lux-auto/actions"
+
+      # Deployment Success Rate (SLO: 95% successful deployments)
+      - alert: LowDeploymentSuccessRate
+        expr: |
+          (increase(deployments_successful_total[24h])
+          / increase(deployments_total[24h])) < 0.95
+        for: 1h
+        severity: warning
+        labels:
+          slo: "deployment_success_rate"
+          team: "devops"
+        annotations:
+          summary: "Deployment success rate <95% in 24h"
+          description: |
+            Success rate: {{ $value | humanizePercentage }}
+            SLO: >= 95%
+            Action: Review recent deployments, identify recurring failures
+          runbook: "docs/runbooks/deployment-failures.md"
+
+  - name: slo_error_budgets
+    interval: 1m
+    rules:
+
+      # Error Budget Burndown Warning (Backend)
+      - alert: ErrorBudgetBurndownWarning
+        expr: |
+          (increase(http_requests_total{status=~"5.."}[30m]) * 30)
+          / (increase(http_requests_total[30m]) * 30 + 1) > 0.0005
+        for: 10m
+        severity: warning
+        labels:
+          slo_metric: "error_budget"
+          team: "backend"
+        annotations:
+          summary: "Error budget burning faster than expected (Backend)"
+          description: |
+            Current burn rate: {{ $value | humanizePercentage }} per day
+            SLO: < 0.1% errors allowed (2.16 hours/month budget)
+            At current rate, error budget exhausted in: {{ $value | divide 0.001 }} days
+            Action: Investigate error source, prioritize fixes
+
+      # Error Budget Critical (Database)
+      - alert: ErrorBudgetCritical
+        expr: |
+          (increase(pg_database_failures_total[24h]) / increase(pg_queries_total[24h])) > 0.01
+        for: 5m
+        severity: critical
+        labels:
+          slo_metric: "error_budget"
+          team: "database"
+        annotations:
+          summary: "Database error budget >80% exhausted"
+          description: |
+            Error budget remaining: {{ $value | humanize }}%
+            SLO: < 0.1% query failures allowed
+            Action: Immediate incident response, declare SEV-1
+
+  - name: slo_summary_alerts
+    interval: 5m
+    rules:
+
+      # Multi-SLO Violation Alert
+      - alert: MultipleServicesSLOViolation
+        expr: |
+          count(ALERTS{severity=~"critical|warning", slo=~".*"}) > 2
+        for: 5m
+        severity: critical
+        labels:
+          alert_type: "multi_slo_violation"
+        annotations:
+          summary: "Multiple services violating SLOs simultaneously"
+          description: |
+            {{ $value }} SLO violations detected
+            This suggests systemic issue (infrastructure, upstream).
+            Action: Page on-call, declare incident, investigate root cause
+          dashboard: "https://grafana.lux.kushnir.cloud/d/slo-overview"
+
+---
+
+# Alert Routing (Alertmanager configuration)
+# File: monitoring/alertmanager/config.yml
+
+global:
+  resolve_timeout: 5m
+  slack_api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+
+route:
+  receiver: 'default'
+  group_by: ['alertname', 'cluster', 'service']
+  group_wait: 10s
+  group_interval: 10s
+  repeat_interval: 12h
+
+  # Critical SLO violations
+  routes:
+    - match:
+        severity: critical
+        slo: "error_rate"
+      receiver: 'on_call_pagerduty'
+      group_wait: 0s
+      repeat_interval: 1h
+
+    - match:
+        severity: critical
+        slo: "availability"
+      receiver: 'on_call_pagerduty'
+      group_wait: 0s
+      repeat_interval: 30m
+
+    - match:
+        severity: warning
+        slo: "latency_p95"
+      receiver: 'slack_engineering'
+      repeat_interval: 4h
+
+    - match:
+        severity: warning
+        slo: "error_budget"
+      receiver: 'slack_engineering'
+      repeat_interval: 2h
+
+receivers:
+  - name: 'default'
+    slack_configs:
+      - channel: '#alerts'
+        title: 'Alert: {{ .GroupLabels.alertname }}'
+        text: '{{ .CommonAnnotations.description }}'
+
+  - name: 'on_call_pagerduty'
+    pagerduty_configs:
+      - service_key: 'YOUR_PAGERDUTY_SERVICE_KEY'
+        client: 'Lux-Auto Monitoring'
+        client_url: '{{ .ExternalURL }}'
+
+  - name: 'slack_engineering'
+    slack_configs:
+      - channel: '#engineering-alerts'
+        title: 'SLO Alert: {{ .GroupLabels.slo }}'
+        text: '{{ .CommonAnnotations.description }}'
