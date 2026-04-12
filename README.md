@@ -14,6 +14,25 @@ Lux-Auto is a production-ready FastAPI application with:
 - **Infrastructure-as-Code**: Terraform for reproducible deployments
 - **Enterprise**: Full compliance, security scanning, monitoring
 
+## 🚀 Enterprise Standards Framework
+
+**This repository enforces FAANG-level engineering standards.**
+
+Before development, please review:
+- [**00-START-HERE.md**](00-START-HERE.md) — Framework overview (5 min read)
+- [**CONTRIBUTING.md**](CONTRIBUTING.md) — Engineering standards and review gates
+- [**DEVELOPER-QUICKSTART.md**](DEVELOPER-QUICKSTART.md) — First-time setup and PR workflow
+
+**Key Standards:**
+- ✅ 90%+ test coverage required (enforced by CI)
+- ✅ All PRs require 2 approvals + security review
+- ✅ Pre-commit hooks catch issues before push
+- ✅ 9-stage CI/CD pipeline (lint → type check → tests → SAST → container scan)
+- ✅ SLO monitoring with error budgets (99.5% availability target)
+- ✅ Architecture Decisions documented via ADR system
+
+See [IMPLEMENTATION-CHECKLIST.md](IMPLEMENTATION-CHECKLIST.md) for team rollout phases.
+
 ## 🚀 Quick Start
 
 ### Prerequisites
@@ -22,6 +41,25 @@ Lux-Auto is a production-ready FastAPI application with:
 - Bash shell
 - Google OAuth2 credentials (from Google Cloud Console)
 - Secrets in Google Secret Manager
+- Python 3.11+ (for local development)
+
+### Local Development Setup
+
+Run automated setup script:
+
+```bash
+# Bash (Linux/macOS)
+bash scripts/setup-framework.sh
+
+# PowerShell (Windows)
+.\scripts\setup-framework.ps1
+```
+
+This configures:
+- Python virtual environment
+- All development dependencies
+- Pre-commit hooks (auto-runs on commit)
+- Local testing capability
 
 ### 1. Configuration
 
@@ -202,6 +240,50 @@ bash scripts/rollback.sh database
 # Full reset (destroys all data)
 bash scripts/rollback.sh full
 ```
+
+## 📊 Monitoring & Observability
+
+### Deploy Monitoring Stack
+
+```bash
+# Navigate to monitoring directory
+cd monitoring
+
+# Set environment variables
+export SLACK_WEBHOOK_URL="https://hooks.slack.com/services/YOUR/WEBHOOK/URL"
+export PAGERDUTY_SERVICE_KEY="your-pagerduty-key"
+
+# Start monitoring stack (Prometheus, AlertManager, Grafana)
+docker-compose -f docker-compose.monitoring.yml up -d
+
+# Verify all services running
+docker-compose -f docker-compose.monitoring.yml ps
+```
+
+### Access Monitoring Interfaces
+
+- **Prometheus** (metrics queries): http://localhost:9090
+- **AlertManager** (alert status): http://localhost:9093
+- **Grafana** (dashboards): http://localhost:3000 (default: admin/admin)
+
+### Configure Slack/PagerDuty Alerts
+
+Alerts are triggered when SLOs are violated:
+- **Critical** → PagerDuty (immediate on-call escalation)
+- **Warning** → Slack #alerts (grouped alerts)
+- **Info** → Slack #general (deployment info)
+
+See [monitoring/MONITORING-SETUP.md](monitoring/MONITORING-SETUP.md) for complete setup guide.
+
+### Key Metrics Being Monitored
+
+| Metric | Target | Alert Threshold |
+|--------|--------|-----------------|
+| Error Rate | <0.1% | >5% over 5 min → Critical |
+| Latency (p95) | <200ms | >1000ms → Warning |
+| Availability | 99.5% | Drops trigger alerts |
+| DB Connections | <80% pool | >80% usage → Warning |
+| OAuth Failures | <1% | >1% failures → Critical |
 
 ## 🧪 Testing
 
