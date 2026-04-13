@@ -38,7 +38,7 @@ class User(Base):
 
     # Relationships
     sessions = relationship("UserSession", back_populates="user", cascade="all, delete-orphan")
-    user_roles = relationship("UserRole", back_populates="user", cascade="all, delete-orphan")
+    user_roles = relationship("UserRole", back_populates="user", cascade="all, delete-orphan", foreign_keys="[UserRole.user_id]")
     api_keys = relationship("APIKey", back_populates="user", cascade="all, delete-orphan")
     preferences = relationship("PortalUserPreferences", back_populates="user", cascade="all, delete-orphan", uselist=False)
 

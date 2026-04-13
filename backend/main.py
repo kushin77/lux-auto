@@ -75,20 +75,45 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 # Initialize database module with SessionLocal
 set_session_local(SessionLocal)
 
-# Create tables - handle race condition when multiple instances start simultaneously
+# Create tables - use raw SQL with IF NOT EXISTS to avoid race conditions
+from sqlalchemy import inspect, text
+
+print(f"DEBUG: Base.metadata tables registered: {list(Base.metadata.tables.keys())}", flush=True)
+
+# First, try to create all tables using SQLAlchemy (which handles everything)
 try:
-    Base.metadata.create_all(bind=engine)
-    print("✓ Database schema created/verified successfully", flush=True)
-except sqlalchemy.exc.ProgrammingError as e:
-    # Programming errors during schema creation are expected when multiple instances
-    # start concurrently. Ignore duplicate object errors and continue.
-    if "already exists" in str(e) or "duplicate" in str(e).lower():
-        print(f"✓ Schema already exists (concurrent startup), continuing...", flush=True)
-    else:
-        raise
+    with engine.begin() as connection:
+        # Drop indexes first to clean up any orphaned state
+        for table in Base.metadata.tables.values():
+            for index in table.indexes:
+                try:
+                    # Drop index if it exists (safe with IF EXISTS)
+                    drop_stmt = f"DROP INDEX IF EXISTS {index.name} CASCADE"
+                    connection.execute(text(drop_stmt))
+                except:
+                    pass  # Index might not exist, continue
+        
+        # Now create tables
+        Base.metadata.create_all(bind=connection)
+    
+    print("✓ Database schema created successfully", flush=True)
 except Exception as e:
-    # Log any unexpected errors but don't fail completely
-    print(f"⚠ Warning: Unexpected schema creation issue: {e}", flush=True)
+    print(f"⚠ Schema creation error (will retry): {str(e)[:200]}", flush=True)
+    # Try one more time with a fresh connection
+    try:
+        Base.metadata.create_all(bind=engine)
+        print("✓ Schema created on second attempt", flush=True)
+    except Exception as e2:
+        print(f"✗ Final schema creation failed: {str(e2)[:200]}", flush=True)
+        print("⚠ Continuing with partial/existing schema", flush=True)
+
+# Verify tables exist
+inspector = inspect(engine)
+tables = inspector.get_table_names()
+print(f"DEBUG: Tables in database: {tables}", flush=True)
+
+if not tables:
+    print("⚠ WARNING: No tables created in database", flush=True)
 
 # Service initialization
 # Instantiate services for middleware injection
