@@ -1,12 +1,53 @@
-# Portal Enhancement Documentation Index
+# Lux-Auto Framework Enterprise Documentation Index
 
-## Quick Navigation
+## 🚀 LAUNCH WEEK MATERIALS (April 15-19, 2026)
 
-Start here to navigate all Appsmith & Backstage enhancement documentation.
+**READ THESE FIRST** - Phase 3 team launches Monday April 15, 9:00 AM PT
+
+### Launch Countdown & Team Materials
+1. **[72-HOUR-LAUNCH-COUNTDOWN.md](72-HOUR-LAUNCH-COUNTDOWN.md)** ⭐ START HERE
+   - 📋 Master index of all launch materials
+   - 📅 Action items for next 72 hours
+   - ✅ Timeline & success criteria
+   - 🎯 Everything leadership & team need
+   - ⏱️ Read time: 15 minutes
+   - **WHO:** Everyone getting launch updates
+
+2. **[MONDAY-PRE-WORK-ASSIGNMENTS.md](MONDAY-PRE-WORK-ASSIGNMENTS.md)**
+   - ✅ Team environment setup (Python, GitHub, Docker)
+   - ✅ Documentation reading checklist
+   - ✅ GitHub workflow testing
+   - ✅ Pre-launch verification
+   - ⏱️ Read time: 20 minutes (do the work: 3-4 hours)
+   - **WHO:** All Phase 3 team members (read Friday, do by Friday EOD)
+
+3. **[MONDAY-GO-LIVE-CHECKLIST.md](MONDAY-GO-LIVE-CHECKLIST.md)**
+   - ✅ Framework readiness verification
+   - ✅ Risk assessment (all mitigated)
+   - ✅ Leadership approval section
+   - ✅ Go/No-Go decision matrix
+   - ⏱️ Read time: 15 minutes
+   - **WHO:** Leadership for Friday 5 PM approval
+
+4. **[MONDAY-LAUNCH-COMMUNICATIONS.md](MONDAY-LAUNCH-COMMUNICATIONS.md)**
+   - ✅ Pre-written Slack messages (Fri-Mon)
+   - ✅ Daily standup templates
+   - ✅ Demo & retrospective formats
+   - ✅ Contingency blocker procedures
+   - ⏱️ Read time: 20 minutes
+   - **WHO:** Program Lead (reference Mon-Fri)
+
+5. **[MONDAY-LAUNCH-DAY-CHECKLIST.md](MONDAY-LAUNCH-DAY-CHECKLIST.md)**
+   - ✅ Pre-kickoff verification (by 8:30 AM)
+   - ✅ 4-hour kickoff agenda with scripts
+   - ✅ Issue resolution procedures
+   - ✅ Success criteria validation
+   - ⏱️ Read time: 15 minutes
+   - **WHO:** Tech Lead (print & use Monday morning)
 
 ---
 
-## 📚 Documentation Files
+## 📚 Complete Framework Documentation
 
 ### Strategic & Planning (Start Here)
 1. **[DELIVERABLES-SUMMARY.md](DELIVERABLES-SUMMARY.md)**
