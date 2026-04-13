@@ -91,9 +91,9 @@ except Exception as e:
     print(f"⚠ Warning: Unexpected schema creation issue: {e}", flush=True)
 
 # Service initialization
-user_service = UserService(SessionLocal, admin_email=ADMIN_USER_EMAIL)
-session_service = SessionService(SessionLocal)
-audit_logger = AuditLogger(SessionLocal)
+# Note: UserService, SessionService, and AuditLogger use class-level or static methods
+# No need to instantiate them, they're utility classes
+# Services will be called directly via UserService.method_name() pattern
 
 
 @asynccontextmanager
