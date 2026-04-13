@@ -1,6 +1,9 @@
 -- Lux-Auto Database Initialization
 -- PostgreSQL 15 compatible initialization for production database
 
+-- Create database if it doesn't exist
+SELECT 'CREATE DATABASE lux_auto' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'lux_auto')\gexec
+
 -- Create extensions first
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
