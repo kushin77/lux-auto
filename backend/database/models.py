@@ -80,7 +80,6 @@ class UserSession(Base):
     # Indexes for common queries
     __table_args__ = (
         Index("ix_user_sessions_user_id_active", "user_id", "active"),
-        Index("ix_user_sessions_token_hash", "token_hash"),
         Index("ix_user_sessions_expires_at", "expires_at"),
     )
 
@@ -343,10 +342,6 @@ class Buyer(Base):
     success_count = Column(Integer, default=0)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
-
-    __table_args__ = (
-        Index("ix_buyers_match_score", "match_score"),
-    )
 
     def __repr__(self) -> str:
         return f"<Buyer(id={self.id}, name='{self.name}', email='{self.email}')>"

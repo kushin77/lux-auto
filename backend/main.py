@@ -80,40 +80,40 @@ from sqlalchemy import inspect, text
 
 print(f"DEBUG: Base.metadata tables registered: {list(Base.metadata.tables.keys())}", flush=True)
 
-# First, try to create all tables using SQLAlchemy (which handles everything)
-try:
-    with engine.begin() as connection:
-        # Drop indexes first to clean up any orphaned state
-        for table in Base.metadata.tables.values():
-            for index in table.indexes:
-                try:
-                    # Drop index if it exists (safe with IF EXISTS)
-                    drop_stmt = f"DROP INDEX IF EXISTS {index.name} CASCADE"
-                    connection.execute(text(drop_stmt))
-                except:
-                    pass  # Index might not exist, continue
-        
-        # Now create tables
-        Base.metadata.create_all(bind=connection)
-    
-    print("✓ Database schema created successfully", flush=True)
-except Exception as e:
-    print(f"⚠ Schema creation error (will retry): {str(e)[:200]}", flush=True)
-    # Try one more time with a fresh connection
-    try:
-        Base.metadata.create_all(bind=engine)
-        print("✓ Schema created on second attempt", flush=True)
-    except Exception as e2:
-        print(f"✗ Final schema creation failed: {str(e2)[:200]}", flush=True)
-        print("⚠ Continuing with partial/existing schema", flush=True)
+# Check if tables already exist to avoid unnecessary recreation
+inspector = inspect(engine)
+existing_tables = inspector.get_table_names()
+print(f"DEBUG: Existing tables in database: {existing_tables}", flush=True)
 
-# Verify tables exist
+required_tables = set(Base.metadata.tables.keys())
+missing_tables = required_tables - set(existing_tables)
+
+if missing_tables:
+    print(f"DEBUG: Missing tables that need creation: {missing_tables}", flush=True)
+    # Tables don't exist, need to create them
+    try:
+        with engine.begin() as connection:
+            Base.metadata.create_all(bind=connection)
+        print("✓ Database schema created successfully", flush=True)
+    except Exception as e:
+        print(f"⚠ Schema creation error (will retry): {str(e)[:200]}", flush=True)
+        # Try one more time with a fresh connection
+        try:
+            Base.metadata.create_all(bind=engine)
+            print("✓ Schema created on second attempt", flush=True)
+        except Exception as e2:
+            print(f"✗ Final schema creation failed: {str(e2)[:200]}", flush=True)
+            print("⚠ Continuing with partial/existing schema", flush=True)
+else:
+    print(f"✓ All required tables already exist ({len(existing_tables)} tables)", flush=True)
+
+# Verify tables exist now
 inspector = inspect(engine)
 tables = inspector.get_table_names()
-print(f"DEBUG: Tables in database: {tables}", flush=True)
+print(f"DEBUG: Final tables in database: {tables}", flush=True)
 
 if not tables:
-    print("⚠ WARNING: No tables created in database", flush=True)
+    print("⚠ WARNING: No tables in database after initialization", flush=True)
 
 # Service initialization
 # Instantiate services for middleware injection
