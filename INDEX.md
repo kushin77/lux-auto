@@ -2,21 +2,24 @@
 
 ## 🚀 START HERE - EXECUTION PATH
 
-**[EXECUTION-READY.md](EXECUTION-READY.md)** - Complete step-by-step path from code to production  
-Takes you through: Local setup → Verification → Staging → Production deployment → Monitoring
+**[LIVE-DEPLOYMENT-NOW.md](LIVE-DEPLOYMENT-NOW.md)** ⚡ **START DEPLOYMENT NOW** - Real-time execution guide  
+Phases 1-6: Confirm code → GitHub Actions (20 min) → Staging (10 min) → Smoke tests (10 min) → Production rolling 4-stage (15 min) → Monitor (15 min)
 
-**Time:** ~3 hours to production  
-**Status:** ✅ All systems ready
+**Time:** ~72 minutes to production live  
+**Status:** ✅ Code committed, infrastructure ready, automated deployment starting
+
+**For detailed background:** [EXECUTION-READY.md](EXECUTION-READY.md) - Complete step-by-step path
 
 ---
 
 ## 📖 QUICK GUIDES
 
 ### For Deployment
-1. [EXECUTION-READY.md](EXECUTION-READY.md) - Complete execution path (START HERE)
-2. [PRE-DEPLOYMENT-CHECKLIST.md](PRE-DEPLOYMENT-CHECKLIST.md) - 60-point verification
-3. [DEPLOYMENT-DOCUMENTATION.md](DEPLOYMENT-DOCUMENTATION.md) - How to deploy
-4. [SYSTEM-OVERVIEW.md](SYSTEM-OVERVIEW.md) - System architecture & operation
+1. **[LIVE-DEPLOYMENT-NOW.md](LIVE-DEPLOYMENT-NOW.md)** ⚡ **START HERE** - Real-time deployment execution (72 min)
+2. [EXECUTION-READY.md](EXECUTION-READY.md) - Complete execution path with options
+3. [PRE-DEPLOYMENT-CHECKLIST.md](PRE-DEPLOYMENT-CHECKLIST.md) - 60-point verification
+4. [DEPLOYMENT-DOCUMENTATION.md](DEPLOYMENT-DOCUMENTATION.md) - How to deploy
+5. [SYSTEM-OVERVIEW.md](SYSTEM-OVERVIEW.md) - System architecture & operation
 
 ### For Development
 1. [NEXT-LOCAL-SETUP.md](NEXT-LOCAL-SETUP.md) - Local environment setup
