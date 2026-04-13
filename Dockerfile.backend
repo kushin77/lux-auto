@@ -1,6 +1,6 @@
 # Multi-stage build for Lux-Auto FastAPI backend
 # Stage 1: Builder
-FROM python:3.11-alpine as builder
+FROM python:3.11-alpine AS builder
 
 WORKDIR /tmp
 

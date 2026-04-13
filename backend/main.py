@@ -23,6 +23,7 @@ from backend.auth.session_service import SessionService
 from backend.auth.audit import AuditLogger, AuditEventType, AuditStatus
 from backend.auth.rbac_service import RBACService
 from backend.database.models import Base
+from backend.database import set_session_local
 from backend.routers import deals, analytics, audit, websocket
 
 # Configure structured logging
