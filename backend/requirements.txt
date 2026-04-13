@@ -16,18 +16,18 @@ python-multipart==0.0.7
 cryptography==42.0.2
 
 # OAuth2 & JWT
-PyJWT==2.8.1
+PyJWT==2.12.1
 
 # Caching & Session Management
 redis==5.0.1
 hiredis==2.2.3
 
 # HTTP Client
-httpx==0.26.0
+httpx==0.27.0
 aiohttp==3.9.3
 
 # Google Cloud
-google-cloud-secret-manager==2.16.5
+google-cloud-secret-manager==2.27.0
 
 # Logging & Observability
 python-json-logger==2.0.7
@@ -47,7 +47,7 @@ python-dotenv==1.0.0
 pytest==7.4.4
 pytest-asyncio==0.23.2
 pytest-cov==4.1.0
-httpx-mock==0.3.0
+pytest-httpx==0.31.0
 factory-boy==3.3.0
 
 # Linting & Code Quality (dev only)
@@ -60,7 +60,6 @@ ruff==0.1.8
 
 # Pre-commit hooks (dev only)
 pre-commit==3.5.0
-git-secrets==1.3.0
 
 # Documentation
 mkdocs==1.5.3
