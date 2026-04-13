@@ -2,13 +2,15 @@
 
 ## 🚀 START HERE - EXECUTION PATH
 
-**[LIVE-DEPLOYMENT-NOW.md](LIVE-DEPLOYMENT-NOW.md)** ⚡ **START DEPLOYMENT NOW** - Real-time execution guide  
-Phases 1-6: Confirm code → GitHub Actions (20 min) → Staging (10 min) → Smoke tests (10 min) → Production rolling 4-stage (15 min) → Monitor (15 min)
+**[DOCKER-DESKTOP-DEPLOYMENT.md](DOCKER-DESKTOP-DEPLOYMENT.md)** ⚡ **DIRECT DOCKER DEPLOYMENT** - Fastest & Safe  
+Isolated deployment (won't touch existing services: code-server, ollama, oauth2-proxy, caddy)  
+Phases 1-6: Prerequisites → Build image locally → Staging → Smoke tests → Production rolling 4-stage → Verify
 
-**Time:** ~72 minutes to production live  
-**Status:** ✅ Code committed, infrastructure ready, automated deployment starting
+**Time:** ~50 minutes to production live (no GitHub Actions wait)  
+**Safety:** ✅ Uses isolated ports (8888-8891), containers (lux-auto-app-*), databases  
+**Status:** ✅ Code ready, build locally now, direct to production
 
-**For detailed background:** [EXECUTION-READY.md](EXECUTION-READY.md) - Complete step-by-step path
+**Alternative - GitHub Actions path:** [LIVE-DEPLOYMENT-NOW.md](LIVE-DEPLOYMENT-NOW.md) (~72 min, includes CI/CD pipeline)
 
 ---
 

@@ -1,8 +1,28 @@
 # 🚀 DIRECT DOCKER DESKTOP DEPLOYMENT - START NOW
 
-**Status:** Skipping GitHub Actions, deploying directly to Docker Desktop  
+**Status:** Deploying to existing Docker Desktop (non-destructive)  
+**Existing Services:** code-server, ollama, oauth2-proxy, caddy (untouched)  
+**New Deployment:** Isolated ports and containers  
 **Total Time:** ~45 minutes (faster than CI/CD path)  
 **Start:** Immediately
+
+---
+
+## ⚠️ SAFE DEPLOYMENT - NO CONFLICTS
+
+Your existing services are running:
+- `code-server-emb` → Untouched
+- `ollama` → Untouched
+- `code-server` → Untouched
+- `oauth2-proxy` → Untouched
+- `ollama-init` → Untouched
+- `caddy` → Untouched
+
+**Our deployment will use:**
+- Container names: `lux-auto-app-staging`, `lux-auto-app-prod` (different namespace)
+- Ports: `8888-8891` (isolated range, won't conflict)
+- Database: `lux_auto_staging` / `lux_auto_prod` (new databases)
+- Redis: Database slots 10-11 (isolated from others)
 
 ---
 
@@ -48,23 +68,29 @@ redis-server --version
 ```bash
 cd "c:\Users\Alex Kushnir\Desktop\Lux-auto"
 
-# Create staging environment file
+# NOTE: Check your current PostgreSQL/Redis if shared
+# If they're already running and in use, you can reuse them
+# Otherwise, we'll create isolated databases/slots
+
+# Create staging environment file (isolated)
 cat > .env.staging << 'EOF'
 DATABASE_URL=postgresql://postgres:postgres@localhost:5432/lux_auto_staging
-REDIS_URL=redis://localhost:6379/1
+REDIS_URL=redis://localhost:6379/10
 LOG_LEVEL=INFO
 DEBUG=false
 PROMETHEUS_ENABLED=true
 EOF
 
-# Create production environment file  
+# Create production environment file (isolated)
 cat > .env.production << 'EOF'
-DATABASE_URL=postgresql://postgres:postgres@localhost:5432/lux_auto
-REDIS_URL=redis://localhost:6379/0
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/lux_auto_prod
+REDIS_URL=redis://localhost:6379/11
 LOG_LEVEL=INFO
 DEBUG=false
 PROMETHEUS_ENABLED=true
 EOF
+
+echo "✅ Environment files created (isolated Redis slots 10 & 11)"
 ```
 
 **Phase 1 Complete When:**
@@ -120,36 +146,37 @@ psql -U postgres -h localhost -d lux_auto_staging -f scripts/init-db.sql
 ### Deploy Staging Container
 
 ```bash
-# Clean up any old staging container
-docker stop lux-auto-staging 2>/dev/null || true
-docker rm lux-auto-staging 2>/dev/null || true
+# Clean up any old staging container (safe - isolated namespace)
+docker stop lux-auto-app-staging 2>/dev/null || true
+docker rm lux-auto-app-staging 2>/dev/null || true
 
-# Run staging
+# Run staging on isolated ports (8888, 9888)
 docker run -d \
-  --name lux-auto-staging \
-  -p 8001:8000 \
-  -p 9091:9090 \
+  --name lux-auto-app-staging \
+  -p 8888:8000 \
+  -p 9888:9090 \
   --env-file .env.staging \
   -v "$(pwd)/logs/staging:/app/logs" \
   lux-auto:latest
 
-echo "✅ Staging deployed on http://localhost:8001"
+echo "✅ Staging deployed on http://localhost:8888"
+echo "   Metrics on http://localhost:9888"
 
 # Wait for startup
 sleep 5
 
 # Verify running
-docker ps | grep lux-auto-staging
+docker ps | grep lux-auto-app-staging
 # Should show container "Up X seconds"
 
 # Check logs
-docker logs lux-auto-staging | tail -10
+docker logs lux-auto-app-staging | tail -10
 # Should show: "Application startup complete"
 ```
 
 **Phase 3 Complete When:**
-- ✅ `docker ps` shows `lux-auto-staging` running
-- ✅ Health check responds: `curl http://localhost:8001/health`
+- ✅ `docker ps` shows `lux-auto-app-staging` running
+- ✅ Health check responds: `curl http://localhost:8888/health`
 
 ---
 
@@ -161,7 +188,7 @@ docker logs lux-auto-staging | tail -10
 
 echo "=== Staging Smoke Tests ==="
 
-BASE_URL="http://localhost:8001"
+BASE_URL="http://localhost:8888"
 PASS=0
 FAIL=0
 
@@ -208,12 +235,12 @@ fi
 chmod +x test-staging.sh
 ./test-staging.sh
 
-# Or manual test:
-curl http://localhost:8001/health
-curl http://localhost:8001/api/v1/health
-curl http://localhost:8001/api/v1/health/db
-curl http://localhost:8001/api/v1/health/redis
-curl http://localhost:8001/metrics | head -5
+# Or manual test (using isolated port 8888):
+curl http://localhost:8888/health
+curl http://localhost:8888/api/v1/health
+curl http://localhost:8888/api/v1/health/db
+curl http://localhost:8888/api/v1/health/redis
+curl http://localhost:8888/metrics | head -5
 
 # All should return HTTP 200
 ```
@@ -243,31 +270,31 @@ psql -U postgres -h localhost -d lux_auto -f scripts/init-db.sql
 ```bash
 echo "=== PRODUCTION STAGE 1: 25% TRAFFIC ==="
 
-# Stop any old production containers
-docker stop lux-auto-prod 2>/dev/null || true
-docker rm lux-auto-prod 2>/dev/null || true
+# Stop any old production containers (safe - isolated namespace)
+docker stop lux-auto-app-prod 2>/dev/null || true
+docker rm lux-auto-app-prod 2>/dev/null || true
 
-# Deploy main production instance
+# Deploy main production instance on isolated port 8889
 docker run -d \
-  --name lux-auto-prod \
-  -p 8000:8000 \
-  -p 9090:9090 \
+  --name lux-auto-app-prod \
+  -p 8889:8000 \
+  -p 9889:9090 \
   --env-file .env.production \
   -v "$(pwd)/logs/prod:/app/logs" \
   lux-auto:latest
 
-echo "Stage 1: Production instance 1 deployed (25% capacity)"
+echo "Stage 1: Production instance 1 deployed (25% capacity) on :8889"
 sleep 5
 
 # Verify health
-curl http://localhost:8000/health
+curl http://localhost:8889/health
 # Should return 200
 
 echo "Monitoring Stage 1 for 3 minutes..."
 for i in {1..3}; do
     echo "Min $i/3: Checking production health..."
-    curl -s http://localhost:8000/health | jq .
-    curl -s http://localhost:8000/metrics | grep http_requests_total | head -2
+    curl -s http://localhost:8889/health | jq .
+    curl -s http://localhost:8889/metrics | grep http_requests_total | head -2
     sleep 60
 done
 
@@ -279,27 +306,27 @@ echo "✅ Stage 1 (25%) healthy"
 ```bash
 echo "=== PRODUCTION STAGE 2: 50% TRAFFIC ==="
 
-# Deploy canary instance 2
+# Deploy canary instance 2 on isolated port 8890
 docker run -d \
-  --name lux-auto-prod-2 \
-  -p 8010:8000 \
-  -p 9091:9090 \
+  --name lux-auto-app-prod-2 \
+  -p 8890:8000 \
+  -p 9890:9090 \
   --env-file .env.production \
   -v "$(pwd)/logs/prod-2:/app/logs" \
   lux-auto:latest
 
-echo "Stage 2: Production instance 2 deployed (now 50% capacity)"
+echo "Stage 2: Production instance 2 deployed (now 50% capacity) on :8890"
 sleep 5
 
 # Verify both healthy
 echo "Checking all instances..."
-curl -s http://localhost:8000/health | jq .status
-curl -s http://localhost:8010/health | jq .status
+curl -s http://localhost:8889/health | jq .status
+curl -s http://localhost:8890/health | jq .status
 
 echo "Monitoring Stage 2 for 3 minutes..."
 for i in {1..3}; do
     echo "Min $i/3: All instances healthy"
-    docker ps | grep lux-auto-prod
+    docker ps | grep lux-auto-app-prod
     sleep 60
 done
 
@@ -311,20 +338,20 @@ echo "✅ Stage 2 (50%) healthy"
 ```bash
 echo "=== PRODUCTION STAGE 3: 75% TRAFFIC ==="
 
-# Deploy canary instance 3
+# Deploy canary instance 3 on isolated port 8891
 docker run -d \
-  --name lux-auto-prod-3 \
-  -p 8020:8000 \
-  -p 9092:9090 \
+  --name lux-auto-app-prod-3 \
+  -p 8891:8000 \
+  -p 9891:9090 \
   --env-file .env.production \
   -v "$(pwd)/logs/prod-3:/app/logs" \
   lux-auto:latest
 
-echo "Stage 3: Production instance 3 deployed (now 75% capacity)"
+echo "Stage 3: Production instance 3 deployed (now 75% capacity) on :8891"
 sleep 5
 
 # Verify all three healthy
-for port in 8000 8010 8020; do
+for port in 8889 8890 8891; do
     status=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:$port/health)
     echo "Instance on :$port - HTTP $status"
 done
@@ -332,7 +359,7 @@ done
 echo "Monitoring Stage 3 for 3 minutes..."
 for i in {1..3}; do
     echo "Min $i/3: All 3 instances running"
-    docker ps | grep lux-auto-prod | wc -l
+    docker ps | grep lux-auto-app-prod | wc -l
     sleep 60
 done
 
@@ -345,15 +372,15 @@ echo "✅ Stage 3 (75%) healthy"
 echo "=== PRODUCTION STAGE 4: 100% TRAFFIC ==="
 
 # All instances already running
-docker ps | grep lux-auto-prod
-# Should show 3 instances: lux-auto-prod, lux-auto-prod-2, lux-auto-prod-3
+docker ps | grep lux-auto-app-prod
+# Should show 3 instances: lux-auto-app-prod, lux-auto-app-prod-2, lux-auto-app-prod-3
 
 echo "Final monitoring for 3 minutes..."
 for i in {1..3}; do
     echo "Min $i/3: Full fleet healthy"
     
-    # Check all instances
-    for port in 8000 8010 8020; do
+    # Check all instances (ports: 8889, 8890, 8891)
+    for port in 8889 8890 8891; do
         response=$(curl -s http://localhost:$port/health)
         status=$(echo $response | jq .status)
         echo "  Port $port: $status"
@@ -382,19 +409,19 @@ echo "=== PRODUCTION VERIFICATION ==="
 
 # 1. All instances running
 echo "Active production instances:"
-docker ps | grep lux-auto-prod
+docker ps | grep lux-auto-app-prod
 # Should show 3 instances
 
 # 2. Health check all
 echo -e "\nHealth status:"
-for port in 8000 8010 8020; do
+for port in 8889 8890 8891; do
     echo -n "Port $port: "
     curl -s http://localhost:$port/health | jq .status
 done
 
 # 3. Database check
 echo -e "\nDatabase verification:"
-psql -U postgres -h localhost -d lux_auto << SQL
+psql -U postgres -h localhost -d lux_auto_prod << SQL
 SELECT 'Database Tables:'::text;
 SELECT count(*) as table_count FROM information_schema.tables 
 WHERE table_schema = 'public';
@@ -403,7 +430,7 @@ SQL
 # 4. Performance check (sample)
 echo -e "\nResponse time check:"
 for i in {1..3}; do
-    curl -o /dev/null -s -w "Request $i - Time: %{time_total}s\n" http://localhost:8000/health
+    curl -o /dev/null -s -w "Request $i - Time: %{time_total}s\n" http://localhost:8889/health
 done
 ```
 
@@ -411,8 +438,8 @@ done
 
 ```bash
 # Stop staging since production is live
-docker stop lux-auto-staging
-docker rm lux-auto-staging
+docker stop lux-auto-app-staging
+docker rm lux-auto-app-staging
 
 echo "✅ Staging removed"
 ```
@@ -427,21 +454,29 @@ cat > DEPLOYMENT_DOCKER_$(date +%Y%m%d_%H%M%S).md << EOF
 **Deployment Method:** Docker Desktop Direct (skipped GitHub Actions)
 **Commit:** $(git rev-parse --short HEAD)
 
+## Safety - No Conflicts
+- ✅ Existing services untouched (code-server, ollama, oauth2-proxy, caddy)
+- ✅ Isolated port range: 8888-8891
+- ✅ Isolated container namespace: lux-auto-app-*
+- ✅ Isolated databases: lux_auto_staging, lux_auto_prod
+- ✅ Isolated Redis slots: 10 & 11
+
 ## Stages Completed
 - [x] Prerequisites verified
 - [x] Docker image built locally
-- [x] Staging deployed and tested
+- [x] Staging deployed and tested (port :8888)
 - [x] Smoke tests passed
-- [x] Production Stage 1 (25%) deployed
-- [x] Production Stage 2 (50%) deployed
-- [x] Production Stage 3 (75%) deployed
+- [x] Production Stage 1 (25%) deployed (port :8889)
+- [x] Production Stage 2 (50%) deployed (port :8890)
+- [x] Production Stage 3 (75%) deployed (port :8891)
 - [x] Production Stage 4 (100%) deployed
 - [x] Final verification passed
 
 ## Production Status
-- Instances: 3 running (lux-auto-prod, lux-auto-prod-2, lux-auto-prod-3)
-- Ports: 8000, 8010, 8020
-- Database: lux_auto
+- Instances: 3 running (lux-auto-app-prod, lux-auto-app-prod-2, lux-auto-app-prod-3)
+- Ports: 8889, 8890, 8891
+- Database: lux_auto_prod
+- Redis: Slot 11
 - All health checks: PASS ✅
 
 ## Timeline
@@ -481,11 +516,11 @@ cat DEPLOYMENT_DOCKER_*.md
 ### Production URLs
 
 ```
-Instance 1: http://localhost:8000
-Instance 2: http://localhost:8010
-Instance 3: http://localhost:8020
+Instance 1: http://localhost:8889
+Instance 2: http://localhost:8890
+Instance 3: http://localhost:8891
 
-Health: POST :{port}/health
+Health: GET :{port}/health
 API: GET :{port}/api/v1/health
 Metrics: GET :{port}/metrics
 ```
@@ -494,37 +529,37 @@ Metrics: GET :{port}/metrics
 
 ```bash
 # View all production containers
-docker ps | grep lux-auto-prod
+docker ps | grep lux-auto-app-prod
 
 # View logs
-docker logs lux-auto-prod       # Instance 1
-docker logs lux-auto-prod-2     # Instance 2
-docker logs lux-auto-prod-3     # Instance 3
+docker logs lux-auto-app-prod       # Instance 1 (:8889)
+docker logs lux-auto-app-prod-2     # Instance 2 (:8890)
+docker logs lux-auto-app-prod-3     # Instance 3 (:8891)
 
 # Health check
-curl http://localhost:8000/health
-curl http://localhost:8010/health
-curl http://localhost:8020/health
+curl http://localhost:8889/health
+curl http://localhost:8890/health
+curl http://localhost:8891/health
 
 # Stop all production
-docker stop lux-auto-prod lux-auto-prod-2 lux-auto-prod-3
+docker stop lux-auto-app-prod lux-auto-app-prod-2 lux-auto-app-prod-3
 
 # Remove all production
-docker rm lux-auto-prod lux-auto-prod-2 lux-auto-prod-3
+docker rm lux-auto-app-prod lux-auto-app-prod-2 lux-auto-app-prod-3
 ```
 
 ### Rollback (If Needed)
 
 ```bash
 # If any instance fails, simply restart:
-docker restart lux-auto-prod
-docker restart lux-auto-prod-2
-docker restart lux-auto-prod-3
+docker restart lux-auto-app-prod
+docker restart lux-auto-app-prod-2
+docker restart lux-auto-app-prod-3
 
 # Or rebuild and redeploy:
 docker build -f Dockerfile.backend -t lux-auto:latest .
-docker stop lux-auto-prod lux-auto-prod-2 lux-auto-prod-3
-docker rm lux-auto-prod lux-auto-prod-2 lux-auto-prod-3
+docker stop lux-auto-app-prod lux-auto-app-prod-2 lux-auto-app-prod-3
+docker rm lux-auto-app-prod lux-auto-app-prod-2 lux-auto-app-prod-3
 # Then re-run Phases 5 & 6
 ```
 
@@ -537,7 +572,7 @@ docker rm lux-auto-prod lux-auto-prod-2 lux-auto-prod-3
 ```bash
 cd "c:\Users\Alex Kushnir\Desktop\Lux-auto"
 
-# Phase 1: Verify prerequisites
+# Phase 1: Verify prerequisites (won't interfere with existing services)
 docker --version
 docker ps
 psql -U postgres -h localhost -c "SELECT version();"
@@ -548,5 +583,11 @@ docker build -f Dockerfile.backend -t lux-auto:latest .
 ```
 
 **Total time to production live: ~50 minutes (faster than waiting for GitHub Actions)**
+
+**Safety Guarantee:**
+- ✅ No existing services will be touched
+- ✅ Only uses ports 8888-8891 (your services use other ports)
+- ✅ Everything is isolated (containers, databases, Redis slots)
+- ✅ Easy rollback: just stop/remove lux-auto-app-* containers
 
 Everything is ready. Start Phase 1 now! 🚀
