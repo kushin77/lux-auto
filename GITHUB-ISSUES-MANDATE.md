@@ -262,6 +262,108 @@ Action: Bot comments → "Please use appropriate template"
 Help: Links to templates directory
 ```
 
+### 11. Automated PR → Issue Closing Workflow ✅
+
+**This is how issues actually get CLOSED when work is done:**
+
+#### Step 1: Create PR with Issue Link (Developer)
+
+```markdown
+## PR Title
+[Feature/Bug/Docs] What you did
+
+## Description
+Fixing [issue description]
+
+Fixes #123
+Related to #456
+
+## Checklist
+- [x] Tests pass
+- [x] Documentation updated
+- [x] Issue acceptance criteria met
+```
+
+**Valid link patterns:**
+- `Fixes #123` → Issue closes when PR merges ✅
+- `Closes #456` → Issue closes when PR merges ✅
+- `Resolves #789` → Issue closes when PR merges ✅
+- `Related to #101` → Links issue, does NOT auto-close
+
+#### Step 2: Automated Status Update (GitHub Actions)
+
+**When PR is opened/reviewed:**
+1. Bot finds issue reference: `Fixes #123`
+2. Checks PR status (draft, open, ready for review)
+3. Updates issue labels automatically:
+   - Draft PR → Label: `in-progress`
+   - Open PR awaiting review → Label: `in-progress`
+   - PR in review → Label: `review`
+   - Reviews completed → Ready to merge
+
+**Issue comment from bot:**
+```
+⏳ PR #456 **in-progress** - Awaiting review (2 reviewers requested)
+
+Status Update: 2026-04-12T14:23:00Z
+```
+
+#### Step 3: PR Merge & Auto-Close (GitHub Actions)
+
+**When PR is merged:**
+1. Bot detects merge (PR closed with merged flag)
+2. Finds all "Fixes/Closes/Resolves" references
+3. **Automatically closes those issues** with state: `completed`
+4. Adds comment to each closed issue:
+
+```
+✅ Closed by merged PR #456
+
+**Commit:** abc1234
+**Merged at:** 2026-04-12T14:23:00Z
+```
+
+5. Removes old status labels (ready, in-progress, review)
+6. Adds final labels: `done`, `merged`
+
+#### Result: Issue is CLOSED ✅
+
+**The complete flow:**
+```
+Issue created (#123)
+    ↓
+Status: ready (with estimate)
+    ↓
+Developer: git checkout -b feature/123-name
+    ↓
+Developer: Make commits, push, create PR
+PR description: "Fixes #123"
+    ↓
+GitHub Actions: Update issue #123 → Label: in-progress
+    ↓
+Developer/Reviewer: Add review comments
+    ↓
+GitHub Actions: Update issue #123 → Label: review
+    ↓
+Reviewer: Approve PR
+    ↓
+Developer: Merge PR
+    ↓
+GitHub Actions: **CLOSES ISSUE #123**
+    ↓
+Issue Status: CLOSED ✅ (completed)
+Final Comment: "✅ Closed by merged PR #456"
+```
+
+#### Important: Issue WON'T Close If:
+
+❌ PR description has `Related to #123` only (missing "Fixes/Closes/Resolves")
+❌ PR is closed without merging
+❌ Issue number is misspelled or wrong
+❌ PR is to wrong branch
+
+**Always use:** `Fixes #123` (not "Related to" or "Ref")
+
 ---
 
 ## 📊 Phase-Specific Requirements

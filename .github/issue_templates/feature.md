@@ -52,3 +52,34 @@ Depends on: [issue numbers if any]
 - [ ] Documentation updated
 - [ ] Demo-ready
 - [ ] Merged and deployed to staging
+
+---
+
+## How to Close This Issue
+
+**When creating a PR to address this issue:**
+
+```
+In your PR description, add one of these:
+
+Fixes #[issue-number]
+Closes #[issue-number]
+Resolves #[issue-number]
+```
+
+**Example PR description:**
+```markdown
+## What
+Implement [feature name]
+
+Fixes #123
+
+## Changes
+- Added module X
+- Added tests
+- Updated docs
+```
+
+**Result:** When your PR is merged, this issue will automatically close ✅
+
+See [GITHUB-ISSUES-MANDATE.md](https://github.com/kushin77/lux-auto/blob/main/GITHUB-ISSUES-MANDATE.md#11-automated-pr--issue-closing-workflow) for details

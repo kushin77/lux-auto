@@ -1,0 +1,108 @@
+name: Auto-close Issues on PR Merge
+
+on:
+  pull_request:
+    types: [closed]
+
+permissions:
+  issues: write
+  pull-requests: read
+
+jobs:
+  close-issues:
+    name: Close linked issues on PR merge
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.merged == true
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Find and close linked issues
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const body = pr.body || '';
+            
+            // Find issues referenced in PR body
+            // Patterns: Fixes #123, Closes #456, Resolves #789, Related to #101
+            const issueRegex = /(Fixes|Closes|Resolves|Related to|Ref|References)\s+#(\d+)/gi;
+            const matches = [...body.matchAll(issueRegex)];
+            
+            console.log(`PR #${pr.number} merged. Found ${matches.length} issue references.`);
+            
+            for (const match of matches) {
+              const action = match[1].toLowerCase();
+              const issueNumber = parseInt(match[2]);
+              
+              // Only auto-close for Fixes/Closes/Resolves
+              if (['fixes', 'closes', 'resolves'].includes(action)) {
+                try {
+                  // Close the issue
+                  await github.rest.issues.update({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: issueNumber,
+                    state: 'closed',
+                    state_reason: 'completed'
+                  });
+                  
+                  // Add comment to issue
+                  await github.rest.issues.createComment({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: issueNumber,
+                    body: `✅ Closed by merged PR #${pr.number}\n\n**Commit:** ${pr.merge_commit_sha.substring(0, 7)}\n**Merged at:** ${new Date().toISOString()}`
+                  });
+                  
+                  console.log(`✅ Closed issue #${issueNumber}`);
+                } catch (error) {
+                  console.log(`⚠️ Could not close issue #${issueNumber}: ${error.message}`);
+                }
+              } else {
+                console.log(`ℹ️ Issue #${issueNumber} linked (${action}) but not auto-closed`);
+              }
+            }
+
+  update-pr-labels:
+    name: Update PR labels when merged
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.merged == true
+    
+    steps:
+      - name: Add 'done' label to merged PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            
+            try {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pr.number,
+                labels: ['done', 'merged']
+              });
+              
+              // Remove 'in-progress' and 'review' labels
+              const currentLabels = pr.labels.map(l => l.name);
+              const labelsToRemove = ['in-progress', 'review', 'ready'];
+              
+              for (const label of labelsToRemove) {
+                if (currentLabels.includes(label)) {
+                  await github.rest.issues.removeLabel({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: pr.number,
+                    name: label
+                  });
+                }
+              }
+              
+              console.log(`✅ Updated PR #${pr.number} labels`);
+            } catch (error) {
+              console.log(`⚠️ Could not update labels: ${error.message}`);
+            }

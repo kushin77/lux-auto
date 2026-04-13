@@ -1,0 +1,143 @@
+name: Update Issue Status with PR Progress
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, review_requested, ready_for_review]
+
+permissions:
+  issues: write
+  pull-requests: read
+
+jobs:
+  update-issue-status:
+    name: Update linked issues with PR status
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Update issue labels and comments
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const body = pr.body || '';
+            
+            // Find issues referenced in PR body
+            const issueRegex = /(Fixes|Closes|Resolves|Related to|Ref|References)\s+#(\d+)/gi;
+            const matches = [...body.matchAll(issueRegex)];
+            
+            console.log(`PR #${pr.number} (${pr.state}). Found ${matches.length} issue references.`);
+            
+            for (const match of matches) {
+              const issueNumber = parseInt(match[2]);
+              
+              try {
+                // Determine action based on PR state
+                let statusLabel = '';
+                let comment = '';
+                
+                if (pr.state === 'open' && pr.draft === false) {
+                  if (pr.review_comments > 0 || pr.comments > 0) {
+                    statusLabel = 'review';
+                    comment = `📝 PR #${pr.number} is in **review** - ${pr.review_comments} review comments, ${pr.requested_reviewers.length} reviewers requested`;
+                  } else {
+                    statusLabel = 'in-progress';
+                    comment = `⏳ PR #${pr.number} **in-progress** - Awaiting review (${pr.requested_reviewers.length} reviewers requested)`;
+                  }
+                } else if (pr.draft === true) {
+                  statusLabel = 'in-progress';
+                  comment = `🚧 Draft PR #${pr.number} - Work in progress`;
+                }
+                
+                // Update issue labels
+                if (statusLabel) {
+                  const currentLabels = (await github.rest.issues.listLabelsOnIssue({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: issueNumber
+                  })).data.map(l => l.name);
+                  
+                  // Remove old status labels
+                  for (const oldLabel of ['ready', 'blocked', 'done']) {
+                    if (currentLabels.includes(oldLabel)) {
+                      try {
+                        await github.rest.issues.removeLabel({
+                          owner: context.repo.owner,
+                          repo: context.repo.repo,
+                          issue_number: issueNumber,
+                          name: oldLabel
+                        });
+                      } catch (e) {
+                        // Label might not exist
+                      }
+                    }
+                  }
+                  
+                  // Add new status label
+                  await github.rest.issues.addLabels({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: issueNumber,
+                    labels: [statusLabel]
+                  });
+                }
+                
+                // Add comment with PR update
+                if (comment) {
+                  // Check if we already commented on this issue
+                  const existingComments = await github.rest.issues.listComments({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: issueNumber
+                  });
+                  
+                  const botCommentExists = existingComments.data.some(c => 
+                    c.user.type === 'Bot' && c.body.includes(`PR #${pr.number}`)
+                  );
+                  
+                  if (!botCommentExists) {
+                    await github.rest.issues.createComment({
+                      owner: context.repo.owner,
+                      repo: context.repo.repo,
+                      issue_number: issueNumber,
+                      body: comment + `\n\n**Status Update:** ${new Date().toISOString()}`
+                    });
+                  }
+                }
+                
+                console.log(`✅ Updated issue #${issueNumber} - label: ${statusLabel}`);
+              } catch (error) {
+                console.log(`⚠️ Could not update issue #${issueNumber}: ${error.message}`);
+              }
+            }
+
+  check-pr-requirements:
+    name: Verify PR meets requirements
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Check PR has issue link
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const body = pr.body || '';
+            
+            // Check for issue link pattern
+            const hasIssueLink = /(Fixes|Closes|Resolves|Related to|Ref|References)\s+#\d+/i.test(body);
+            
+            if (!hasIssueLink) {
+              console.log('⚠️ PR does not reference an issue');
+              
+              // Add comment requesting issue link
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pr.number,
+                body: `ℹ️ **Please link an issue to this PR**\n\nThis PR should reference a GitHub issue using one of these patterns:\n- \`Fixes #123\`\n- \`Closes #456\`\n- \`Resolves #789\`\n\nAdd this to your PR description. See [GITHUB-ISSUES-MANDATE.md](https://github.com/kushin77/lux-auto/blob/main/GITHUB-ISSUES-MANDATE.md) for details.`
+              });
+            } else {
+              console.log('✅ PR properly references issues');
+            }

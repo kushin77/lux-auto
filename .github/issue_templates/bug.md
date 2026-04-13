@@ -61,3 +61,13 @@ labels: bug, needs-triage
 
 **Story Points:** [XS/S/M/L]
 **Time to Fix:** [hours]
+
+---
+
+## How to Close This Issue
+
+When creating a PR to fix this bug, add to your PR description:
+```
+Fixes #123
+```
+When your PR merges, this issue automatically closes. See GITHUB-ISSUES-MANDATE.md
