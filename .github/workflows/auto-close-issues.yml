@@ -27,16 +27,37 @@ jobs:
             const pr = context.payload.pull_request;
             const body = pr.body || '';
             
-            // Find issues referenced in PR body
+            // Get commit messages from the PR
+            const commits = await github.rest.pulls.listCommits({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: pr.number
+            });
+            
+            let commitMessages = '';
+            for (const commit of commits.data) {
+              commitMessages += commit.commit.message + '\n';
+            }
+            
+            // Find issues referenced in PR body AND commit messages
             // Patterns: Fixes #123, Closes #456, Resolves #789, Related to #101
             const issueRegex = /(Fixes|Closes|Resolves|Related to|Ref|References)\s+#(\d+)/gi;
-            const matches = [...body.matchAll(issueRegex)];
+            const bodyMatches = [...body.matchAll(issueRegex)];
+            const commitMatches = [...commitMessages.matchAll(issueRegex)];
+            const allMatches = [...bodyMatches, ...commitMatches];
             
-            console.log(`PR #${pr.number} merged. Found ${matches.length} issue references.`);
+            // Deduplicate by issue number
+            const uniqueIssues = new Set();
+            for (const match of allMatches) {
+              uniqueIssues.add(parseInt(match[2]));
+            }
             
-            for (const match of matches) {
-              const action = match[1].toLowerCase();
-              const issueNumber = parseInt(match[2]);
+            console.log(`PR #${pr.number} merged. Found ${uniqueIssues.size} unique issue references.`);
+            
+            for (const issueNumber of uniqueIssues) {
+              // Find which pattern was used (to determine if we should auto-close)
+              const actionMatch = allMatches.find(m => parseInt(m[2]) === issueNumber);
+              const action = actionMatch[1].toLowerCase();
               
               // Only auto-close for Fixes/Closes/Resolves
               if (['fixes', 'closes', 'resolves'].includes(action)) {

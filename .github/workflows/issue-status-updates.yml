@@ -3,6 +3,8 @@ name: Update Issue Status with PR Progress
 on:
   pull_request:
     types: [opened, synchronize, reopened, review_requested, ready_for_review]
+  pull_request_review:
+    types: [submitted]
 
 permissions:
   issues: write
@@ -140,4 +142,88 @@ jobs:
               });
             } else {
               console.log('✅ PR properly references issues');
+            }
+
+  update-issue-on-review:
+    name: Update linked issues with review status
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request_review'
+    
+    steps:
+      - name: Label issue on review outcome
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const review = context.payload.review;
+            const pr = context.payload.pull_request;
+            const state = review.state; // 'approved', 'changes_requested', 'commented'
+            const body = pr.body || '';
+            
+            // Find issues referenced in PR body
+            const issueRegex = /(Fixes|Closes|Resolves|Related to|Ref|References)\s+#(\d+)/gi;
+            const matches = [...body.matchAll(issueRegex)];
+            
+            console.log(`Review ${state} on PR #${pr.number}. Found ${matches.length} issue references.`);
+            
+            for (const match of matches) {
+              const issueNumber = parseInt(match[2]);
+              
+              try {
+                const currentLabels = (await github.rest.issues.listLabelsOnIssue({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issueNumber
+                })).data.map(l => l.name);
+                
+                // Remove old review labels
+                for (const oldLabel of ['approved', 'changes-requested']) {
+                  if (currentLabels.includes(oldLabel)) {
+                    try {
+                      await github.rest.issues.removeLabel({
+                        owner: context.repo.owner,
+                        repo: context.repo.repo,
+                        issue_number: issueNumber,
+                        name: oldLabel
+                      });
+                    } catch (e) {
+                      // Label might not exist
+                    }
+                  }
+                }
+                
+                // Add new review label if applicable
+                if (state === 'approved') {
+                  await github.rest.issues.addLabels({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: issueNumber,
+                    labels: ['approved']
+                  });
+                  
+                  await github.rest.issues.createComment({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: issueNumber,
+                    body: `✅ **APPROVED** - PR #${pr.number} has been approved by @${review.user.login}`
+                  });
+                } else if (state === 'changes_requested') {
+                  await github.rest.issues.addLabels({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: issueNumber,
+                    labels: ['changes-requested']
+                  });
+                  
+                  await github.rest.issues.createComment({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: issueNumber,
+                    body: `🔄 **CHANGES REQUESTED** - PR #${pr.number} needs updates per @${review.user.login}`
+                  });
+                }
+                
+                console.log(`✅ Updated issue #${issueNumber} - review: ${state}`);
+              } catch (error) {
+                console.log(`⚠️ Could not update issue #${issueNumber}: ${error.message}`);
+              }
             }
