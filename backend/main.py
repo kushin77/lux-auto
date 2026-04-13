@@ -77,12 +77,15 @@ set_session_local(SessionLocal)
 # Create tables - handle race condition when multiple instances start simultaneously
 try:
     Base.metadata.create_all(bind=engine)
+    print("✓ Database schema created/verified successfully", flush=True)
 except Exception as e:
+    error_msg = str(e).lower()
     # If we get a duplicate table/index error, it means another instance already created it
     # This is safe to ignore - all instances can share the same schema
-    if "already exists" in str(e) or "duplicate" in str(e).lower():
-        pass
+    if "already exists" in error_msg or "duplicate" in error_msg:
+        print(f"✓ Schema already exists (from another instance), continuing...", flush=True)
     else:
+        print(f"✗ FATAL: Schema creation failed: {e}", flush=True)
         raise
 
 # Service initialization
