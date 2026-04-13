@@ -1,5 +1,5 @@
 -- Lux-Auto Database Initialization
--- Initializes PostgreSQL with required schemas and tables
+-- PostgreSQL 15 compatible initialization for production database
 
 -- Create extensions first
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
@@ -15,11 +15,13 @@ CREATE TABLE IF NOT EXISTS users (
     active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     last_login TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    email_verified BOOLEAN DEFAULT TRUE,
-    INDEX users_email_idx (email),
-    INDEX users_role_idx (role)
+    email_verified BOOLEAN DEFAULT TRUE
 );
 
+CREATE INDEX IF NOT EXISTS users_email_idx ON users(email);
+CREATE INDEX IF NOT EXISTS users_role_idx ON users(role);
+
+-- User Sessions
 CREATE TABLE IF NOT EXISTS user_sessions (
     id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -30,11 +32,12 @@ CREATE TABLE IF NOT EXISTS user_sessions (
     ip_address VARCHAR(45),
     user_agent VARCHAR(512),
     active BOOLEAN DEFAULT TRUE,
-    revoked_at TIMESTAMP,
-    INDEX user_sessions_user_id_active_idx (user_id, active),
-    INDEX user_sessions_token_hash_idx (token_hash),
-    INDEX user_sessions_expires_at_idx (expires_at)
+    revoked_at TIMESTAMP
 );
+
+CREATE INDEX IF NOT EXISTS user_sessions_user_id_active_idx ON user_sessions(user_id, active);
+CREATE INDEX IF NOT EXISTS user_sessions_token_hash_idx ON user_sessions(token_hash);
+CREATE INDEX IF NOT EXISTS user_sessions_expires_at_idx ON user_sessions(expires_at);
 
 -- ===== Audit Logging =====
 
@@ -52,11 +55,12 @@ CREATE TABLE IF NOT EXISTS audit_logs (
     ip_address VARCHAR(45),
     user_agent VARCHAR(512),
     error_message TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    INDEX audit_logs_event_type_created_at_idx (event_type, created_at),
-    INDEX audit_logs_user_id_created_at_idx (user_id, created_at),
-    INDEX audit_logs_email_created_at_idx (email, created_at)
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE INDEX IF NOT EXISTS audit_logs_event_type_created_at_idx ON audit_logs(event_type, created_at);
+CREATE INDEX IF NOT EXISTS audit_logs_user_id_created_at_idx ON audit_logs(user_id, created_at);
+CREATE INDEX IF NOT EXISTS audit_logs_email_created_at_idx ON audit_logs(email, created_at);
 
 -- ===== Portal User Preferences =====
 
@@ -80,18 +84,17 @@ CREATE TABLE IF NOT EXISTS portal_user_preferences (
 CREATE TABLE IF NOT EXISTS user_roles (
     id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    role VARCHAR(50) NOT NULL CHECK (
-        role IN ('VIEWER', 'ANALYST', 'ADMIN', 'SUPER_ADMIN')
-    ),
+    role VARCHAR(50) NOT NULL CHECK (role IN ('VIEWER', 'ANALYST', 'ADMIN', 'SUPER_ADMIN')),
     assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     assigned_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
     expires_at TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(user_id, role),
-    INDEX user_roles_user_id_idx (user_id),
-    INDEX user_roles_role_idx (role),
-    INDEX user_roles_expires_at_idx (expires_at)
+    UNIQUE(user_id, role)
 );
+
+CREATE INDEX IF NOT EXISTS user_roles_user_id_idx ON user_roles(user_id);
+CREATE INDEX IF NOT EXISTS user_roles_role_idx ON user_roles(role);
+CREATE INDEX IF NOT EXISTS user_roles_expires_at_idx ON user_roles(expires_at);
 
 -- ===== API Keys =====
 
@@ -107,12 +110,13 @@ CREATE TABLE IF NOT EXISTS api_keys (
     scopes TEXT[] NOT NULL DEFAULT ARRAY['read:deals', 'read:analytics'],
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    rotated_at TIMESTAMP,
-    INDEX api_keys_key_hash_idx (key_hash),
-    INDEX api_keys_user_id_idx (user_id),
-    INDEX api_keys_is_active_idx (is_active),
-    INDEX api_keys_prefix_idx (key_prefix)
+    rotated_at TIMESTAMP
 );
+
+CREATE INDEX IF NOT EXISTS api_keys_key_hash_idx ON api_keys(key_hash);
+CREATE INDEX IF NOT EXISTS api_keys_user_id_idx ON api_keys(user_id);
+CREATE INDEX IF NOT EXISTS api_keys_is_active_idx ON api_keys(is_active);
+CREATE INDEX IF NOT EXISTS api_keys_prefix_idx ON api_keys(key_prefix);
 
 -- ===== Portal Events (Real-time Updates) =====
 
@@ -124,9 +128,10 @@ CREATE TABLE IF NOT EXISTS portal_events (
     user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
     payload JSONB NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    expires_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP + INTERVAL '7 days',
-    INDEX portal_events_created_at_idx (created_at DESC)
+    expires_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP + INTERVAL '7 days'
 );
+
+CREATE INDEX IF NOT EXISTS portal_events_created_at_idx ON portal_events(created_at DESC);
 
 -- ===== Deals Management =====
 
@@ -156,12 +161,13 @@ CREATE TABLE IF NOT EXISTS deals (
     highest_bid DECIMAL(10, 2),
     condition_report JSONB DEFAULT '{}',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    INDEX deals_status_idx (status),
-    INDEX deals_created_at_idx (created_at),
-    INDEX deals_make_model_idx (make, model),
-    INDEX deals_vin_idx (vin)
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE INDEX IF NOT EXISTS deals_status_idx ON deals(status);
+CREATE INDEX IF NOT EXISTS deals_created_at_idx ON deals(created_at);
+CREATE INDEX IF NOT EXISTS deals_make_model_idx ON deals(make, model);
+CREATE INDEX IF NOT EXISTS deals_vin_idx ON deals(vin);
 
 -- ===== Buyers Management =====
 
@@ -184,11 +190,12 @@ CREATE TABLE IF NOT EXISTS buyers (
     contact_count INTEGER DEFAULT 0,
     success_count INTEGER DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    INDEX buyers_email_idx (email),
-    INDEX buyers_match_score_idx (match_score),
-    INDEX buyers_created_at_idx (created_at)
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE INDEX IF NOT EXISTS buyers_email_idx ON buyers(email);
+CREATE INDEX IF NOT EXISTS buyers_match_score_idx ON buyers(match_score);
+CREATE INDEX IF NOT EXISTS buyers_created_at_idx ON buyers(created_at);
 
 -- ===== System Configuration =====
 
