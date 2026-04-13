@@ -252,8 +252,8 @@ bash scripts/validate-config.sh  # Should PASS
 bash scripts/deploy.sh           # Full deployment
 
 # 2. Smoke tests
-curl https://localhost/health
-curl -H "X-Auth-Request-Email: test@example.com" https://localhost/api/me
+curl https://lux.kushnir.cloud/health
+curl -H "X-Auth-Request-Email: test@example.com" https://lux.kushnir.cloud/api/me
 
 # 3. Persistence test (stop/start containers)
 docker compose stop fastapi
@@ -563,7 +563,7 @@ git secrets --scan
 pip-audit
 
 # Step 9: Manual smoke test
-curl https://localhost/health
+curl https://lux.kushnir.cloud/health
 
 # Step 10: Cleanup
 docker compose down

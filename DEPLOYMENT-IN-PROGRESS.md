@@ -174,19 +174,19 @@ docker pull lux-auto:staging  # Pull latest image from registry
 docker run -d \
   --name lux-auto-staging \
   -p 8001:8000 \
-  -e DATABASE_URL="postgresql://user:pass@localhost/lux_auto" \
-  -e REDIS_URL="redis://localhost:6379" \
+  -e DATABASE_URL="postgresql://user:pass@lux.kushnir.cloud/lux_auto" \
+  -e REDIS_URL="redis://lux.kushnir.cloud:6379" \
   lux-auto:staging
 
 # 3. Test staging
-curl http://localhost:8001/health
+curl https://lux.kushnir.cloud/health
 # Should return: {"status": "healthy"}
 
 # 4. Run smoke tests
-curl -X GET http://localhost:8001/api/v1/health
-curl http://localhost:8001/api/v1/health/db      # DB health
-curl http://localhost:8001/api/v1/health/redis   # Cache health
-curl http://localhost:8001/metrics                # Prometheus metrics
+curl -X GET https://lux.kushnir.cloud/api/v1/health
+curl https://lux.kushnir.cloud/api/v1/health/db      # DB health
+curl https://lux.kushnir.cloud/api/v1/health/redis   # Cache health
+curl https://lux.kushnir.cloud/metrics                # Prometheus metrics
 
 # 5. If all pass → Deploy to production
 ```

@@ -162,7 +162,7 @@ Open [TEAM-LAUNCH-FAQ.md](TEAM-LAUNCH-FAQ.md) and review:
 **Create `backend/.env.local` file:**
 ```bash
 # backend/.env.local
-DATABASE_URL=postgresql://localhost:5432/lux_dev
+DATABASE_URL=postgresql://lux.kushnir.cloud:5432/lux_dev
 FASTAPI_SECRET_KEY=dev-secret-key-not-for-production
 GOOGLE_CLIENT_ID=dev-client-id
 GOOGLE_CLIENT_SECRET=dev-client-secret

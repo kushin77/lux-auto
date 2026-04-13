@@ -117,7 +117,7 @@ Converted all 20+ INDEX declarations in the file from inline table definitions t
 │  ├─ FastAPI Instance 2 (8890:8000)                 │
 │  └─ FastAPI Instance 3 (8891:8000)                 │
 │     All: lux-auto:latest image, security hardened  │
-│     Health: curl http://localhost:PORT/health      │
+│     Health: curl https://lux.kushnir.cloud/health      │
 │     Depends: postgres (healthy) + redis (healthy) │
 │                                                      │
 └─────────────────────────────────────────────────────┘
@@ -174,9 +174,9 @@ Expected: `lux-auto-postgres    Up X seconds (healthy)`
 
 ### 3. Test FastAPI Endpoints
 ```bash
-curl http://localhost:8889/health
-curl http://localhost:8890/health
-curl http://localhost:8891/health
+curl https://lux.kushnir.cloud/health
+curl https://lux.kushnir.cloud/health
+curl https://lux.kushnir.cloud/health
 ```
 Expected: HTTP 200 with health status
 
@@ -246,9 +246,9 @@ docker compose -f docker-compose.prod.yml up -d
 After successful deployment:
 
 - **Local Testing:** 
-  - http://localhost:8889
-  - http://localhost:8890
-  - http://localhost:8891
+  - https://lux.kushnir.cloud
+  - https://lux.kushnir.cloud
+  - https://lux.kushnir.cloud
 
 - **Production URL:**
   - https://lux.kushnir.cloud
@@ -334,7 +334,7 @@ After successful deployment:
 
 3. **Test Endpoints:**
    ```bash
-   curl http://localhost:8889/health
+   curl https://lux.kushnir.cloud/health
    ```
 
 4. **Monitor in Production:**

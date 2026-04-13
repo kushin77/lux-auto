@@ -233,7 +233,7 @@ BACKSTAGE_GITHUB_TOKEN=<personal-access-token>
 ### Step 2: Deploy Infrastructure (Week 1-2)
 ```bash
 # Apply schema extensions
-psql -h localhost -U postgres -d lux_prod -f scripts/portal-schema.sql
+psql -h lux.kushnir.cloud -U postgres -d lux_prod -f scripts/portal-schema.sql
 
 # Update docker-compose.yml with Appsmith and Backstage services
 # See: DOCKER-COMPOSE-EXTENSION.md

@@ -189,9 +189,9 @@ lux-auto-app-prod-3   Up X minutes           8891->8000/tcp
 
 ### Test Endpoints
 ```bash
-curl http://localhost:8889/health  (FastAPI-1)
-curl http://localhost:8890/health  (FastAPI-2)
-curl http://localhost:8891/health  (FastAPI-3)
+curl https://lux.kushnir.cloud/health  (FastAPI-1)
+curl https://lux.kushnir.cloud/health  (FastAPI-2)
+curl https://lux.kushnir.cloud/health  (FastAPI-3)
 ```
 
 ### Production Access
@@ -348,7 +348,7 @@ docker compose -f docker-compose.prod.yml up -d
 ### To Verify:
 ```bash
 docker ps --filter="name=lux-auto"
-curl http://localhost:8889/health
+curl https://lux.kushnir.cloud/health
 ```
 
 ### To Access:

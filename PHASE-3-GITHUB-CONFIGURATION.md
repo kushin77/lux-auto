@@ -136,8 +136,8 @@ gh api repos/kushin77/lux-auto/branches/dev/protection \
   -X PUT --input branch-protection-dev.json
 
 # 3. Create secrets (repeated 6 times)
-gh secret set DATABASE_URL -b "postgresql://user:password@localhost:5432/lux_auto_dev"
-gh secret set REDIS_URL -b "redis://localhost:6379/0"
+gh secret set DATABASE_URL -b "postgresql://user:password@lux.kushnir.cloud:5432/lux_auto_dev"
+gh secret set REDIS_URL -b "redis://lux.kushnir.cloud:6379/0"
 gh secret set CODECOV_TOKEN -b "codecov-token-placeholder"
 gh secret set DOCKER_HUB_USERNAME -b "kushin77-docker"
 gh secret set DOCKER_HUB_TOKEN -b "dckr_pat_placeholder"

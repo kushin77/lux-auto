@@ -79,7 +79,7 @@ function Test-ServiceHealth {
     
     while ($retryCount -lt $maxRetries) {
         try {
-            $response = Invoke-WebRequest -Uri "http://localhost:$Port/health" `
+            $response = Invoke-WebRequest -Uri "https://lux.kushnir.cloud/health" `
                 -Method Get `
                 -TimeoutSec 5 `
                 -ErrorAction Stop

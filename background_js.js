@@ -1,6 +1,6 @@
 // Service worker — handles scheduled scans + sell trigger routing
 
-const BACKEND = "http://localhost:8000";
+const BACKEND = "https://lux.kushnir.cloud";
 
 // ── Alarm: scheduled scan every 30 min ──────────────────────────────────────
 chrome.alarms.create("deal-scan", { periodInMinutes: 30 });

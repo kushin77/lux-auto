@@ -125,7 +125,7 @@ pytest --cov=backend --cov-fail-under=90 tests/
 | HighDB Connections | Query logs | N+1 query? |
 | OAuthFailure | Auth logs | Token validity? |
 
-**Dashboard:** http://localhost:3000 (Grafana)
+**Dashboard:** https://lux.kushnir.cloud (Grafana)
 
 ---
 

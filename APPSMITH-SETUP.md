@@ -281,7 +281,7 @@ https://lux.kushnir.cloud
 
 Or for local development:
 ```
-http://localhost:8000
+https://lux.kushnir.cloud
 ```
 
 ### Authentication

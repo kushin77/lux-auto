@@ -187,7 +187,7 @@ Reviewers might ask:
 
 ```
 ❓ "How does this handle 10x load?"
-→ Run benchmark: `wrk -c10 -t4 http://localhost:8000/auth/refresh`
+→ Run benchmark: `wrk -c10 -t4 https://lux.kushnir.cloud/auth/refresh`
 → Share results in comment
 
 ❓ "What happens if database is down?"

@@ -302,7 +302,7 @@ Status: ⏳ DEPLOYMENT VERIFICATION
 ```
 - [ ] Prometheus Docker container running
 - [ ] Service scraping targets configured
-- [ ] Metrics endpoint accessible: `http://localhost:9090`
+- [ ] Metrics endpoint accessible: `https://lux.kushnir.cloud/monitoring/prometheus`
 - [ ] Job targets:
   - [ ] Backend service (8000)
   - [ ] Application metrics
@@ -310,7 +310,7 @@ Status: ⏳ DEPLOYMENT VERIFICATION
 
 **Verify Prometheus:**
 ```bash
-curl http://localhost:9090/api/v1/query?query=up
+curl https://lux.kushnir.cloud/monitoring/prometheus/api/v1/query?query=up
 # Should return JSON with metrics data
 ```
 
@@ -319,7 +319,7 @@ curl http://localhost:9090/api/v1/query?query=up
 Status: ⏳ DEPLOYMENT VERIFICATION
 ```
 - [ ] Grafana Docker container running
-- [ ] Access: http://localhost:3000 (or production URL)
+- [ ] Access: https://lux.kushnir.cloud (or production URL)
 - [ ] Data source configured: Prometheus
 - [ ] Dashboards created:
   - [ ] Request metrics dashboard

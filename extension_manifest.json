@@ -6,7 +6,7 @@
   "permissions": ["storage", "alarms", "notifications", "scripting", "activeTab"],
   "host_permissions": [
     "https://*.manheim.com/*",
-    "http://localhost:8000/*"
+    "https://lux.kushnir.cloud/*"
   ],
   "background": { "service_worker": "background.js" },
   "action": {

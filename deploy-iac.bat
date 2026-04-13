@@ -33,9 +33,9 @@ echo Deployment Complete
 echo ========================================
 echo.
 echo Services available at:
-echo   http://localhost:8889  (FastAPI-1)
-echo   http://localhost:8890  (FastAPI-2)
-echo   http://localhost:8891  (FastAPI-3)
+echo   https://lux.kushnir.cloud  (FastAPI-1)
+echo   https://lux.kushnir.cloud  (FastAPI-2)
+echo   https://lux.kushnir.cloud  (FastAPI-3)
 echo https://lux.kushnir.cloud (Production)
 echo.
 

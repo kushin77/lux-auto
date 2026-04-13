@@ -410,7 +410,7 @@ docker ps | grep lux-auto-app-prod
 echo -e "\nHealth status:"
 for port in 8889 8890 8891; do
     echo -n "Port $port: "
-    curl -s http://localhost:$port/health | jq .status
+    curl -s https://lux.kushnir.cloud/health | jq .status
 done
 
 # 3. Database check

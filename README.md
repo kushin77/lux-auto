@@ -262,9 +262,9 @@ docker-compose -f docker-compose.monitoring.yml ps
 
 ### Access Monitoring Interfaces
 
-- **Prometheus** (metrics queries): http://localhost:9090
-- **AlertManager** (alert status): http://localhost:9093
-- **Grafana** (dashboards): http://localhost:3000 (default: admin/admin)
+- **Prometheus** (metrics queries): https://lux.kushnir.cloud/monitoring/prometheus
+- **AlertManager** (alert status): https://lux.kushnir.cloud/monitoring/alertmanager
+- **Grafana** (dashboards): https://lux.kushnir.cloud (default: admin/admin)
 
 ### Configure Slack/PagerDuty Alerts
 
@@ -353,20 +353,20 @@ grep GOOGLE_CLIENT lux .env
 docker compose logs oauth2-proxy | tail -50
 
 # Test oauth2-proxy health
-curl http://localhost:4180/ping
+curl https://lux.kushnir.cloud/ping
 ```
 
 ### FastAPI health check failing
 
 ```bash
 # Direct test
-curl http://localhost:8000/health
+curl https://lux.kushnir.cloud/health
 
 # Check logs
 docker compose logs fastapi | tail -50
 
 # Verify database connection
-curl -H "X-Auth-Request-Email: test@example.com" http://localhost:8000/api/me
+curl -H "X-Auth-Request-Email: test@example.com" https://lux.kushnir.cloud/api/me
 ```
 
 ## 📦 Deployment Modes

@@ -57,7 +57,7 @@ backstage:
   networks:
     - lux-network
   healthcheck:
-    test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+    test: ["CMD", "curl", "-f", "https://lux.kushnir.cloud/health"]
     interval: 10s
     timeout: 5s
     retries: 5

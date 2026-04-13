@@ -537,7 +537,7 @@ and users understand how to use the feature.
 ### API Features
 - [ ] Add endpoint to API-SPECIFICATION.md
 - [ ] Include: path, method, parameters, response, example
-- [ ] Add curl example: `curl -X GET http://localhost:8000/api/endpoint`
+- [ ] Add curl example: `curl -X GET https://lux.kushnir.cloud/api/endpoint`
 - [ ] Document error responses and status codes
 
 ### Configuration Features
@@ -581,7 +581,7 @@ and users understand how to use the feature.
 
 **Example:**
 ```bash
-curl -X POST http://localhost:8000/api/path \
+curl -X POST https://lux.kushnir.cloud/api/path \
   -H "Content-Type: application/json" \
   -d '{"param1": "value", "param2": 123}'
 ```

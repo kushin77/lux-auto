@@ -44,9 +44,9 @@ echo   DEPLOYMENT COMPLETE
 echo ========================================
 echo.
 echo Access Points:
-echo   FastAPI-1:      http://localhost:8889
-echo   FastAPI-2:      http://localhost:8890  
-echo   FastAPI-3:      http://localhost:8891
+echo   FastAPI-1:      https://lux.kushnir.cloud
+echo   FastAPI-2:      https://lux.kushnir.cloud  
+echo   FastAPI-3:      https://lux.kushnir.cloud
 echo   Production:    https://lux.kushnir.cloud
 echo.
 

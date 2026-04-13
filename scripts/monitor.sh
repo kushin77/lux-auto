@@ -83,14 +83,14 @@ while true; do
     fi
     
     # FastAPI
-    if curl -sf http://localhost:8000/health > /dev/null 2>&1; then
+    if curl -sf https://lux.kushnir.cloud/health > /dev/null 2>&1; then
         log_success "FastAPI health check passed"
     else
         log_warning "FastAPI health check failed"
     fi
     
     # OAuth2 Proxy
-    if curl -sf http://localhost:4180/ping > /dev/null 2>&1; then
+    if curl -sf https://lux.kushnir.cloud/ping > /dev/null 2>&1; then
         log_success "OAuth2 proxy responding"
     else
         log_warning "OAuth2 proxy not responding"

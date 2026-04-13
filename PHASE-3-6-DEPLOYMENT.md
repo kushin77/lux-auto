@@ -33,12 +33,12 @@ docker --version
 # Should output: Docker version XX.XX or similar
 
 # 2. Verify PostgreSQL is running
-# (Should be running on localhost:5432)
-psql -U postgres -h localhost -c "SELECT version();"
+# (Should be running via Docker on lux.kushnir.cloud)
+psql -U postgres -h lux.kushnir.cloud -c "SELECT version();"
 # If error: PostgreSQL needs to be started
 
 # 3. Verify Redis is running
-# (Should be running on localhost:6379)
+# (Should be running via Docker on lux.kushnir.cloud)
 redis-cli ping
 # Should output: PONG
 ```
@@ -47,7 +47,7 @@ redis-cli ping
 ```bash
 # Initialize database (first time only)
 cd "c:\Users\Alex Kushnir\Desktop\Lux-auto\scripts"
-psql -U postgres -h localhost -f init-db.sql
+psql -U postgres -h lux.kushnir.cloud -f init-db.sql
 # Creates lux_auto database and tables
 ```
 
@@ -57,10 +57,10 @@ Create `.env.staging` in project root:
 ```bash
 cat > .env.staging << 'EOF'
 # Database
-DATABASE_URL=postgresql://postgres:postgres@localhost:5432/lux_auto_staging
+DATABASE_URL=postgresql://postgres:postgres@lux.kushnir.cloud:5432/lux_auto_staging
 
 # Redis Cache
-REDIS_URL=redis://localhost:6379/1
+REDIS_URL=redis://lux.kushnir.cloud:6379/1
 
 # Security (generate with: openssl rand -hex 32)
 SECRET_KEY=your-secret-key-here
@@ -115,11 +115,11 @@ docker logs lux-auto-staging | head -20
 
 ```bash
 # Test basic health
-curl http://localhost:8001/health
+curl https://lux.kushnir.cloud/health
 # Expected: {"status": "healthy"}
 
 # Test API health detail
-curl http://localhost:8001/api/v1/health
+curl https://lux.kushnir.cloud/api/v1/health
 # Expected: {"status": "ok"}
 ```
 
@@ -137,30 +137,30 @@ Run these tests against staging to verify core functionality:
 ```bash
 # Test 1: Health Checks
 echo "=== Test 1: Health Checks ==="
-curl -s http://localhost:8001/health | jq .
-curl -s http://localhost:8001/api/v1/health | jq .
-curl -s http://localhost:8001/api/v1/health/db | jq .
-curl -s http://localhost:8001/api/v1/health/redis | jq .
+curl -s https://lux.kushnir.cloud/health | jq .
+curl -s https://lux.kushnir.cloud/api/v1/health | jq .
+curl -s https://lux.kushnir.cloud/api/v1/health/db | jq .
+curl -s https://lux.kushnir.cloud/api/v1/health/redis | jq .
 # All should return 200 with "healthy" or "ok" status
 
 # Test 2: Metrics Endpoint
 echo "=== Test 2: Metrics ==="
-curl -s http://localhost:8001/metrics | head -5
+curl -s https://lux.kushnir.cloud/metrics | head -5
 # Should show Prometheus format metrics
 
 # Test 3: API Endpoints (adjust to your actual endpoints)
 echo "=== Test 3: API Endpoints ==="
-curl -s -X GET http://localhost:8001/api/v1/status | jq .
+curl -s -X GET https://lux.kushnir.cloud/api/v1/status | jq .
 # Should return successful response
 
 # Test 4: Error Handling
 echo "=== Test 4: Error Handling ==="
-curl -s http://localhost:8001/nonexistent 
+curl -s https://lux.kushnir.cloud/nonexistent 
 # Should return 404, not 500
 
 # Test 5: Response Time
 echo "=== Test 5: Response Time ==="
-time curl -s http://localhost:8001/health > /dev/null
+time curl -s https://lux.kushnir.cloud/health > /dev/null
 # Should be <100ms
 ```
 
@@ -171,7 +171,7 @@ cat > ./test-staging.sh << 'SCRIPT'
 #!/bin/bash
 set -e
 
-STAGING_URL="http://localhost:8001"
+STAGING_URL="https://lux.kushnir.cloud"
 TIMEOUT=5
 PASS=0
 FAIL=0
@@ -232,15 +232,15 @@ chmod +x ./test-staging.sh
 
 ```bash
 # 1. Confirm staging is still healthy
-curl http://localhost:8001/health
+curl https://lux.kushnir.cloud/health
 # Should return 200
 
 # 2. Verify production database is ready
-psql -U postgres -h localhost -c "SELECT COUNT(*) FROM pg_tables WHERE schemaname = 'public';"
+psql -U postgres -h lux.kushnir.cloud -c "SELECT COUNT(*) FROM pg_tables WHERE schemaname = 'public';"
 # Should show tables exist
 
 # 3. Backup production database (safety first)
-pg_dump -U postgres -h localhost lux_auto_prod > backup_$(date +%Y%m%d_%H%M%S).sql
+pg_dump -U postgres -h lux.kushnir.cloud lux_auto_prod > backup_$(date +%Y%m%d_%H%M%S).sql
 echo "✅ Production backup created"
 ```
 
@@ -274,20 +274,20 @@ sleep 5
 
 # 2. Verify canary health
 echo "Checking canary health..."
-curl http://localhost:8002/health
+curl https://lux.kushnir.cloud/health
 # Should return 200
 
 # 3. Monitor for 5 minutes
 echo "Monitoring canary for 5 minutes..."
 for i in {1..5}; do
     echo "Min $i/5: Checking metrics..."
-    curl -s http://localhost:8002/metrics | grep http_requests_total
+    curl -s https://lux.kushnir.cloud/metrics | grep http_requests_total
     sleep 60
 done
 
 # 4. Check error rate
 echo "Canary error rate: "
-curl -s http://localhost:8002/metrics | grep http_requests_total | grep -i error | head -3
+curl -s https://lux.kushnir.cloud/metrics | grep http_requests_total | grep -i error | head -3
 # Should show <1% error rate
 ```
 
@@ -311,9 +311,9 @@ docker ps | grep lux-auto-prod
 # Monitor for 5 minutes (same as Stage 1)
 for i in {1..5}; do
     echo "Min $i/5: Checking all prod instances..."
-    curl -s http://localhost:8000/health
-    curl -s http://localhost:8002/health
-    curl -s http://localhost:8003/health
+    curl -s https://lux.kushnir.cloud/health
+    curl -s https://lux.kushnir.cloud/health
+    curl -s https://lux.kushnir.cloud/health
     sleep 60
 done
 ```
@@ -336,7 +336,7 @@ docker run -d \
 for i in {1..5}; do
     echo "Min $i/5: Monitoring 75% deployment..."
     for port in 8000 8002 8003 8004; do
-        curl -s http://localhost:$port/health || echo "Port $port: UNHEALTHY"
+        curl -s https://lux.kushnir.cloud/health || echo "Port $port: UNHEALTHY"
     done
     sleep 60
 done
@@ -359,7 +359,7 @@ for i in {1..5}; do
     
     # Sample health from each
     for port in 8000 8002 8003 8004; do
-        response=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:$port/health)
+        response=$(curl -s -o /dev/null -w "%{http_code}" https://lux.kushnir.cloud/health)
         echo "  Port $port: HTTP $response"
     done
     
@@ -408,7 +408,7 @@ docker ps | grep lux-auto-prod
 # 2. Verify all healthy
 printf "\nHealth check:\n"
 for port in 8000 8002 8003 8004; do
-    curl -s http://localhost:$port/health
+    curl -s https://lux.kushnir.cloud/health
 done
 
 # 3. Check error logs
@@ -418,14 +418,14 @@ docker logs lux-auto-prod-canary-3 | grep -i error | wc -l
 
 # 4. Database integrity
 printf "\nDatabase verification:\n"
-psql -U postgres -h localhost lux_auto_prod << SQL
+psql -U postgres -h lux.kushnir.cloud lux_auto_prod << SQL
     SELECT count(*) as table_count FROM information_schema.tables WHERE table_schema = 'public';
     SELECT count(*) as record_count FROM your_main_table;
 SQL
 
 # 5. Performance metrics
 printf "\nPerformance check:\n"
-curl -s http://localhost:8004/metrics | grep http_request_duration_seconds | head -3
+curl -s https://lux.kushnir.cloud/metrics | grep http_request_duration_seconds | head -3
 ```
 
 ### Cleanup Old Staging

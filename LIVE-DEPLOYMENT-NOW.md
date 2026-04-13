@@ -98,7 +98,7 @@ docker run -d \
   lux-auto:staging
 
 # 3. Verify health endpoint
-curl http://localhost:8001/health
+curl https://lux.kushnir.cloud/health
 # Expected response: {"status": "healthy"}
 ```
 
@@ -110,12 +110,12 @@ curl http://localhost:8001/health
 
 ```bash
 # Test API endpoints
-curl -X GET http://localhost:8001/api/v1/health
+curl -X GET https://lux.kushnir.cloud/api/v1/health
 
 # Test health checks
-curl http://localhost:8001/api/v1/health/db
-curl http://localhost:8001/api/v1/health/redis
-curl http://localhost:8001/metrics
+curl https://lux.kushnir.cloud/api/v1/health/db
+curl https://lux.kushnir.cloud/api/v1/health/redis
+curl https://lux.kushnir.cloud/metrics
 
 # Expected: All respond with 200 OK
 # Check logs: docker logs lux-auto-staging

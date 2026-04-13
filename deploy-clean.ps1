@@ -148,7 +148,7 @@ APP_VERSION=1.0.0
     
     for ($i = 1; $i -le $maxRetries; $i++) {
         try {
-            $response = Invoke-WebRequest -Uri "http://localhost:8889/health" -Method Get -TimeoutSec 5 -ErrorAction Stop
+            $response = Invoke-WebRequest -Uri "https://lux.kushnir.cloud/health" -Method Get -TimeoutSec 5 -ErrorAction Stop
             
             if ($response.StatusCode -eq 200) {
                 Write-Host "✓ Instance 1 health check passed (HTTP 200)" -ForegroundColor Green
@@ -179,9 +179,9 @@ $success = Invoke-CleanDeployment
 if ($success) {
     Write-Host "`n✅ Deployment phase completed successfully!" -ForegroundColor Green
     Write-Host "`nAccess your services at:" -ForegroundColor Cyan
-    Write-Host "  Instance 1: http://localhost:8889" -ForegroundColor Green
-    Write-Host "  Instance 2: http://localhost:8890" -ForegroundColor Green
-    Write-Host "  Instance 3: http://localhost:8891" -ForegroundColor Green
+    Write-Host "  Instance 1: https://lux.kushnir.cloud" -ForegroundColor Green
+    Write-Host "  Instance 2: https://lux.kushnir.cloud" -ForegroundColor Green
+    Write-Host "  Instance 3: https://lux.kushnir.cloud" -ForegroundColor Green
     exit 0
 }
 else {

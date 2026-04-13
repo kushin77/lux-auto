@@ -100,30 +100,30 @@ Reviewed By: ________
 - [ ] All 7+ containers show "healthy" ✓
 
 **Containers:**
-- [ ] prometheus (http://localhost:9090)
-- [ ] alertmanager (http://localhost:9093)
-- [ ] grafana (http://localhost:3000)
+- [ ] prometheus (https://lux.kushnir.cloud/monitoring/prometheus)
+- [ ] alertmanager (https://lux.kushnir.cloud/monitoring/alertmanager)
+- [ ] grafana (https://lux.kushnir.cloud)
 - [ ] postgres-exporter
 - [ ] redis-exporter
 - [ ] node-exporter
 - [ ] cadvisor
 
 ### Prometheus Verification
-- [ ] Access http://localhost:9090
+- [ ] Access https://lux.kushnir.cloud/monitoring/prometheus
 - [ ] Go to "Status → Targets"
 - [ ] At least 5 targets show "UP"
 - [ ] Refresh after 2 minutes, see data flowing
 - Verified By: _____ | Date: _____
 
 ### AlertManager Verification
-- [ ] Access http://localhost:9093
+- [ ] Access https://lux.kushnir.cloud/monitoring/alertmanager
 - [ ] Check "Silences" page loads
-- [ ] Test alert: Post to http://localhost:9093/api/v1/alerts with test alert JSON
+- [ ] Test alert: Post to https://lux.kushnir.cloud/monitoring/alertmanager/api/v1/alerts with test alert JSON
 - [ ] Verify alert appears in UI
 - Verified By: _____ | Date: _____
 
 ### Grafana Verification
-- [ ] Access http://localhost:3000
+- [ ] Access https://lux.kushnir.cloud
 - [ ] Login with admin/admin
 - [ ] Change password: _____ (record securely)
 - [ ] Verify Prometheus datasource is connected

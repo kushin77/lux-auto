@@ -95,7 +95,7 @@ echo Running containers:
 "%DOCKER_PATH%" ps --filter "name=lux-auto" --format "table {{.Names}}\t{{.Status}}"
 echo.
 echo Access services at:
-echo   - http://localhost:8889 (Instance 1)
-echo   - http://localhost:8890 (Instance 2)
-echo   - http://localhost:8891 (Instance 3)
+echo   - https://lux.kushnir.cloud (Instance 1)
+echo   - https://lux.kushnir.cloud (Instance 2)
+echo   - https://lux.kushnir.cloud (Instance 3)
 echo.

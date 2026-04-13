@@ -92,7 +92,7 @@ Write-Host "`n[Phase 6] Running health checks..." -ForegroundColor Cyan
 $healthPassed = $false
 for ($i = 1; $i -le 10; $i++) {
     try {
-        $response = Invoke-WebRequest -Uri "http://localhost:8889/health" -TimeoutSec 5 -ErrorAction Stop
+        $response = Invoke-WebRequest -Uri "https://lux.kushnir.cloud/health" -TimeoutSec 5 -ErrorAction Stop
         if ($response.StatusCode -eq 200) {
             Write-Host "✓ Health check passed" -ForegroundColor Green
             $healthPassed = $true
@@ -114,7 +114,7 @@ Invoke-Docker ps --filter "name=lux-auto|postgres|redis" --format "table {{.Name
 
 Write-Host "`n✅ Deployment Complete!" -ForegroundColor Green
 Write-Host "`nAccess your services:" -ForegroundColor Cyan
-Write-Host "  - Instance 1: http://localhost:8889" -ForegroundColor Green
-Write-Host "  - Instance 2: http://localhost:8890" -ForegroundColor Green
-Write-Host "  - Instance 3: http://localhost:8891" -ForegroundColor Green
+Write-Host "  - Instance 1: https://lux.kushnir.cloud" -ForegroundColor Green
+Write-Host "  - Instance 2: https://lux.kushnir.cloud" -ForegroundColor Green
+Write-Host "  - Instance 3: https://lux.kushnir.cloud" -ForegroundColor Green
 Write-Host "`nView logs: logs/" -ForegroundColor Cyan

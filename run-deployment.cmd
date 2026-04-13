@@ -92,9 +92,9 @@ echo ==========================================
 
 echo.
 echo Access services:
-echo   - http://localhost:8889 (Instance 1)
-echo   - http://localhost:8890 (Instance 2)
-echo   - http://localhost:8891 (Instance 3)
+echo   - https://lux.kushnir.cloud (Instance 1)
+echo   - https://lux.kushnir.cloud (Instance 2)
+echo   - https://lux.kushnir.cloud (Instance 3)
 echo.
 echo Completed successfully!
 

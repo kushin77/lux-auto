@@ -303,7 +303,7 @@ Result: Real-time visibility into production health
 **You:**
 1. Write benchmark locally:
    ```bash
-   wrk -c 10 -t 4 http://localhost:8000/api/endpoint
+   wrk -c 10 -t 4 https://lux.kushnir.cloud/api/endpoint
    # Results: 5,000 req/sec, 50ms latency
    ```
 

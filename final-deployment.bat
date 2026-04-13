@@ -63,9 +63,9 @@ echo  DEPLOYMENT COMPLETE
 echo ============================================
 echo.
 echo Services should be accessible:
-echo  - FastAPI 1: http://localhost:8889/health
-echo  - FastAPI 2: http://localhost:8890/health
-echo  - FastAPI 3: http://localhost:8891/health
+echo  - FastAPI 1: https://lux.kushnir.cloud/health
+echo  - FastAPI 2: https://lux.kushnir.cloud/health
+echo  - FastAPI 3: https://lux.kushnir.cloud/health
 echo  - Production: https://lux.kushnir.cloud
 echo.
 

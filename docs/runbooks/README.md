@@ -240,7 +240,7 @@ kubectl logs -f deployment/backend | grep "error_rate"
 # Should drop back to 0.01% within 2 minutes
 
 # 2. Check latency recovery
-curl http://localhost:8000/health
+curl https://lux.kushnir.cloud/health
 # Should respond sub-100ms
 
 # 3. Check database

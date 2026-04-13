@@ -1,8 +1,8 @@
 // Manheim Deal Finder — Content Script
 // Injects deal score badges onto listing cards in real time.
-// Communicates with local FastAPI backend (localhost:8000).
+// Communicates with FastAPI backend at lux.kushnir.cloud.
 
-const BACKEND = "http://localhost:8000";
+const BACKEND = "https://lux.kushnir.cloud";
 const BADGE_ATTR = "data-deal-scored";
 
 // ── Selectors (update if Manheim redesigns their DOM) ────────────────────────

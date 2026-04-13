@@ -57,9 +57,9 @@ docker ps --filter name=lux-auto
 docker ps --filter name=postgres
 
 # Test endpoints
-curl http://localhost:8889/health
-curl http://localhost:8890/health
-curl http://localhost:8891/health
+curl https://lux.kushnir.cloud/health
+curl https://lux.kushnir.cloud/health
+curl https://lux.kushnir.cloud/health
 
 # View logs if needed
 docker logs lux-auto-postgres

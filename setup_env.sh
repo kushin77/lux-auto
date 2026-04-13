@@ -10,8 +10,8 @@ cd backend/
 python -m venv venv && source venv/bin/activate   # Windows: venv\Scripts\activate
 pip install fastapi uvicorn apscheduler httpx pydantic anthropic python-dotenv
 python main.py
-# Server starts at http://localhost:8000
-# OpenAPI docs at http://localhost:8000/docs
+# Server starts at https://lux.kushnir.cloud
+# OpenAPI docs at https://lux.kushnir.cloud/docs
 
 # ── Chrome/Edge extension install ────────────────────────────────────────────
 # 1. Go to chrome://extensions  (or edge://extensions)

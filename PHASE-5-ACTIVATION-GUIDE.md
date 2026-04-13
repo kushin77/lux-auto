@@ -414,11 +414,11 @@ docker run -e DATABASE_URL=... \
   registry.example.com/lux-auto:2026-04-22
 
 # Test endpoints
-curl localhost:8000/api/health
+curl lux.kushnir.cloud/api/health
 # Expected: { "status": "ok" }
 
 # Test feature
-curl localhost:8000/api/[feature]
+curl lux.kushnir.cloud/api/[feature]
 # Expected: Feature works
 ```
 

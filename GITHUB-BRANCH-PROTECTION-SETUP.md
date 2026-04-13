@@ -159,11 +159,11 @@ File: `.env.template` (for developers to copy)
 
 ```bash
 # Database
-DATABASE_URL=postgresql://user:pass@localhost:5432/lux_auto
+DATABASE_URL=postgresql://user:pass@lux.kushnir.cloud:5432/lux_auto
 DATABASE_ECHO=false
 
 # Redis
-REDIS_URL=redis://localhost:6379/0
+REDIS_URL=redis://lux.kushnir.cloud:6379/0
 REDIS_TTL=3600
 
 # Security
@@ -177,11 +177,11 @@ FEATURE_CACHING=true
 
 # Monitoring
 SENTRY_DSN=https://your.sentry.io/project
-JAEGER_AGENT_HOST=localhost
+JAEGER_AGENT_HOST=lux.kushnir.cloud
 JAEGER_AGENT_PORT=6831
 
 # Testing
-TEST_DATABASE_URL=postgresql://test:test@localhost:5432/lux_auto_test
+TEST_DATABASE_URL=postgresql://test:test@lux.kushnir.cloud:5432/lux_auto_test
 PYTEST_WORKER_COUNT=4
 ```
 

@@ -84,9 +84,9 @@ Should show 5 containers: postgres, redis, app-prod-1, app-prod-2, app-prod-3
 
 ### Test Endpoints
 ```bash
-curl http://localhost:8889/health
-curl http://localhost:8890/health
-curl http://localhost:8891/health
+curl https://lux.kushnir.cloud/health
+curl https://lux.kushnir.cloud/health
+curl https://lux.kushnir.cloud/health
 ```
 All should return HTTP 200
 

@@ -258,23 +258,23 @@ docker-compose -f docker-compose.prod.yml up -d
 docker-compose -f docker-compose.prod.yml ps
 
 # 4. Check health endpoints
-curl http://localhost:8080/health  # Through load balancer
-curl http://localhost:8889/health  # Instance 1
-curl http://localhost:8890/health  # Instance 2
-curl http://localhost:8891/health  # Instance 3
-curl http://localhost:8892/health  # Instance 4
+curl https://lux.kushnir.cloud/health  # Through load balancer
+curl https://lux.kushnir.cloud/health  # Instance 1
+curl https://lux.kushnir.cloud/health  # Instance 2
+curl https://lux.kushnir.cloud/health  # Instance 3
+curl https://lux.kushnir.cloud/health  # Instance 4
 ```
 
 ### Monitoring Setup
 ```bash
 # Access Prometheus
-http://localhost:9090/
+https://lux.kushnir.cloud/monitoring/prometheus/
 
 # View metrics
-http://localhost:9090/graph?query=lux_auto_requests_total
+https://lux.kushnir.cloud/monitoring/prometheus/graph?query=lux_auto_requests_total
 
 # Check targets
-http://localhost:9090/targets
+https://lux.kushnir.cloud/monitoring/prometheus/targets
 ```
 
 ---

@@ -332,7 +332,7 @@ EOF
 
 3. **Setup Appsmith**
 ```bash
-# Access Appsmith at http://localhost:8080
+# Access Appsmith at https://lux.kushnir.cloud
 # 1. Create admin account
 # 2. Add PostgreSQL datasource (lux_prod_portal)
 # 3. Import provided app templates
@@ -343,7 +343,7 @@ EOF
 
 4. **Setup Backstage**
 ```bash
-# Access Backstage at http://localhost:3000
+# Access Backstage at https://lux.kushnir.cloud
 # 1. Link GitHub organization
 # 2. Import service catalog
 # 3. Configure TechDocs

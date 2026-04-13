@@ -76,7 +76,7 @@ Write-Host "[6/6] Verifying health..." -ForegroundColor Yellow
 $healthy = $false
 for ($i = 1; $i -le 10; $i++) {
     try {
-        $resp = Invoke-WebRequest -Uri "http://localhost:8889/health" -TimeoutSec 2 -ErrorAction Stop
+        $resp = Invoke-WebRequest -Uri "https://lux.kushnir.cloud/health" -TimeoutSec 2 -ErrorAction Stop
         if ($resp.StatusCode -eq 200) {
             Write-Host "✓ Health check passed" -ForegroundColor Green
             $healthy = $true
@@ -101,8 +101,8 @@ Write-Host ""
 
 Write-Host ""
 Write-Host "Access services at:" -ForegroundColor Cyan
-Write-Host "  - http://localhost:8889 (Instance 1)" -ForegroundColor Green
-Write-Host "  - http://localhost:8890 (Instance 2)" -ForegroundColor Green
-Write-Host "  - http://localhost:8891 (Instance 3)" -ForegroundColor Green
+Write-Host "  - https://lux.kushnir.cloud (Instance 1)" -ForegroundColor Green
+Write-Host "  - https://lux.kushnir.cloud (Instance 2)" -ForegroundColor Green
+Write-Host "  - https://lux.kushnir.cloud (Instance 3)" -ForegroundColor Green
 Write-Host ""
 Write-Host "Completed at: $(Get-Date)" -ForegroundColor Cyan

@@ -116,7 +116,7 @@ services:
       - lux-network
     
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      test: ["CMD", "curl", "-f", "https://lux.kushnir.cloud/health"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -217,7 +217,7 @@ services:
       - lux-network
     
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
+      test: ["CMD", "curl", "-f", "https://lux.kushnir.cloud/api/v1/health"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -250,7 +250,7 @@ services:
       - lux-network
     
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:4180/oauth2/health"]
+      test: ["CMD", "curl", "-f", "https://lux.kushnir.cloud/oauth2/health"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -283,7 +283,7 @@ services:
       - backstage
     
     healthcheck:
-      test: ["CMD", "curl", "-f", "-k", "https://localhost/health"]
+      test: ["CMD", "curl", "-f", "-k", "https://lux.kushnir.cloud/health"]
       interval: 10s
       timeout: 5s
       retries: 5

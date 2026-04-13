@@ -47,9 +47,9 @@ if %ERRORLEVEL% EQU 0 (
 
 echo.
 echo Ready! Access at:
-echo   http://localhost:8889/health (Instance 1)
-echo   http://localhost:8890/health (Instance 2)
-echo   http://localhost:8891/health (Instance 3)
+echo   https://lux.kushnir.cloud/health (Instance 1)
+echo   https://lux.kushnir.cloud/health (Instance 2)
+echo   https://lux.kushnir.cloud/health (Instance 3)
 echo   https://lux.kushnir.cloud (Production)
 echo.
 

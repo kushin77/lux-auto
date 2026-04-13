@@ -56,14 +56,14 @@ docker-compose -f docker-compose.monitoring.yml ps
 
 ### 3. Access Monitoring UIs
 
-- **Prometheus**: http://localhost:9090
-- **AlertManager**: http://localhost:9093
-- **Grafana**: http://localhost:3000 (default: admin/admin)
+- **Prometheus**: https://lux.kushnir.cloud/monitoring/prometheus
+- **AlertManager**: https://lux.kushnir.cloud/monitoring/alertmanager
+- **Grafana**: https://lux.kushnir.cloud (default: admin/admin)
 
 ### 4. Verify Data Collection
 
 Check Prometheus targets:
-1. Go to http://localhost:9090/targets
+1. Go to https://lux.kushnir.cloud/monitoring/prometheus/targets
 2. Verify all endpoints show "UP" (may take 30-60 seconds)
 3. If any show "DOWN", check logs: `docker-compose logs prometheus`
 
@@ -106,7 +106,7 @@ PAGERDUTY_SERVICE_KEY   # PagerDuty integration key
 - Dashboards can be imported from Grafana.com or created manually
 
 **Create Custom Dashboard:**
-1. Login to http://localhost:3000
+1. Login to https://lux.kushnir.cloud
 2. Click "+" → "Dashboard" → "New dashboard"
 3. Add panels with PromQL queries
 4. Example query: `rate(http_requests_total[5m])`
@@ -181,7 +181,7 @@ async def get_deals():
 ### View Real-Time Metrics
 
 **Prometheus Query Interface**
-1. Go to http://localhost:9090
+1. Go to https://lux.kushnir.cloud/monitoring/prometheus
 2. Search metrics panel
 3. Examples:
    - `up` - Service up/down status
@@ -193,20 +193,20 @@ async def get_deals():
 
 ```bash
 # Get all alerts
-curl http://localhost:9090/api/v1/alerts
+curl https://lux.kushnir.cloud/monitoring/prometheus/api/v1/alerts
 
 # Get specific alert rules
-curl http://localhost:9090/api/v1/rules
+curl https://lux.kushnir.cloud/monitoring/prometheus/api/v1/rules
 
 # Get alert group status
-curl http://localhost:9093/api/v1/alerts
+curl https://lux.kushnir.cloud/monitoring/alertmanager/api/v1/alerts
 ```
 
 ### Test AlertManager
 
 ```bash
 # Send test alert
-curl -X POST http://localhost:9093/api/v1/alerts \
+curl -X POST https://lux.kushnir.cloud/monitoring/alertmanager/api/v1/alerts \
   -H "Content-Type: application/json" \
   -d '[{
     "labels": {
@@ -330,7 +330,7 @@ docker-compose up -d
 ### No Metrics Data
 
 1. Verify `/metrics` endpoint exists
-2. Test endpoint: `curl http://localhost:8000/metrics`
+2. Test endpoint: `curl https://lux.kushnir.cloud/metrics`
 3. Check Prometheus scrape config
 4. Wait 60+ seconds for data to appear
 

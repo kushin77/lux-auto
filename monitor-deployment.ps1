@@ -46,7 +46,7 @@ function Test-ServiceEndpoint {
     )
     
     try {
-        $response = Invoke-WebRequest -Uri "http://localhost:${Port}${Endpoint}" `
+        $response = Invoke-WebRequest -Uri "https://lux.kushnir.cloud${Endpoint}" `
             -Method Get `
             -TimeoutSec 5 `
             -ErrorAction Stop

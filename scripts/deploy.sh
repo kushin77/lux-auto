@@ -69,7 +69,7 @@ validate_deployment() {
     
     # Test health endpoint
     log_info "Testing health endpoint..."
-    if curl -sf http://localhost:8000/health > /dev/null 2>&1; then
+    if curl -sf https://lux.kushnir.cloud/health > /dev/null 2>&1; then
         log_success "Health endpoint responding"
     else
         log_warning "Health endpoint not responding yet"
@@ -192,12 +192,12 @@ case "$ACTION" in
             log_warning "Redis check failed"
         
         log_info "FastAPI:"
-        curl -sf http://localhost:8000/health >/dev/null 2>&1 && \
+        curl -sf https://lux.kushnir.cloud/health >/dev/null 2>&1 && \
             log_success "FastAPI health check passed" || \
             log_warning "FastAPI health check failed"
         
         log_info "OAuth2 Proxy:"
-        curl -sf http://localhost:4180/ping >/dev/null 2>&1 && \
+        curl -sf https://lux.kushnir.cloud/ping >/dev/null 2>&1 && \
             log_success "OAuth2 proxy responding" || \
             log_warning "OAuth2 proxy not responding"
         ;;

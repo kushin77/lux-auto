@@ -330,9 +330,9 @@ docker exec lux-auto-redis redis-cli ping
 
 **Test FastAPI Endpoints:**
 ```bash
-curl http://localhost:8889/health
-curl http://localhost:8890/health
-curl http://localhost:8891/health
+curl https://lux.kushnir.cloud/health
+curl https://lux.kushnir.cloud/health
+curl https://lux.kushnir.cloud/health
 # Expected: 200 OK with health JSON
 ```
 
@@ -509,7 +509,7 @@ Deployment can be safely run multiple times:
 
 3. **Manual health check:**
    ```bash
-   curl -v http://localhost:8889/health
+   curl -v https://lux.kushnir.cloud/health
    ```
 
 ---
@@ -533,9 +533,9 @@ Deployment can be safely run multiple times:
 
 3. **Test FastAPI endpoints:**
    ```bash
-   curl http://localhost:8889/health
-   curl http://localhost:8890/health
-   curl http://localhost:8891/health
+   curl https://lux.kushnir.cloud/health
+   curl https://lux.kushnir.cloud/health
+   curl https://lux.kushnir.cloud/health
    ```
 
 4. **Review logs if issues found:**
@@ -546,11 +546,11 @@ Deployment can be safely run multiple times:
 
 ### Production Access
 Once verified, application is available at:
-- **FastAPI Instance 1:** http://localhost:8889/
-- **FastAPI Instance 2:** http://localhost:8890/
-- **FastAPI Instance 3:** http://localhost:8891/
-- **PostgreSQL:** localhost:5432 (password from DB_PASSWORD env var)
-- **Redis:** localhost:6379
+- **FastAPI Instance 1:** https://lux.kushnir.cloud/
+- **FastAPI Instance 2:** https://lux.kushnir.cloud/
+- **FastAPI Instance 3:** https://lux.kushnir.cloud/
+- **PostgreSQL:** postgres (Docker internal) (password from DB_PASSWORD env var)
+- **Redis:** redis (Docker internal)
 
 ---
 

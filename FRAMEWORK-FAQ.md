@@ -268,7 +268,7 @@ Real scenario: Alert triggers on expected load spike. Don't silence it, adjust t
 ### Q: How do I check SLO attainment?
 
 **A:** Login to Grafana:
-1. Go to http://localhost:3000 (or production dashboard)
+1. Go to https://lux.kushnir.cloud (or production dashboard)
 2. Look for "SLO Attainment" dashboard
 3. View error budget burn-down rate
 

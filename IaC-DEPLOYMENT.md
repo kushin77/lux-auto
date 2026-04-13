@@ -240,9 +240,9 @@ docker exec lux-auto-postgres psql -U postgres -c "SELECT version();"
 docker exec lux-auto-redis redis-cli info server
 
 # 4. Test API endpoints
-curl -i http://localhost:8889/health
-curl -i http://localhost:8890/health
-curl -i http://localhost:8891/health
+curl -i https://lux.kushnir.cloud/health
+curl -i https://lux.kushnir.cloud/health
+curl -i https://lux.kushnir.cloud/health
 
 # 5. View deployment log
 cat logs/deployment-*.log | tail -100

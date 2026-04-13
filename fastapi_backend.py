@@ -1,7 +1,7 @@
 """
 Manheim Deal Finder — Local Backend
 =====================================
-FastAPI service running on localhost:8000.
+FastAPI service running at lux.kushnir.cloud.
 Handles: score lookups, scheduled scans, deal persistence, selling orchestration.
 
 pip install fastapi uvicorn apscheduler httpx pydantic anthropic python-dotenv

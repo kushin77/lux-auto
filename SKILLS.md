@@ -19,7 +19,7 @@ gcloud secrets versions access latest --secret="SECRET_NAME" --project="lux-auto
 **Pattern**: Polling with retry logic (30 attempts, 2s delay)  
 **Command**:
 ```bash
-curl -sf http://localhost:SERVICE_PORT/health | jq '.status'
+curl -sf http://lux.kushnir.cloud/health | jq '.status'
 ```
 
 #### deploy-with-docker-compose

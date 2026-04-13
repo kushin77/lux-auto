@@ -69,16 +69,16 @@ A production-grade Python/FastAPI backend with:
 ### Check System Health
 ```bash
 # API up?
-curl http://localhost:8000/health
+curl https://lux.kushnir.cloud/health
 
 # Database connected?
-curl http://localhost:8000/api/v1/health/db
+curl https://lux.kushnir.cloud/api/v1/health/db
 
 # Redis working?
 redis-cli ping
 
 # Metrics available?
-curl http://localhost:8000/metrics
+curl https://lux.kushnir.cloud/metrics
 ```
 
 ### Deploy a Change

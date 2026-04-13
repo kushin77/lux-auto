@@ -227,7 +227,7 @@ cap_add:
 ### Health Checks (Automated)
 ```yaml
 healthcheck:
-  test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+  test: ["CMD", "curl", "-f", "https://lux.kushnir.cloud/health"]
   interval: 10s
   timeout: 5s
   retries: 3
@@ -299,9 +299,9 @@ docker exec lux-auto-postgres psql -U postgres -c "SELECT version();"
 docker exec lux-auto-redis redis-cli info server
 
 # 4. Test API endpoints
-curl http://localhost:8889/health
-curl http://localhost:8890/health
-curl http://localhost:8891/health
+curl https://lux.kushnir.cloud/health
+curl https://lux.kushnir.cloud/health
+curl https://lux.kushnir.cloud/health
 
 # 5. Check deployment state
 cat .deployment-state.json
@@ -381,9 +381,9 @@ docker ps --filter "name=lux-auto" --format "table {{.Names}}\t{{.Status}}"
 2. **Wait for Completion:** Deployment will complete in ~17 minutes
 3. **Verify Services:** Use the verification checklist above after completion
 4. **Access Application:** 
-   - Instance 1: http://localhost:8889
-   - Instance 2: http://localhost:8890
-   - Instance 3: http://localhost:8891
+   - Instance 1: https://lux.kushnir.cloud
+   - Instance 2: https://lux.kushnir.cloud
+   - Instance 3: https://lux.kushnir.cloud
 5. **Monitor Health:** Monitoring script runs automatically, metrics save to `deployment-metrics.json`
 
 ---

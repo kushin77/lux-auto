@@ -82,9 +82,9 @@ docker compose -f docker-compose.prod.yml up -d
 docker ps --filter name=lux-auto
 
 # FastAPI instances should respond to health checks
-curl http://localhost:8889/health
-curl http://localhost:8890/health
-curl http://localhost:8891/health
+curl https://lux.kushnir.cloud/health
+curl https://lux.kushnir.cloud/health
+curl https://lux.kushnir.cloud/health
 
 # Database connectivity verification
 docker exec lux-auto-postgres pg_isready -U postgres
