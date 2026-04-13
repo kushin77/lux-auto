@@ -1,0 +1,72 @@
+name: Update Epic Progress on Issue Close
+
+on:
+  issues:
+    types: [closed]
+
+permissions:
+  issues: write
+
+jobs:
+  update-epic:
+    name: Auto-update parent epic checklist
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Update parent epic when sub-issue closes
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const closedIssueNumber = context.issue.number;
+            const closedIssue = context.payload.issue;
+            
+            console.log(`Issue #${closedIssueNumber} closed: "${closedIssue.title}"`);
+            
+            // Find all open epics
+            const epics = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'epic',
+              per_page: 100
+            });
+            
+            console.log(`Found ${epics.data.length} open epics`);
+            
+            for (const epic of epics.data) {
+              // Check if epic body references this issue
+              const epicBody = epic.body || '';
+              const issuePattern = new RegExp(`(- \\[[ x]\\])\\s+#${closedIssueNumber}\\b`, 'i');
+              
+              if (issuePattern.test(epicBody)) {
+                console.log(`   Epic #${epic.number} references issue #${closedIssueNumber}`);
+                
+                // Replace "- [ ] #N" with "- [x] #N"
+                const updatedBody = epicBody.replace(
+                  new RegExp(`- \\[ \\] #${closedIssueNumber}\\b`, 'g'),
+                  `- [x] #${closedIssueNumber}`
+                );
+                
+                // Update epic body
+                try {
+                  await github.rest.issues.update({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: epic.number,
+                    body: updatedBody
+                  });
+                  
+                  // Post completion comment on epic
+                  await github.rest.issues.createComment({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: epic.number,
+                    body: `✅ **Sub-issue #${closedIssueNumber}** ("${closedIssue.title}") has been completed.\n\n📈 Epic progress updated. Keep up the momentum! 🚀`
+                  });
+                  
+                  console.log(`   ✅ Updated epic #${epic.number}`);
+                } catch (error) {
+                  console.log(`   ⚠️ Error updating epic #${epic.number}: ${error.message}`);
+                }
+              }
+            }

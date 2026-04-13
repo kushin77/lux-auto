@@ -1,0 +1,83 @@
+name: Mark Stale Issues and PRs
+
+on:
+  schedule:
+    # Run every Monday at 9:00 AM UTC
+    - cron: '0 9 * * 1'
+  workflow_dispatch:
+
+permissions:
+  issues: write
+  pull-requests: write
+
+jobs:
+  stale:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Mark stale issues and pull requests
+        uses: actions/stale@v9
+        with:
+          # Issue configuration
+          stale-issue-message: |
+            👋 **This issue has been inactive for 14 days.**
+            
+            It will be automatically closed in 7 days unless:
+            - Updated or commented on
+            - Labeled with `blocked`, `in-progress`, or `p0-critical`
+            
+            If this work is no longer relevant, feel free to close. If it should remain open, please add a comment with a status update.
+            
+            _This comment was automatically generated._
+          
+          close-issue-message: |
+            🔒 **Closed due to inactivity**
+            
+            This issue has been stale for 21+ days with no activity. 
+            
+            **To reopen:** Comment "reopen" or use the GitHub UI.
+            
+            _This action was performed automatically._
+          
+          stale-pr-message: |
+            👋 **This PR has been inactive for 14 days.**
+            
+            It will be automatically closed in 7 days unless:
+            - Updated with new commits
+            - Labeled with `blocked`
+            
+            If this PR is no longer needed, feel free to close. If work continues, push new commits or comment with a status.
+            
+            _This comment was automatically generated._
+          
+          close-pr-message: |
+            🔒 **Closed due to inactivity**
+            
+            This PR has been stale for 21+ days with no activity.
+            
+            **To reopen:** Use the GitHub UI or reopen the draft.
+            
+            _This action was performed automatically._
+          
+          # Timing configuration
+          days-before-stale: 14
+          days-before-close: 7
+          days-before-pr-stale: 14
+          days-before-pr-close: 7
+          
+          # Exemptions
+          exempt-issue-labels: 'blocked,in-progress,p0-critical,p1-high,recurring,foundation'
+          exempt-pr-labels: 'blocked,do-not-close,draft'
+          exempt-milestones: 'Phase 4 — Health Check API'
+          
+          # Labels to apply
+          stale-issue-label: 'stale'
+          stale-pr-label: 'stale'
+          
+          # Skip operations
+          skip-stale-issue-message: false
+          skip-stale-pr-message: false
+          skip-closed-issue-message: false
+          skip-closed-pr-message: false
+          
+          # Output
+          operations-per-run: 100

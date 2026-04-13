@@ -1,0 +1,90 @@
+name: Auto-Assign Issues by Label
+
+on:
+  issues:
+    types: [opened, labeled]
+  pull_request:
+    types: [opened, labeled]
+
+permissions:
+  issues: write
+  pull-requests: write
+
+jobs:
+  auto-assign:
+    name: Assign issues and PRs based on label
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Determine assignment based on labels
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issue = context.payload.issue || context.payload.pull_request;
+            const isPR = !!context.payload.pull_request;
+            const itemType = isPR ? 'PR' : 'Issue';
+            
+            console.log(`${itemType} #${issue.number}: "${issue.title}"`);
+            console.log(`Labels: ${issue.labels.map(l => l.name).join(', ') || 'none'}`);
+            
+            // Define assignment rules: label -> assignees
+            const assignmentRules = {
+              'p0-critical': ['kushin77'],
+              'phase-4': ['kushin77'],
+              'infrastructure': ['kushin77'],
+              'deployment': ['kushin77'],
+              'testing': ['kushin77'],
+              'framework': ['kushin77']
+            };
+            
+            const labelNames = issue.labels.map(l => l.name);
+            const assigneesToAdd = new Set();
+            
+            // Check which rules match
+            for (const label of labelNames) {
+              if (assignmentRules[label]) {
+                console.log(`  → Label "${label}" matches rule`);
+                assignmentRules[label].forEach(a => assigneesToAdd.add(a));
+              }
+            }
+            
+            // Check if P0 Critical for escalation
+            const isP0 = labelNames.includes('p0-critical');
+            
+            if (assigneesToAdd.size > 0) {
+              try {
+                // Get current assignees
+                const currentAssignees = (issue.assignees || []).map(a => a.login);
+                const newAssignees = [...assigneesToAdd].filter(a => !currentAssignees.includes(a));
+                
+                if (newAssignees.length > 0) {
+                  // Add assignees
+                  await github.rest.issues.addAssignees({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: issue.number,
+                    assignees: newAssignees
+                  });
+                  
+                  console.log(`✅ Assigned to: ${newAssignees.join(', ')}`);
+                } else {
+                  console.log(`ℹ️ Already assigned to all required people`);
+                }
+                
+                // P0 escalation comment
+                if (isP0) {
+                  await github.rest.issues.createComment({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: issue.number,
+                    body: `🚨 **P0 CRITICAL ESCALATION**\n\nThis ${itemType} has been automatically escalated and assigned due to **p0-critical** label.\n\n⏰ **Expected Response Time:** Within 1 hour\n📍 **Status:** REQUIRES IMMEDIATE ATTENTION`
+                  });
+                  
+                  console.log(`🚨 P0 escalation comment posted`);
+                }
+              } catch (error) {
+                console.log(`⚠️ Error assigning ${itemType}: ${error.message}`);
+              }
+            } else {
+              console.log(`ℹ️ No assignment rules matched labels`);
+            }

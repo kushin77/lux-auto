@@ -1,0 +1,99 @@
+name: Escalate Long-Blocked Issues
+
+on:
+  schedule:
+    # Run twice weekly: Tuesday and Thursday at 10:00 AM UTC
+    - cron: '0 10 * * 2'
+    - cron: '0 10 * * 4'
+  workflow_dispatch:
+
+permissions:
+  issues: write
+
+jobs:
+  escalate-blocked:
+    name: Ping assignees on stale blocked items
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Find and escalate long-blocked issues
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // Calculate date threshold: 2 days ago
+            const twoDaysAgo = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000);
+            const twoDaysAgoISO = twoDaysAgo.toISOString().split('T')[0];
+            
+            console.log(`Looking for issues blocked since before: ${twoDaysAgoISO}`);
+            
+            // Find all blocked issues that haven't been updated in 2+ days
+            const blockedIssues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'blocked',
+              per_page: 100
+            });
+            
+            console.log(`Found ${blockedIssues.data.length} blocked issues`);
+            
+            let escalatedCount = 0;
+            
+            for (const issue of blockedIssues.data) {
+              const updatedDate = new Date(issue.updated_at);
+              
+              // Only escalate if last update was 2+ days ago
+              if (updatedDate < twoDaysAgo) {
+                const daysSinceUpdate = Math.floor((Date.now() - updatedDate.getTime()) / (24 * 60 * 60 * 1000));
+                
+                console.log(`Issue #${issue.number} blocked for ${daysSinceUpdate} days: "${issue.title}"`);
+                
+                // Build mention string for assignees
+                const assigneeMentions = issue.assignees
+                  .map(a => `@${a.login}`)
+                  .join(' ');
+                
+                if (assigneeMentions.length === 0) {
+                  console.log(`  ⚠️  No assignees — skipping escalation`);
+                  continue;
+                }
+                
+                // Build escalation message
+                const escalationMessage = \`⚠️ **BLOCKED ESCALATION**
+
+\${assigneeMentions}
+
+This issue has been **blocked for \${daysSinceUpdate} days** with no recent updates.
+
+**Issue:** #\${issue.number}: \${issue.title}
+**Last Update:** \${updatedDate.toISOString().split('T')[0]}
+**Current Status:** 🔴 Blocked
+
+### Please provide an update:
+1. What's blocking this work?
+2. Who is responsible for unblocking?
+3. What's the expected timeline?
+4. Should we escalate further?
+
+_If this issue is no longer relevant, please close it._\`;
+                
+                try {
+                  await github.rest.issues.createComment({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: issue.number,
+                    body: escalationMessage
+                  });
+                  
+                  console.log(`  ✅ Escalation comment posted`);
+                  escalatedCount++;
+                } catch (error) {
+                  console.log(`  ⚠️ Error posting escalation comment: \${error.message}`);
+                }
+              } else {
+                const hoursSinceUpdate = Math.floor((Date.now() - updatedDate.getTime()) / (60 * 60 * 1000));
+                console.log(`Issue #\${issue.number} updated \${hoursSinceUpdate}h ago — not yet 2 days`);
+              }
+            }
+            
+            console.log(`\n📊 Summary: Escalated \${escalatedCount} blocked issues`);
