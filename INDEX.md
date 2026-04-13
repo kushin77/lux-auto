@@ -1,86 +1,80 @@
 # Lux-Auto Framework - Complete Documentation Index
 
-## 🚀 QUICK START
+## 🚀 START HERE - EXECUTION PATH
 
-**[SOLO-EXECUTION.md](SOLO-EXECUTION.md)** - What to do now (5 min read)
-- Setup code environment 
-- Run through CI/CD pipeline
-- Deploy to production
-- Monitor & ship
+**[EXECUTION-READY.md](EXECUTION-READY.md)** - Complete step-by-step path from code to production  
+Takes you through: Local setup → Verification → Staging → Production deployment → Monitoring
+
+**Time:** ~3 hours to production  
+**Status:** ✅ All systems ready
+
+---
+
+## 📖 QUICK GUIDES
+
+### For Deployment
+1. [EXECUTION-READY.md](EXECUTION-READY.md) - Complete execution path (START HERE)
+2. [PRE-DEPLOYMENT-CHECKLIST.md](PRE-DEPLOYMENT-CHECKLIST.md) - 60-point verification
+3. [DEPLOYMENT-DOCUMENTATION.md](DEPLOYMENT-DOCUMENTATION.md) - How to deploy
+4. [SYSTEM-OVERVIEW.md](SYSTEM-OVERVIEW.md) - System architecture & operation
+
+### For Development
+1. [NEXT-LOCAL-SETUP.md](NEXT-LOCAL-SETUP.md) - Local environment setup
+2. [CONTRIBUTING.md](CONTRIBUTING.md) - Code standards
+3. [SOLO-EXECUTION.md](SOLO-EXECUTION.md) - Quick 5-step execution
+
+### For Operations
+1. [MONITORING-SETUP.md](MONITORING-SETUP.md) - Prometheus + Grafana
+2. [docs/SLOs.md](docs/SLOs.md) - Service level objectives
+3. [docs/runbooks/](docs/runbooks/) - Incident response procedures
+4. [SECURITY-HARDENING.md](SECURITY-HARDENING.md) - Security standards
 
 ---
 
 ## 📚 CORE DOCUMENTATION
 
-### Standards & Code Quality
-- [CONTRIBUTING.md](CONTRIBUTING.md) - How to submit code, review standards
-- [.github/pull_request_template.md](.github/pull_request_template.md) - PR checklist
-- [.github/CODEOWNERS](.github/CODEOWNERS) - Code ownership mapping
-
-### Automation & Deployment  
-- [DOCKER-COMPOSE-EXTENSION.md](DOCKER-COMPOSE-EXTENSION.md) - Local development with Docker
-- [DEPLOYMENT-DOCUMENTATION.md](DEPLOYMENT-DOCUMENTATION.md) - How to deploy
-- [docs/GITHUB-BRANCH-PROTECTION.md](docs/GITHUB-BRANCH-PROTECTION.md) - Setup GitHub automation
-- [.github/workflows/ci.yml](.github/workflows/ci.yml) - 9-stage CI/CD pipeline
-
 ### Architecture & Design
+- [00-START-HERE.md](00-START-HERE.md) - Framework overview
 - [IMPLEMENTATION-PLAN.md](IMPLEMENTATION-PLAN.md) - Technical architecture
-- [docs/adr/README.md](docs/adr/README.md) - Architecture Decision Records
-- [PHASE-5-WEEK-DETAILED-EXECUTION.md](PHASE-5-WEEK-DETAILED-EXECUTION.md) - Deployment process detail
-
-### Operations & Monitoring
-- [MONITORING-SETUP.md](MONITORING-SETUP.md) - Prometheus + Grafana setup
-- [docs/SLOs.md](docs/SLOs.md) - Service level objectives
-- [docs/runbooks/README.md](docs/runbooks/README.md) - Incident response procedures
-
-### Security
-- [SECURITY-HARDENING.md](SECURITY-HARDENING.md) - Security standards
+- [docs/adr/README.md](docs/adr/README.md) - Architecture decision records
 - [API-SPECIFICATION.md](API-SPECIFICATION.md) - API security & design
 
+### Standards & Code Quality
+- [CONTRIBUTING.md](CONTRIBUTING.md) - Code submission process
+- [.github/pull_request_template.md](.github/pull_request_template.md) - PR checklist
+- [.github/CODEOWNERS](.github/CODEOWNERS) - Code ownership
+
+### Automation & Infrastructure
+- [DOCKER-COMPOSE-EXTENSION.md](DOCKER-COMPOSE-EXTENSION.md) - Local Docker setup
+- [.github/workflows/ci.yml](.github/workflows/ci.yml) - 9-stage CI/CD pipeline
+- [docs/GITHUB-BRANCH-PROTECTION.md](docs/GITHUB-BRANCH-PROTECTION.md) - GitHub automation
+
+### Security & Monitoring
+- [SECURITY-FIX-APRIL-2026.md](SECURITY-FIX-APRIL-2026.md) - Vulnerability fixes applied
+- [SECURITY-HARDENING.md](SECURITY-HARDENING.md) - Security standards
+- [MONITORING-SETUP.md](MONITORING-SETUP.md) - Observability setup
+- [docs/runbooks/README.md](docs/runbooks/README.md) - Incident procedures
+
 ### Reference
-- [00-START-HERE.md](00-START-HERE.md) - Framework overview
 - [DEVELOPER-QUICKSTART.md](DEVELOPER-QUICKSTART.md) - Setup guide
+- [PHASE-5-WEEK-DETAILED-EXECUTION.md](PHASE-5-WEEK-DETAILED-EXECUTION.md) - Deployment detail
 - [README.md](README.md) - Project README
 
 ---
 
-## 🎯 EXECUTION PATH
+## 🎯 QUICK REFERENCE
 
-1. **Read:** [SOLO-EXECUTION.md](SOLO-EXECUTION.md) (5 min)
-2. **Setup:** [DEVELOPER-QUICKSTART.md](DEVELOPER-QUICKSTART.md) (20 min)
-3. **Code:** [CONTRIBUTING.md](CONTRIBUTING.md) standards (15 min)
-4. **Ship:** Submit PR → Pipeline → Merge → Deploy (1-2 hours)
-5. **Monitor:** [MONITORING-SETUP.md](MONITORING-SETUP.md) dashboards + [docs/SLOs.md](docs/SLOs.md)
-
----
-
-## 📋 CI/CD PIPELINE (9 Stages)
-
-Automatically runs on every PR:
-1. Lint & Format (Black, Pylint)
-2. Type Check (Pyright)
-3. Unit Tests (pytest, 90%+ coverage)
-4. SAST Security (Bandit)
-5. Secrets Scan (truffleHog)
-6. Dependency Check (Safety)
-7. Integration Tests
-8. Docker Build
-9. Container Scan (Trivy)
-
----
-
-## 🚗 DEPLOYMENT PIPELINE
-
-Code path: Local → Git push → GitHub CI/CD → Staging → Production
-
-**Rolling deployment:** 4 stages (25% → 50% → 75% → 100%) with health checks  
-**Rollback:** <1 minute automatic if issues detected  
-**Monitoring:** Live dashboards + alerts (Slack integration)
+**Deployment:** 3 hours end-to-end (local → staging → production)  
+**Rollback:** <1 minute (automatic health check triggers)  
+**Test Coverage:** 90%+ required  
+**Security:** 9-stage automated scanning  
+**Monitoring:** Prometheus + Grafana + Slack alerts  
+**CI/CD:** 9-stage pipeline on every PR  
 
 ---
 
 **Total setup time:** ~1 hour  
-**First deployment:** ~1-2 hours after setup  
+**First deployment:** ~3 hours after setup  
 **Ongoing:** Automated from then on
     - Original Monday checklist
     - Similar to new [LAUNCH-DAY-APRIL-15-FINAL-CHECKLIST.md](LAUNCH-DAY-APRIL-15-FINAL-CHECKLIST.md) (use new one instead)
