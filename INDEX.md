@@ -4,10 +4,12 @@
 
 **[DOCKER-DESKTOP-DEPLOYMENT.md](DOCKER-DESKTOP-DEPLOYMENT.md)** ⚡ **DIRECT DOCKER DEPLOYMENT** - Fastest & Safe  
 Isolated deployment (won't touch existing services: code-server, ollama, oauth2-proxy, caddy)  
+All access via domain: **lux.kushnir.cloud** (no localhost - mandate)  
 Phases 1-6: Prerequisites → Build image locally → Staging → Smoke tests → Production rolling 4-stage → Verify
 
 **Time:** ~50 minutes to production live (no GitHub Actions wait)  
 **Safety:** ✅ Uses isolated ports (8888-8891), containers (lux-auto-app-*), databases  
+**Domain:** ✅ All traffic through lux.kushnir.cloud  
 **Status:** ✅ Code ready, build locally now, direct to production
 
 **Alternative - GitHub Actions path:** [LIVE-DEPLOYMENT-NOW.md](LIVE-DEPLOYMENT-NOW.md) (~72 min, includes CI/CD pipeline)

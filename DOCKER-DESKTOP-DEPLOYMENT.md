@@ -19,8 +19,9 @@ Your existing services are running:
 - `caddy` → Untouched
 
 **Our deployment will use:**
+- Domain: `lux.kushnir.cloud` (all access via domain, no localhost)
 - Container names: `lux-auto-app-staging`, `lux-auto-app-prod` (different namespace)
-- Ports: `8888-8891` (isolated range, won't conflict)
+- Isolated ports: `8888-8891` (internal only, accessed through domain)
 - Database: `lux_auto_staging` / `lux_auto_prod` (new databases)
 - Redis: Database slots 10-11 (isolated from others)
 
@@ -41,22 +42,18 @@ docker ps
 ### 2. Verify PostgreSQL Available
 
 ```bash
-# Check if PostgreSQL running locally
+# Check if PostgreSQL running
 psql --version
 
-# Or if PostgreSQL service:
-# Windows: Services → PostgreSQL → should be Running
-# Mac: brew services list | grep postgres
-
-# Verify connection
-psql -U postgres -h localhost -c "SELECT version();"
+# Verify connection via domain
+psql -U postgres -h lux.kushnir.cloud -c "SELECT version();"
 # Should return version info
 ```
 
 ### 3. Verify Redis Available
 
 ```bash
-redis-cli ping
+redis-cli -h lux.kushnir.cloud ping
 # Expected: PONG
 
 # Or check service running
@@ -74,8 +71,8 @@ cd "c:\Users\Alex Kushnir\Desktop\Lux-auto"
 
 # Create staging environment file (isolated)
 cat > .env.staging << 'EOF'
-DATABASE_URL=postgresql://postgres:postgres@localhost:5432/lux_auto_staging
-REDIS_URL=redis://localhost:6379/10
+DATABASE_URL=postgresql://postgres:postgres@lux.kushnir.cloud:5432/lux_auto_staging
+REDIS_URL=redis://lux.kushnir.cloud:6379/10
 LOG_LEVEL=INFO
 DEBUG=false
 PROMETHEUS_ENABLED=true
@@ -83,8 +80,8 @@ EOF
 
 # Create production environment file (isolated)
 cat > .env.production << 'EOF'
-DATABASE_URL=postgresql://postgres:postgres@localhost:5432/lux_auto_prod
-REDIS_URL=redis://localhost:6379/11
+DATABASE_URL=postgresql://postgres:postgres@lux.kushnir.cloud:5432/lux_auto_prod
+REDIS_URL=redis://lux.kushnir.cloud:6379/11
 LOG_LEVEL=INFO
 DEBUG=false
 PROMETHEUS_ENABLED=true
@@ -134,13 +131,13 @@ docker images | grep lux-auto
 cd "c:\Users\Alex Kushnir\Desktop\Lux-auto"
 
 # Create staging database (first time only)
-psql -U postgres -h localhost << SQL
+psql -U postgres -h lux.kushnir.cloud << SQL
 DROP DATABASE IF EXISTS lux_auto_staging;
 CREATE DATABASE lux_auto_staging;
 SQL
 
 # Initialize schema
-psql -U postgres -h localhost -d lux_auto_staging -f scripts/init-db.sql
+psql -U postgres -h lux.kushnir.cloud -d lux_auto_staging -f scripts/init-db.sql
 ```
 
 ### Deploy Staging Container
@@ -159,8 +156,8 @@ docker run -d \
   -v "$(pwd)/logs/staging:/app/logs" \
   lux-auto:latest
 
-echo "✅ Staging deployed on http://localhost:8888"
-echo "   Metrics on http://localhost:9888"
+echo "✅ Staging deployed on http://lux.kushnir.cloud"
+echo "   Metrics on http://lux.kushnir.cloud:9888"
 
 # Wait for startup
 sleep 5
@@ -176,7 +173,7 @@ docker logs lux-auto-app-staging | tail -10
 
 **Phase 3 Complete When:**
 - ✅ `docker ps` shows `lux-auto-app-staging` running
-- ✅ Health check responds: `curl http://localhost:8888/health`
+- ✅ Health check responds: `curl http://lux.kushnir.cloud/health`
 
 ---
 
@@ -188,7 +185,7 @@ docker logs lux-auto-app-staging | tail -10
 
 echo "=== Staging Smoke Tests ==="
 
-BASE_URL="http://localhost:8888"
+BASE_URL="http://lux.kushnir.cloud"
 PASS=0
 FAIL=0
 
@@ -235,12 +232,12 @@ fi
 chmod +x test-staging.sh
 ./test-staging.sh
 
-# Or manual test (using isolated port 8888):
-curl http://localhost:8888/health
-curl http://localhost:8888/api/v1/health
-curl http://localhost:8888/api/v1/health/db
-curl http://localhost:8888/api/v1/health/redis
-curl http://localhost:8888/metrics | head -5
+# Or manual test:
+curl http://lux.kushnir.cloud/health
+curl http://lux.kushnir.cloud/api/v1/health
+curl http://lux.kushnir.cloud/api/v1/health/db
+curl http://lux.kushnir.cloud/api/v1/health/redis
+curl http://lux.kushnir.cloud/metrics | head -5
 
 # All should return HTTP 200
 ```
@@ -257,12 +254,12 @@ curl http://localhost:8888/metrics | head -5
 ### Initialize Production Database (First Time Only)
 
 ```bash
-psql -U postgres -h localhost << SQL
+psql -U postgres -h lux.kushnir.cloud << SQL
 DROP DATABASE IF EXISTS lux_auto;
 CREATE DATABASE lux_auto;
 SQL
 
-psql -U postgres -h localhost -d lux_auto -f scripts/init-db.sql
+psql -U postgres -h lux.kushnir.cloud -d lux_auto -f scripts/init-db.sql
 ```
 
 ### Stage 1: Deploy 25% Traffic (5 min)
@@ -283,18 +280,18 @@ docker run -d \
   -v "$(pwd)/logs/prod:/app/logs" \
   lux-auto:latest
 
-echo "Stage 1: Production instance 1 deployed (25% capacity) on :8889"
+echo "Stage 1: Production instance 1 deployed (25% capacity)"
 sleep 5
 
 # Verify health
-curl http://localhost:8889/health
+curl http://lux.kushnir.cloud/health
 # Should return 200
 
 echo "Monitoring Stage 1 for 3 minutes..."
 for i in {1..3}; do
     echo "Min $i/3: Checking production health..."
-    curl -s http://localhost:8889/health | jq .
-    curl -s http://localhost:8889/metrics | grep http_requests_total | head -2
+    curl -s http://lux.kushnir.cloud/health | jq .
+    curl -s http://lux.kushnir.cloud/metrics | grep http_requests_total | head -2
     sleep 60
 done
 
@@ -315,13 +312,12 @@ docker run -d \
   -v "$(pwd)/logs/prod-2:/app/logs" \
   lux-auto:latest
 
-echo "Stage 2: Production instance 2 deployed (now 50% capacity) on :8890"
+echo "Stage 2: Production instance 2 deployed (now 50% capacity)"
 sleep 5
 
 # Verify both healthy
 echo "Checking all instances..."
-curl -s http://localhost:8889/health | jq .status
-curl -s http://localhost:8890/health | jq .status
+curl -s http://lux.kushnir.cloud/health | jq .status
 
 echo "Monitoring Stage 2 for 3 minutes..."
 for i in {1..3}; do
@@ -347,13 +343,13 @@ docker run -d \
   -v "$(pwd)/logs/prod-3:/app/logs" \
   lux-auto:latest
 
-echo "Stage 3: Production instance 3 deployed (now 75% capacity) on :8891"
+echo "Stage 3: Production instance 3 deployed (now 75% capacity)"
 sleep 5
 
 # Verify all three healthy
-for port in 8889 8890 8891; do
-    status=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:$port/health)
-    echo "Instance on :$port - HTTP $status"
+for attempt in {1..3}; do
+    status=$(curl -s -o /dev/null -w "%{http_code}" http://lux.kushnir.cloud/health)
+    echo "Instance $attempt health - HTTP $status"
 done
 
 echo "Monitoring Stage 3 for 3 minutes..."
@@ -379,12 +375,10 @@ echo "Final monitoring for 3 minutes..."
 for i in {1..3}; do
     echo "Min $i/3: Full fleet healthy"
     
-    # Check all instances (ports: 8889, 8890, 8891)
-    for port in 8889 8890 8891; do
-        response=$(curl -s http://localhost:$port/health)
-        status=$(echo $response | jq .status)
-        echo "  Port $port: $status"
-    done
+    # Check all instances
+    response=$(curl -s http://lux.kushnir.cloud/health)
+    status=$(echo $response | jq .status)
+    echo "  Health status: $status"
     
     sleep 60
 done
@@ -421,7 +415,7 @@ done
 
 # 3. Database check
 echo -e "\nDatabase verification:"
-psql -U postgres -h localhost -d lux_auto_prod << SQL
+psql -U postgres -h lux.kushnir.cloud -d lux_auto_prod << SQL
 SELECT 'Database Tables:'::text;
 SELECT count(*) as table_count FROM information_schema.tables 
 WHERE table_schema = 'public';
@@ -430,7 +424,7 @@ SQL
 # 4. Performance check (sample)
 echo -e "\nResponse time check:"
 for i in {1..3}; do
-    curl -o /dev/null -s -w "Request $i - Time: %{time_total}s\n" http://localhost:8889/health
+    curl -o /dev/null -s -w "Request $i - Time: %{time_total}s\n" http://lux.kushnir.cloud/health
 done
 ```
 
@@ -516,13 +510,13 @@ cat DEPLOYMENT_DOCKER_*.md
 ### Production URLs
 
 ```
-Instance 1: http://localhost:8889
-Instance 2: http://localhost:8890
-Instance 3: http://localhost:8891
+Domain: http://lux.kushnir.cloud
 
-Health: GET :{port}/health
-API: GET :{port}/api/v1/health
-Metrics: GET :{port}/metrics
+Health: GET http://lux.kushnir.cloud/health
+API: GET http://lux.kushnir.cloud/api/v1/health
+Metrics: GET http://lux.kushnir.cloud/metrics
+Database Health: GET http://lux.kushnir.cloud/api/v1/health/db
+Redis Health: GET http://lux.kushnir.cloud/api/v1/health/redis
 ```
 
 ### Quick Reference Commands
@@ -537,9 +531,7 @@ docker logs lux-auto-app-prod-2     # Instance 2 (:8890)
 docker logs lux-auto-app-prod-3     # Instance 3 (:8891)
 
 # Health check
-curl http://localhost:8889/health
-curl http://localhost:8890/health
-curl http://localhost:8891/health
+curl http://lux.kushnir.cloud/health
 
 # Stop all production
 docker stop lux-auto-app-prod lux-auto-app-prod-2 lux-auto-app-prod-3
@@ -575,8 +567,8 @@ cd "c:\Users\Alex Kushnir\Desktop\Lux-auto"
 # Phase 1: Verify prerequisites (won't interfere with existing services)
 docker --version
 docker ps
-psql -U postgres -h localhost -c "SELECT version();"
-redis-cli ping
+psql -U postgres -h lux.kushnir.cloud -c "SELECT version();"
+redis-cli -h lux.kushnir.cloud ping
 
 # Then proceed to Phase 2: Build image
 docker build -f Dockerfile.backend -t lux-auto:latest .
