@@ -1,7 +1,6 @@
 # Enterprise Standards Quick Reference Card
 
-Print/Bookmark This | Slack #development  
-**Last Updated:** April 12, 2026
+Print/Bookmark This | Slack #development
 
 ---
 

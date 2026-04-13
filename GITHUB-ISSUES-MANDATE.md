@@ -1,6 +1,5 @@
 # Lux-Auto GitHub Issues Mandate
 
-**Effective Date:** April 12, 2026  
 **Version:** 1.0  
 **Owner:** @kushin77
 
@@ -305,7 +304,7 @@ Related to #456
 ```
 ⏳ PR #456 **in-progress** - Awaiting review (2 reviewers requested)
 
-Status Update: 2026-04-12T14:23:00Z
+Status Update: <timestamp>
 ```
 
 #### Step 3: PR Merge & Auto-Close (GitHub Actions)
@@ -320,7 +319,7 @@ Status Update: 2026-04-12T14:23:00Z
 ✅ Closed by merged PR #456
 
 **Commit:** abc1234
-**Merged at:** 2026-04-12T14:23:00Z
+**Merged at:** <timestamp>
 ```
 
 5. Removes old status labels (ready, in-progress, review)
@@ -575,7 +574,7 @@ This is how we scale from 5 people to 50 people without chaos.
 
 ---
 
-**Enforced Starting:** week of April 15, 2026  
+**Enforced Starting:** immediately  
 **Questions:** Email @kushin77  
 **Feedback:** Discussion in #development channel
 

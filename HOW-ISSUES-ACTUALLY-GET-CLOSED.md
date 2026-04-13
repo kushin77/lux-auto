@@ -1,6 +1,5 @@
 # How Issues Actually Get Closed - Complete Workflow
 
-**Date:** April 12, 2026  
 **Status:** ✅ Automation now active  
 **Audience:** All developers
 
@@ -92,7 +91,7 @@
 │                                                        │
 │       ✅ Closed by merged PR #456                      │
 │       Commit: a1b2c3d (link)                           │
-│       Merged at: 2026-04-15T10:23:00Z                 │
+│       Merged at: <timestamp>                           │
 │                                                        │
 │    Issue #2: NOW CLOSED ✅                            │
 └────────────────────────────────────────────────────────┘
@@ -174,7 +173,7 @@ Issue #2 AUTO-CLOSED ✅:
 ├─ Comment added by bot:
 │  "✅ Closed by merged PR #456"
 │  "Commit: a1b2c3d"
-│  "Merged at: 2026-04-15T15:20:00Z"
+│  "Merged at: <timestamp>"
 └─ GitHub shows: "Closed by kushin77/lux-auto#456"
 ```
 
@@ -225,7 +224,7 @@ Result: GitHub Actions bot detects pattern
 | Issue # | Title | Status | Why Not Closed |
 |---------|-------|--------|---|
 | #1 | [EPIC] Phase 3 | 🟡 OPEN | Epic stays open while sub-issues done |
-| #2 | Install pre-commit hooks | 🟡 OPEN | Task not started yet (Mon still Apr 15) |
+| #2 | Install pre-commit hooks | 🟡 OPEN | Task not started yet |
 | #3 | Branch protection (main) | 🟡 OPEN | Task not started |
 | #4 | Branch protection (dev) | 🟡 OPEN | Task not started |
 | #5-#10 | Other Phase 3 tasks | 🟡 OPEN | Tasks not started |
@@ -233,27 +232,27 @@ Result: GitHub Actions bot detects pattern
 ### When They'll Close
 
 ```
-Monday Apr 15, 10 AM: Devs start Phase 3 tasks
-├─ Issues #2-#10 get assigned
+Sprint start: Devs pick up tasks
+├─ Issues get assigned
 ├─ Developers create PRs (with "Fixes #N" pattern)
 ├─ GitHub Actions auto-update issue labels
 ├─ Developers submit for review
 
-Mon/Tue/Wed: Code review & iteration
+Days 2–3: Code review & iteration
 ├─ Labels auto-update (ready → in-progress → review)
 ├─ Comments auto-added by bot
 ├─ Status visible in real-time
 
-Wed-Fri: PRs merge
+Days 3–5: PRs merge
 ├─ GitHub Actions detects merge
-├─ Issues #2-#10 AUTO-CLOSE one by one
+├─ Issues AUTO-CLOSE one by one
 ├─ Labels set to "done", "merged"
 ├─ Bot comments: "✅ Closed by PR #XXX"
 
-Friday Apr 19, 5 PM: Issue #10 closed
-├─ All Phase 3 issues complete ✅
-├─ Team had successful first week
-├─ Ready for Phase 4 Monday
+Sprint end: Final issue closed
+├─ All current-phase issues complete ✅
+├─ Team retrospective confirms success
+├─ Ready for next phase
 ```
 
 ---
@@ -360,32 +359,32 @@ Best practice: Let PR merge trigger auto-close.
 Issue #2: [Ops] Install pre-commit hooks
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-✅ CLOSED · kushin77 closed this Apr 15
+✅ CLOSED · kushin77 closed this
 
 Labels: done, merged ✅
 
 Timeline:
-├─ Apr 15, 10:30 AM   @alice assigned
-├─ Apr 15, 10:31 AM   [PR #456 opened]
-├─ Apr 15, 2:00 PM    [Label: in-progress added]
-├─ Apr 15, 2:15 PM    [Label: review added]
-├─ Apr 15, 3:00 PM    [Approved by @bob]
-├─ Apr 15, 3:05 PM    [Merged by @alice]
-└─ Apr 15, 3:05:23 PM ✅ Closed by merged PR #456
+├─ Day 1, 10:30 AM   @alice assigned
+├─ Day 1, 10:31 AM   [PR #456 opened]
+├─ Day 1, 2:00 PM    [Label: in-progress added]
+├─ Day 1, 2:15 PM    [Label: review added]
+├─ Day 1, 3:00 PM    [Approved by @bob]
+├─ Day 1, 3:05 PM    [Merged by @alice]
+└─ Day 1, 3:05:23 PM ✅ Closed by merged PR #456
 
 Comments:
 ├─ Bot: ⏳ PR #456 in-progress
 ├─ Bot: 📝 PR #456 in review
 └─ Bot: ✅ Closed by merged PR #456
        Commit: a1b2c3d
-       Merged: 2026-04-15T15:05:23Z
+       Merged: <timestamp>
 ```
 
 ---
 
 ## What To Expect: Timeline
 
-### Week 1: Phase 3 (Apr 15-19)
+### Week 1: Current Phase
 
 **Monday Morning:**
 - Issues #2-#10 assigned to developers
