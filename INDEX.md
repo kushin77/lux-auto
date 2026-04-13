@@ -93,6 +93,16 @@ Start here to navigate all Appsmith & Backstage enhancement documentation.
    - ⏱️ Read time: 15 minutes
    - 🎯 **WHO MUST READ THIS**: All developers before Phase 3 starts (Apr 15)
 
+10. **[GITHUB-BRANCH-PROTECTION-SETUP.md](GITHUB-BRANCH-PROTECTION-SETUP.md)** ⭐ NEW
+    - ✅ Branch protection configuration for main and dev
+    - ✅ GitHub Actions status checks setup
+    - ✅ Required secrets configuration
+    - ✅ Manual verification checklist
+    - ✅ Troubleshooting guide
+    - ✅ Timeline: What happens at each Phase 3 milestone
+    - ⏱️ Read time: 20 minutes
+    - 🎯 **WHO MUST READ THIS**: DevOps/Ops lead (@kushin77) before Phase 3 starts
+
 ---
 
 ## 🎯 Quick Start by Role
