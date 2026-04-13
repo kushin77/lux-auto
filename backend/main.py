@@ -16,6 +16,7 @@ from fastapi import FastAPI, Depends, HTTPException, Request, status
 from fastapi.responses import JSONResponse
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
+import sqlalchemy.exc
 
 from backend.auth.middleware import OAuthMiddleware
 from backend.auth.user_service import UserService
@@ -78,15 +79,16 @@ set_session_local(SessionLocal)
 try:
     Base.metadata.create_all(bind=engine)
     print("✓ Database schema created/verified successfully", flush=True)
-except Exception as e:
-    error_str = str(e)
-    # If we get a duplicate object error (table, index, constraint), it means another instance
-    # created it. This is safe to ignore since all instances share the same schema.
-    if any(phrase in error_str for phrase in ["already exists", "duplicate", "Duplicate"]):
-        print(f"✓ Schema already exists (from concurrent instance), continuing...", flush=True)
+except sqlalchemy.exc.ProgrammingError as e:
+    # Programming errors during schema creation are expected when multiple instances
+    # start concurrently. Ignore duplicate object errors and continue.
+    if "already exists" in str(e) or "duplicate" in str(e).lower():
+        print(f"✓ Schema already exists (concurrent startup), continuing...", flush=True)
     else:
-        # Log unexpected errors but don't fail - the app can still run even if schema is incomplete
-        print(f"⚠ Warning: Schema creation issue: {error_str}", flush=True)
+        raise
+except Exception as e:
+    # Log any unexpected errors but don't fail completely
+    print(f"⚠ Warning: Unexpected schema creation issue: {e}", flush=True)
 
 # Service initialization
 user_service = UserService(SessionLocal, admin_email=ADMIN_USER_EMAIL)
