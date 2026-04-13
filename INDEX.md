@@ -72,7 +72,7 @@ Start here to navigate all Appsmith & Backstage enhancement documentation.
    - ✅ Rate limiting by role
    - ⏱️ Read time: 30 minutes
 
-### Issue Tracking
+### Issue Tracking & Automation
 8. **[GITHUB-ISSUES-TRACKING.md](GITHUB-ISSUES-TRACKING.md)**
    - ✅ 21 detailed GitHub issues
    - ✅ Acceptance criteria for each issue
@@ -81,6 +81,17 @@ Start here to navigate all Appsmith & Backstage enhancement documentation.
    - ✅ Creation order and waves
    - ✅ Summary table
    - ⏱️ Read time: 40 minutes
+
+9. **[HOW-ISSUES-ACTUALLY-GET-CLOSED.md](HOW-ISSUES-ACTUALLY-GET-CLOSED.md)** ⭐ NEW
+   - ✅ Complete workflow from issue creation to closure
+   - ✅ Real example using Phase 3 Issue #2
+   - ✅ Critical "Fixes #N" pattern for developers
+   - ✅ GitHub Actions automation explained
+   - ✅ Real-time status updates in action
+   - ✅ FAQ with common questions
+   - ✅ What developers will see in GitHub
+   - ⏱️ Read time: 15 minutes
+   - 🎯 **WHO MUST READ THIS**: All developers before Phase 3 starts (Apr 15)
 
 ---
 
