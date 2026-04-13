@@ -10,10 +10,10 @@ alembic==1.13.2
 psycopg2-binary==2.9.10
 
 # Authentication & Security
-python-jose==3.3.0
+python-jose==3.4.0
 passlib[bcrypt]==1.7.4
-python-multipart==0.0.7
-cryptography==42.0.2
+python-multipart==0.0.22
+cryptography==46.0.7
 
 # OAuth2 & JWT
 PyJWT==2.12.1
@@ -24,7 +24,7 @@ hiredis==2.2.3
 
 # HTTP Client
 httpx==0.27.0
-aiohttp==3.9.3
+aiohttp==3.13.4
 
 # Google Cloud
 google-cloud-secret-manager==2.27.0
@@ -51,7 +51,7 @@ pytest-httpx==0.31.0
 factory-boy==3.3.0
 
 # Linting & Code Quality (dev only)
-black==23.12.1
+black==26.3.1
 pylint==3.0.3
 flake8==6.1.0
 mypy==1.7.1
@@ -68,4 +68,4 @@ mkdocs-material==9.4.14
 # Utilities
 click==8.1.7
 pyyaml==6.0.1
-requests==2.31.0
+requests==2.33.0
