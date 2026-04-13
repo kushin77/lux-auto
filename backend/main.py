@@ -91,9 +91,10 @@ except Exception as e:
     print(f"⚠ Warning: Unexpected schema creation issue: {e}", flush=True)
 
 # Service initialization
-# Note: UserService, SessionService, and AuditLogger use class-level or static methods
-# No need to instantiate them, they're utility classes
-# Services will be called directly via UserService.method_name() pattern
+# Instantiate services for middleware injection
+user_service = UserService()
+session_service = SessionService()
+audit_logger = AuditLogger(session_factory=SessionLocal)
 
 
 @asynccontextmanager
@@ -115,7 +116,7 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-#Add OAuth middleware
+# Add OAuth middleware
 app.add_middleware(OAuthMiddleware, user_service=user_service, session_service=session_service, audit_logger=audit_logger)
 
 # Include API v2 routes
