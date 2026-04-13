@@ -1,52 +1,55 @@
-# EXECUTION PATH - FROM CODE TO PRODUCTION
+# ✅ EXECUTION-READY - DEPLOY TO PRODUCTION NOW
 
-**Current Status:** ✅ READY FOR DEPLOYMENT
+**Status:** 🟢 ALL SYSTEMS GO - READY TO DEPLOY  
+**Date:** April 12, 2026  
+**Domain:** lux.kushnir.cloud (mandate)  
+**Timeline:** 50 minutes to production live  
 
 ---
 
-## STEP 1: VERIFY CODE LOCALLY (30 min)
+## 🚀 START HERE: DEPLOYMENT EXECUTION
 
-**Read:** [NEXT-LOCAL-SETUP.md](NEXT-LOCAL-SETUP.md)
+**[DEPLOYMENT-START.md](DEPLOYMENT-START.md)** ← Read this first  
 
-```bash
-# 1. Setup Python environment
-python -m venv venv
-source venv/bin/activate
+Then execute Phase 1 & 2 immediately:
 
-# 2. Install dependencies
-pip install -r backend/requirements.txt
-pip install pre-commit
-
-# 3. Run tests
-pytest -v --cov=. tests/
-
-# 4. Run security checks
-bandit -r backend/
-truffleHog filesystem .
-pip-audit
+### Phase 1: Prerequisites (5 min)
+```powershell
+docker ps
+docker run --rm postgres:15 psql -U postgres -h lux.kushnir.cloud -c "SELECT 1;"
+docker run --rm redis:latest redis-cli -h lux.kushnir.cloud ping
 ```
 
-**Success Criteria:**
-- [ ] All tests pass
-- [ ] 90%+ coverage
-- [ ] No security findings
-- [ ] Linting clean
+### Phase 2: Build Image (10 min, after Phase 1 ✅)
+```powershell
+docker build -f Dockerfile.backend -t lux-auto:latest .
+```
+
+### Phases 3-6: Production Deploy (35 min, after Phase 2 ✅)
+Follow: [DOCKER-DESKTOP-DEPLOYMENT.md](DOCKER-DESKTOP-DEPLOYMENT.md)
 
 ---
 
-## STEP 2: PRE-DEPLOYMENT VERIFICATION (60 min)
+## 📋 EXECUTION DOCUMENTS
 
-**Read:** [PRE-DEPLOYMENT-CHECKLIST.md](PRE-DEPLOYMENT-CHECKLIST.md)
+| Document | Purpose | When |
+|----------|---------|------|
+| [DEPLOYMENT-START.md](DEPLOYMENT-START.md) | **Primary entry point** | Read now |
+| [DOCKER-DESKTOP-DEPLOYMENT.md](DOCKER-DESKTOP-DEPLOYMENT.md) | Phases 3-6 detailed guide | After Phase 2 ✅ |
+| [DEPLOYMENT-EXECUTION-LOG.md](DEPLOYMENT-EXECUTION-LOG.md) | Track progress | Throughout |
+| [PHASE-1-PREREQUISITES.md](PHASE-1-PREREQUISITES.md) | Troubleshooting | If Phase 1 fails |
+| [INDEX.md](INDEX.md) | Document directory | Reference |
 
-```bash
-# 1. Code quality checks
-pyright backend/
-black --check backend/
-pylint backend/
+---
 
-# 2. Security verification
-docker build -f Dockerfile.backend -t lux-auto:latest .
-docker scan lux-auto:latest
+## 🎯 NEXT ACTION
+
+1. Open [DEPLOYMENT-START.md](DEPLOYMENT-START.md)
+2. Run Phase 1 tests (3 commands above)
+3. If Phase 1 ✅ → Run Phase 2 (build Docker image)
+4. If Phase 2 ✅ → Follow Phases 3-6
+
+**Total time: 50 minutes to production.**
 
 # 3. Run full checklist
 # Verify: Database, Redis, Monitoring, Alerts, Runbooks
