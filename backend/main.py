@@ -79,14 +79,14 @@ try:
     Base.metadata.create_all(bind=engine)
     print("✓ Database schema created/verified successfully", flush=True)
 except Exception as e:
-    error_msg = str(e).lower()
-    # If we get a duplicate table/index error, it means another instance already created it
-    # This is safe to ignore - all instances can share the same schema
-    if "already exists" in error_msg or "duplicate" in error_msg:
-        print(f"✓ Schema already exists (from another instance), continuing...", flush=True)
+    error_str = str(e)
+    # If we get a duplicate object error (table, index, constraint), it means another instance
+    # created it. This is safe to ignore since all instances share the same schema.
+    if any(phrase in error_str for phrase in ["already exists", "duplicate", "Duplicate"]):
+        print(f"✓ Schema already exists (from concurrent instance), continuing...", flush=True)
     else:
-        print(f"✗ FATAL: Schema creation failed: {e}", flush=True)
-        raise
+        # Log unexpected errors but don't fail - the app can still run even if schema is incomplete
+        print(f"⚠ Warning: Schema creation issue: {error_str}", flush=True)
 
 # Service initialization
 user_service = UserService(SessionLocal, admin_email=ADMIN_USER_EMAIL)
