@@ -74,8 +74,8 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 # Initialize database module with SessionLocal
 set_session_local(SessionLocal)
 
-# Create tables
-Base.metadata.create_all(bind=engine)
+# Create tables (idempotent - safe to call multiple times)
+Base.metadata.create_all(bind=engine, checkfirst=True)
 
 # Service initialization
 user_service = UserService(SessionLocal, admin_email=ADMIN_USER_EMAIL)
