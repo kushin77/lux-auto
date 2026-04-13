@@ -115,24 +115,31 @@
 
 **Deployment Sub-Task:** #13 - [Ops] Pre-deployment checklist validation
 
-**Status:** Full roadmap defined, checklist prepared
+**Status:** Full roadmap defined with detailed execution plan
+
+**⭐ DETAILED EXECUTION:** [PHASE-5-WEEK-DETAILED-EXECUTION.md](PHASE-5-WEEK-DETAILED-EXECUTION.md) - Complete Mon-Fri hour-by-hour plan:
+- Monday: Infrastructure verification & monitoring setup (8 hours)
+- Tuesday: Docker build, security scans, dry run (8 hours)
+- Wednesday: 4-stage rolling deployment 9-10 AM (15 minutes)
+- Thursday: 24-hour production monitoring (on-call)
+- Friday: Final validation, retrospective, celebration
 
 **Process:**
 1. Phase 4 feature complete & staging validated ✓
-2. Run pre-deployment checklist (#13)
-3. Build Docker images
-4. Rolling deployment (25% → 50% → 75% → 100%)
-5. Monitor & validate at each stage
-6. Complete & retrospective
+2. Monday: Run pre-deployment checklist #13 (9 checks, all systems)
+3. Tuesday: Build Docker images, security scans, dry run in staging
+4. Wednesday: Rolling deployment (25% → 50% → 75% → 100%) over 15 min
+5. Thursday-Friday: Monitor & validate at each stage, complete & retrospective
 
 **Deployment Strategy:**
-- Rolling release minimizes risk
-- Health checks at each stage
-- One-command rollback available
-- Full monitoring active
+- Rolling release minimizes risk (25% first, scale up by stage)
+- Health checks at each stage (error rate, latency, metrics)
+- One-command rollback available (<1 min revert to previous)
+- Full monitoring active (alert on >0.5% error rate, >600ms latency)
+- Success criteria: Zero critical incidents, 99.5%+ uptime
 
 **Timeline:** Week 3 (Days 11-15)  
-**Success:** Feature in production, 100% traffic, no critical issues  
+**Success:** Feature in production, 100% traffic, no critical issues, team confident  
 
 ---
 
