@@ -74,14 +74,16 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 # Initialize database module with SessionLocal
 set_session_local(SessionLocal)
 
-# Create tables only on primary instance (prod-1) to avoid race conditions
-# Other instances will wait for the schema to be available
-INSTANCE_ID = os.getenv("INSTANCE_ID", "unknown")
-if INSTANCE_ID == "prod-1":
-    Base.metadata.create_all(bind=engine, checkfirst=True)
-    log.info("Schema created/verified", instance=INSTANCE_ID)
-else:
-    log.info("Skipping schema creation on non-primary instance", instance=INSTANCE_ID)
+# Create tables - handle race condition when multiple instances start simultaneously
+try:
+    Base.metadata.create_all(bind=engine)
+except Exception as e:
+    # If we get a duplicate table/index error, it means another instance already created it
+    # This is safe to ignore - all instances can share the same schema
+    if "already exists" in str(e) or "duplicate" in str(e).lower():
+        pass
+    else:
+        raise
 
 # Service initialization
 user_service = UserService(SessionLocal, admin_email=ADMIN_USER_EMAIL)
