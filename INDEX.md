@@ -1,18 +1,29 @@
 # Lux-Auto Framework - Complete Documentation Index
 
-## 🚀 START HERE - EXECUTION PATH
+## 🚀 START DEPLOYMENT NOW
 
-**[DOCKER-DESKTOP-DEPLOYMENT.md](DOCKER-DESKTOP-DEPLOYMENT.md)** ⚡ **DIRECT DOCKER DEPLOYMENT** - Fastest & Safe  
-Isolated deployment (won't touch existing services: code-server, ollama, oauth2-proxy, caddy)  
-All access via domain: **lux.kushnir.cloud** (no localhost - mandate)  
-Phases 1-6: Prerequisites → Build image locally → Staging → Smoke tests → Production rolling 4-stage → Verify
+**[DEPLOYMENT-START.md](DEPLOYMENT-START.md)** ⚡ **EXECUTE NOW**  
+All preparation complete. Run Phase 1 & 2 immediately.
+- Phase 1 (5 min): Verify prerequisites  
+- Phase 2 (10 min): Build Docker image  
+- Phases 3-6 (35 min): Deploy to production  
+**Total: 50 minutes to live on lux.kushnir.cloud**
 
-**Time:** ~50 minutes to production live (no GitHub Actions wait)  
-**Safety:** ✅ Uses isolated ports (8888-8891), containers (lux-auto-app-*), databases  
-**Domain:** ✅ All traffic through lux.kushnir.cloud  
-**Status:** ✅ Code ready, build locally now, direct to production
+**Domain:** lux.kushnir.cloud (mandate - no localhost)  
+**Safety:** ✅ Isolated ports 8888-8891, containers lux-auto-app-*, zero impact to existing services  
+**Status:** ✅ Code committed, ready to execute
 
-**Alternative - GitHub Actions path:** [LIVE-DEPLOYMENT-NOW.md](LIVE-DEPLOYMENT-NOW.md) (~72 min, includes CI/CD pipeline)
+---
+
+## 📋 EXECUTION DOCUMENTS (In Order)
+
+1. **[DEPLOYMENT-START.md](DEPLOYMENT-START.md)** ← **START HERE NOW**
+2. **[DEPLOYMENT-EXECUTION-LOG.md](DEPLOYMENT-EXECUTION-LOG.md)** - Track Phase 1-5 progress
+3. **[DOCKER-DESKTOP-DEPLOYMENT.md](DOCKER-DESKTOP-DEPLOYMENT.md)** - Full phases 3-6 guide
+4. **[PHASE-1-PREREQUISITES.md](PHASE-1-PREREQUISITES.md)** - Phase 1 detailed setup
+5. **[PHASE-1-EXECUTE-NOW.md](PHASE-1-EXECUTE-NOW.md)** - Phase 1 quick reference
+
+**Alternative path:** [LIVE-DEPLOYMENT-NOW.md](LIVE-DEPLOYMENT-NOW.md) (~72 min with GitHub Actions)
 
 ---
 
