@@ -17,6 +17,18 @@ if not exist "%DOCKER_PATH%" (
 )
 echo OK - Docker found
 
+REM Switch to local Docker context
+echo Switching to local Docker context...
+"%DOCKER_PATH%" context use desktop-linux 2>nul
+
+REM Verify we're on local context
+for /F "tokens=2" %%i in ('"%DOCKER_PATH%" context ls 2^>nul ^| find "*"') do (
+    if "%%i"=="remote-dev" (
+        echo ERROR: Still on remote context. Please ensure Docker Desktop is running.
+        exit /b 1
+    )
+)
+
 REM Check if running
 REM %DOCKER_PATH% ps >nul 2>&1
 REM if errorlevel 1 (
