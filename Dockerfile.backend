@@ -27,24 +27,24 @@ RUN apk add --no-cache \
     bash
 
 # Copy Python dependencies from builder
-COPY --from=builder /root/.local /root/.local
+COPY --from=builder --chown=appuser:appuser /root/.local /root/.local
 
 # Copy application code
-COPY backend/ ./backend/
-COPY tests/ ./tests/
-COPY .env.example ./
-COPY scripts/fetch-gsm-secrets.sh ./scripts/
+COPY --chown=appuser:appuser backend/ ./backend/
+COPY --chown=appuser:appuser tests/ ./tests/
+COPY --chown=appuser:appuser .env.example ./
+COPY --chown=appuser:appuser scripts/fetch-gsm-secrets.sh ./scripts/
 
 # Setup PATH for Python packages
 ENV PATH=/root/.local/bin:$PATH \
+    PYTHONUSERBASE=/root/.local \
     PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONPATH=/app
 
 # Create non-root user for security
 RUN addgroup -g 1000 appuser && \
-    adduser -D -u 1000 -G appuser appuser && \
-    chown -R appuser:appuser /app
+    adduser -D -u 1000 -G appuser appuser
 
 # Switch to non-root user
 USER appuser
