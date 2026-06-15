@@ -6,23 +6,20 @@ User extraction from X-Auth-Request-Email header.
 Comprehensive deal management API with RBAC and audit logging.
 """
 
-import logging
 import os
 from contextlib import asynccontextmanager
-from datetime import datetime
+from datetime import datetime, timezone
 
 import structlog
-from fastapi import FastAPI, Depends, HTTPException, Request, status
+from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.responses import JSONResponse, Response
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, inspect
 from sqlalchemy.orm import sessionmaker, Session
-import sqlalchemy.exc
 
 from backend.auth.middleware import OAuthMiddleware
 from backend.auth.user_service import UserService
 from backend.auth.session_service import SessionService
 from backend.auth.audit import AuditLogger, AuditEventType, AuditStatus
-from backend.auth.rbac_service import RBACService
 from backend.database.models import Base
 from backend.database import set_session_local
 from backend.routers import deals, analytics, audit, websocket
@@ -76,8 +73,6 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 set_session_local(SessionLocal)
 
 # Create tables - use raw SQL with IF NOT EXISTS to avoid race conditions
-from sqlalchemy import inspect, text
-
 print(f"DEBUG: Base.metadata tables registered: {list(Base.metadata.tables.keys())}", flush=True)
 
 # Check if tables already exist to avoid unnecessary recreation
@@ -158,7 +153,7 @@ async def health_check() -> dict:
     """Health check endpoint (no auth required)."""
     return {
         "status": "healthy",
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "environment": ENVIRONMENT,
         "service": "lux-auto-fastapi",
     }

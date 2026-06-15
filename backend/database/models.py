@@ -13,11 +13,13 @@ Models:
 - SystemConfig: System configuration key-value store
 """
 
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, Enum, Text, ForeignKey, Index, DECIMAL, JSON, ARRAY
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, Enum, Text, ForeignKey, Index, DECIMAL, JSON
+from sqlalchemy.orm import declarative_base
 from sqlalchemy.orm import relationship
-from datetime import datetime
+
+from backend.clock import utcnow
 from backend.auth.user_service import UserRole as UserRoleEnum
+from backend.database.types import StringArray
 
 Base = declarative_base()
 
@@ -32,8 +34,8 @@ class User(Base):
     name = Column(String(255), nullable=True)
     role = Column(Enum(UserRoleEnum), default=UserRoleEnum.USER, nullable=False)
     active = Column(Boolean, default=True, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    last_login = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=utcnow, nullable=False)
+    last_login = Column(DateTime, default=utcnow, nullable=False)
     email_verified = Column(Boolean, default=True, nullable=False)
 
     # Relationships
@@ -67,7 +69,7 @@ class UserSession(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     access_token = Column(Text, nullable=False)
     token_hash = Column(String(64), nullable=False, unique=True, index=True)
-    issued_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    issued_at = Column(DateTime, default=utcnow, nullable=False)
     expires_at = Column(DateTime, nullable=False)
     ip_address = Column(String(45), nullable=True)  # IPv4 or IPv6
     user_agent = Column(String(512), nullable=True)
@@ -85,12 +87,12 @@ class UserSession(Base):
 
     def is_valid(self) -> bool:
         """Check if session is still valid."""
-        return self.active and datetime.utcnow() < self.expires_at
+        return self.active and utcnow() < self.expires_at
 
     def revoke(self) -> None:
         """Mark session as revoked."""
         self.active = False
-        self.revoked_at = datetime.utcnow()
+        self.revoked_at = utcnow()
 
     def __repr__(self) -> str:
         return f"<UserSession(id={self.id}, user_id={self.user_id}, active={self.active})>"
@@ -126,7 +128,7 @@ class AuditLog(Base):
     ip_address = Column(String(45), nullable=True)
     user_agent = Column(String(512), nullable=True)
     error_message = Column(Text, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+    created_at = Column(DateTime, default=utcnow, nullable=False, index=True)
 
     # Indexes for common queries
     __table_args__ = (
@@ -162,10 +164,10 @@ class UserRole(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     role = Column(String(50), nullable=False, index=True)  # VIEWER, ANALYST, ADMIN, SUPER_ADMIN
-    assigned_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    assigned_at = Column(DateTime, default=utcnow, nullable=False)
     assigned_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     expires_at = Column(DateTime, nullable=True, index=True)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=utcnow, nullable=False)
 
     # Relationships
     user = relationship("User", back_populates="user_roles", foreign_keys=[user_id])
@@ -200,9 +202,9 @@ class APIKey(Base):
     description = Column(Text, nullable=True)
     last_used_at = Column(DateTime, nullable=True)
     expires_at = Column(DateTime, nullable=True)
-    scopes = Column(ARRAY(String), default=['read:deals', 'read:analytics'])
+    scopes = Column(StringArray, default=['read:deals', 'read:analytics'])
     is_active = Column(Boolean, default=True, index=True)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=utcnow, nullable=False)
     rotated_at = Column(DateTime, nullable=True)
 
     # Relationships
@@ -240,7 +242,7 @@ class PortalUserPreferences(Base):
     items_per_page = Column(Integer, default=50)
     timezone = Column(String(50), default='UTC')
     language = Column(String(10), default='en')
-    updated_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=utcnow, nullable=False)
 
     # Relationships
     user = relationship("User", back_populates="preferences")
@@ -278,7 +280,7 @@ class Deal(Base):
     interior_color = Column(String(50), nullable=True)
     fuel_type = Column(String(50), nullable=True)
     engine = Column(String(100), nullable=True)
-    photo_urls = Column(ARRAY(String), default=[])
+    photo_urls = Column(StringArray, default=[])
     mmr_value = Column(DECIMAL(10, 2), nullable=True)
     estimated_margin = Column(DECIMAL(10, 2), nullable=True)
     score = Column(DECIMAL(5, 2), nullable=True)
@@ -287,8 +289,8 @@ class Deal(Base):
     bid_count = Column(Integer, default=0)
     highest_bid = Column(DECIMAL(10, 2), nullable=True)
     condition_report = Column(JSON, default={})
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=utcnow, nullable=False, index=True)
+    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow, nullable=False)
 
     __table_args__ = (
         Index("ix_deals_status_created_at", "status", "created_at"),
@@ -331,8 +333,8 @@ class Buyer(Base):
     location_state = Column(String(2), nullable=True)
     location_city = Column(String(100), nullable=True)
     location_zipcode = Column(String(10), nullable=True)
-    make_preferences = Column(ARRAY(String), default=[])
-    model_preferences = Column(ARRAY(String), default=[])
+    make_preferences = Column(StringArray, default=[])
+    model_preferences = Column(StringArray, default=[])
     min_price = Column(DECIMAL(10, 2), nullable=True)
     max_price = Column(DECIMAL(10, 2), nullable=True)
     avg_response_time_minutes = Column(Integer, nullable=True)
@@ -340,8 +342,8 @@ class Buyer(Base):
     last_contacted_at = Column(DateTime, nullable=True)
     contact_count = Column(Integer, default=0)
     success_count = Column(Integer, default=0)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=utcnow, nullable=False, index=True)
+    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow, nullable=False)
 
     def __repr__(self) -> str:
         return f"<Buyer(id={self.id}, name='{self.name}', email='{self.email}')>"
@@ -373,7 +375,7 @@ class SystemConfig(Base):
     key = Column(String(255), primary_key=True, index=True)
     value = Column(Text, nullable=False)
     description = Column(Text, nullable=True)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow, nullable=False)
     updated_by = Column(Integer, ForeignKey("users.id"), nullable=True)
 
     def __repr__(self) -> str:

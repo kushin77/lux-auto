@@ -10,7 +10,8 @@ from __future__ import annotations
 
 import enum
 import json
-from datetime import datetime
+
+from backend.clock import utcnow
 
 import structlog
 
@@ -89,7 +90,7 @@ class AuditLogger:
                     ip_address=ip_address,
                     user_agent=(user_agent or "")[:512] or None,
                     error_message=error_message,
-                    created_at=datetime.utcnow(),
+                    created_at=utcnow(),
                 )
             )
             session.commit()

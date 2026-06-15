@@ -10,7 +10,8 @@ from __future__ import annotations
 
 import enum
 import os
-from datetime import datetime
+
+from backend.clock import utcnow
 
 import structlog
 
@@ -60,8 +61,8 @@ class UserService:
                 name=email.split("@")[0],
                 role=role,
                 active=True,
-                created_at=datetime.utcnow(),
-                last_login=datetime.utcnow(),
+                created_at=utcnow(),
+                last_login=utcnow(),
                 email_verified=True,
             )
             session.add(user)
@@ -69,7 +70,7 @@ class UserService:
             session.refresh(user)
             log.info("user.created", email=email, role=str(role))
         else:
-            user.last_login = datetime.utcnow()
+            user.last_login = utcnow()
             session.commit()
 
         return user
@@ -85,7 +86,6 @@ class UserService:
 
     def set_role(self, email: str, role: "UserRole | str", session):
         """Update a user's role. Returns the updated user or ``None``."""
-        from backend.database.models import User
 
         user = self.get_user_by_email(email, session)
         if user is None:

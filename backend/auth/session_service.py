@@ -9,7 +9,9 @@ from __future__ import annotations
 
 import hashlib
 import secrets
-from datetime import datetime, timedelta
+from datetime import timedelta
+
+from backend.clock import utcnow
 
 import structlog
 
@@ -40,8 +42,8 @@ class SessionService:
             user_id=user_id,
             access_token=raw,
             token_hash=_hash(raw),
-            issued_at=datetime.utcnow(),
-            expires_at=datetime.utcnow() + ttl,
+            issued_at=utcnow(),
+            expires_at=utcnow() + ttl,
             ip_address=ip_address,
             user_agent=(user_agent or "")[:512] or None,
             active=True,
@@ -60,7 +62,7 @@ class SessionService:
             .filter(
                 UserSession.user_id == user_id,
                 UserSession.active.is_(True),
-                UserSession.expires_at > datetime.utcnow(),
+                UserSession.expires_at > utcnow(),
             )
             .order_by(UserSession.issued_at.desc())
             .all()
@@ -77,7 +79,7 @@ class SessionService:
         )
         for row in rows:
             row.active = False
-            row.revoked_at = datetime.utcnow()
+            row.revoked_at = utcnow()
         session.commit()
         log.info("sessions.revoked_all", user_id=user_id, count=len(rows))
         return len(rows)
