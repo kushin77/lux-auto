@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lux Auto — Portal</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Google Sans', Arial, sans-serif;
+    background: #0f1117;
+    color: #e8eaed;
+    min-height: 100vh;
+  }
+
+  /* ── Nav ── */
+  .nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 32px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    background: rgba(15,17,23,0.95);
+    backdrop-filter: blur(8px);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .logo { font-size: 20px; font-weight: 700; letter-spacing: 1.5px; }
+  .logo span { color: #d4a017; }
+  .nav-links { display: flex; gap: 24px; align-items: center; }
+  .nav-links a {
+    color: #9aa0a6;
+    text-decoration: none;
+    font-size: 13px;
+    transition: color .15s;
+  }
+  .nav-links a:hover { color: #e8eaed; }
+  .btn-admin {
+    background: rgba(212,160,23,0.12);
+    color: #d4a017;
+    border: 1px solid rgba(212,160,23,0.3);
+    padding: 7px 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background .15s;
+  }
+  .btn-admin:hover { background: rgba(212,160,23,0.22); }
+
+  /* ── Hero ── */
+  .hero {
+    text-align: center;
+    padding: 72px 32px 56px;
+  }
+  .hero-badge {
+    display: inline-block;
+    background: rgba(212,160,23,0.12);
+    color: #d4a017;
+    border: 1px solid rgba(212,160,23,0.25);
+    border-radius: 20px;
+    padding: 4px 14px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: .5px;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+  }
+  .hero h1 {
+    font-size: clamp(32px, 5vw, 52px);
+    font-weight: 700;
+    line-height: 1.15;
+    margin-bottom: 16px;
+    background: linear-gradient(135deg, #e8eaed 0%, #9aa0a6 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .hero p {
+    font-size: 17px;
+    color: #9aa0a6;
+    max-width: 520px;
+    margin: 0 auto;
+    line-height: 1.6;
+  }
+
+  /* ── Cards ── */
+  .cards-section {
+    max-width: 1060px;
+    margin: 0 auto;
+    padding: 0 24px 80px;
+  }
+  .cards-label {
+    text-align: center;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: #5f6368;
+    margin-bottom: 32px;
+  }
+  .cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 20px;
+  }
+
+  .card {
+    background: #1a1d27;
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 16px;
+    padding: 28px 24px 24px;
+    cursor: pointer;
+    text-decoration: none;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    transition: transform .18s, border-color .18s, box-shadow .18s;
+    position: relative;
+    overflow: hidden;
+  }
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--accent);
+    opacity: 0;
+    transition: opacity .18s;
+  }
+  .card:hover { transform: translateY(-3px); border-color: rgba(255,255,255,0.15); box-shadow: 0 12px 40px rgba(0,0,0,0.4); }
+  .card:hover::before { opacity: 1; }
+
+  .card-icon {
+    font-size: 36px;
+    line-height: 1;
+  }
+  .card-title {
+    font-size: 17px;
+    font-weight: 700;
+    color: #e8eaed;
+  }
+  .card-desc {
+    font-size: 13px;
+    color: #9aa0a6;
+    line-height: 1.5;
+    flex: 1;
+  }
+  .card-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent);
+    margin-top: 4px;
+  }
+  .card-cta svg { transition: transform .15s; }
+  .card:hover .card-cta svg { transform: translateX(3px); }
+
+  .card-loading, .card-unavail {
+    font-size: 12px;
+    color: #5f6368;
+    font-style: italic;
+    margin-top: 4px;
+  }
+
+  /* ── Setup banner ── */
+  .setup-banner {
+    background: rgba(212,160,23,0.08);
+    border: 1px solid rgba(212,160,23,0.2);
+    border-radius: 12px;
+    padding: 18px 24px;
+    margin: 0 24px 40px;
+    max-width: 1012px;
+    margin-left: auto;
+    margin-right: auto;
+    display: none;
+    align-items: flex-start;
+    gap: 14px;
+  }
+  .setup-banner.visible { display: flex; }
+  .setup-banner .icon { font-size: 22px; flex-shrink: 0; margin-top: 2px; }
+  .setup-banner h3 { font-size: 14px; font-weight: 700; color: #d4a017; margin-bottom: 4px; }
+  .setup-banner p { font-size: 13px; color: #9aa0a6; line-height: 1.5; }
+  .setup-banner code {
+    background: rgba(255,255,255,0.07);
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 12px;
+    color: #d4a017;
+  }
+
+  /* ── Footer ── */
+  .footer {
+    border-top: 1px solid rgba(255,255,255,0.06);
+    text-align: center;
+    padding: 20px;
+    font-size: 12px;
+    color: #5f6368;
+  }
+  .footer a { color: #9aa0a6; text-decoration: none; }
+  .footer a:hover { color: #e8eaed; }
+
+  /* ── Spinner ── */
+  .spinner {
+    width: 18px; height: 18px;
+    border: 2px solid rgba(255,255,255,0.1);
+    border-top-color: #d4a017;
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+    margin: 8px auto 0;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="logo"><span>LUX</span> AUTO</div>
+  <div class="nav-links">
+    <a href="?page=dashboard">⚡ Dealer Dashboard</a>
+  </div>
+</nav>
+
+<section class="hero">
+  <div class="hero-badge">Client Portal</div>
+  <h1>Your Automotive<br>Concierge Service</h1>
+  <p>Whether you're buying, selling, trading, or partnering — start here. Select your path below and we'll take it from there.</p>
+</section>
+
+<div class="setup-banner" id="setup-banner">
+  <div class="icon">⚙️</div>
+  <div>
+    <h3>Forms Not Yet Created</h3>
+    <p>Open the Lux Auto Google Sheet → <strong>Lux Auto</strong> menu → <code>📋 Create Portal Forms</code> to generate the intake forms, then <code>🔗 Install Form Triggers</code>. Once done, reload this page to see all form links.</p>
+  </div>
+</div>
+
+<div class="cards-section">
+  <div class="cards-label">Choose your path</div>
+  <div class="cards-grid" id="cards-grid">
+
+    <a class="card" id="card-buyer" style="--accent:#4285f4" href="#" onclick="return false">
+      <div class="card-icon">🚗</div>
+      <div class="card-title">I'm Buying a Car</div>
+      <div class="card-desc">Tell us what you're looking for — make, model, budget, features. We'll source deals from auction and notify you when we find a match.</div>
+      <div class="card-cta">
+        Start Intake
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 7h8M7 3l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="card-loading" id="load-buyer"><div class="spinner"></div></div>
+    </a>
+
+    <a class="card" id="card-seller" style="--accent:#e67e22" href="#" onclick="return false">
+      <div class="card-icon">🏷️</div>
+      <div class="card-title">I'm Selling a Car</div>
+      <div class="card-desc">Submit your vehicle details and we'll run an instant Manheim MMR valuation to see if it's a fit for our inventory pipeline.</div>
+      <div class="card-cta">
+        List My Vehicle
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 7h8M7 3l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="card-loading" id="load-seller"><div class="spinner"></div></div>
+    </a>
+
+    <a class="card" id="card-dealer" style="--accent:#8e44ad" href="#" onclick="return false">
+      <div class="card-icon">🏢</div>
+      <div class="card-title">I'm a Dealer</div>
+      <div class="card-desc">Partner with Lux Auto to access our buyer network, Manheim sourcing pipeline, and co-wholesale opportunities.</div>
+      <div class="card-cta">
+        Partner With Us
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 7h8M7 3l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="card-loading" id="load-dealer"><div class="spinner"></div></div>
+    </a>
+
+    <a class="card" id="card-tradein" style="--accent:#16a085" href="#" onclick="return false">
+      <div class="card-icon">🔄</div>
+      <div class="card-title">Trade-In Evaluation</div>
+      <div class="card-desc">Submit your current vehicle for a trade-in quote. We'll assess its market value and apply it toward your next purchase through Lux.</div>
+      <div class="card-cta">
+        Get Trade Value
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 7h8M7 3l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="card-loading" id="load-tradein"><div class="spinner"></div></div>
+    </a>
+
+  </div>
+</div>
+
+<footer class="footer">
+  <p>© Lux Auto &nbsp;·&nbsp; <a href="?page=dashboard">Admin Dashboard</a></p>
+</footer>
+
+<script>
+// Map form names (as stored in Portal Form Links sheet) to card IDs
+var FORM_MAP = {
+  '🚗 Car Buyer Intake'       : 'buyer',
+  '🏷️ Car Seller Intake'     : 'seller',
+  '🏢 Dealer Onboarding'      : 'dealer',
+  '🔄 Trade-In Evaluation'    : 'tradein',
+};
+
+function activateCard(cardId, url) {
+  var card = document.getElementById('card-' + cardId);
+  var loader = document.getElementById('load-' + cardId);
+  if (!card || !url) return;
+  card.href = url;
+  card.onclick = null; // allow navigation
+  card.target = '_blank';
+  card.rel = 'noopener';
+  if (loader) loader.remove();
+}
+
+function markUnavailable(cardId) {
+  var loader = document.getElementById('load-' + cardId);
+  if (loader) {
+    loader.className = 'card-unavail';
+    loader.textContent = 'Form not yet created';
+  }
+}
+
+function onLinks(links) {
+  if (!links) {
+    // No "Portal Form Links" sheet — show setup banner
+    document.getElementById('setup-banner').classList.add('visible');
+    Object.keys(FORM_MAP).forEach(function(k) { markUnavailable(FORM_MAP[k]); });
+    return;
+  }
+
+  var found = 0;
+  Object.keys(FORM_MAP).forEach(function(formName) {
+    var cardId = FORM_MAP[formName];
+    var url = links[formName];
+    if (url) { activateCard(cardId, url); found++; }
+    else { markUnavailable(cardId); }
+  });
+
+  if (found === 0) {
+    document.getElementById('setup-banner').classList.add('visible');
+  }
+}
+
+// Load form links from Apps Script server
+google.script.run
+  .withSuccessHandler(onLinks)
+  .withFailureHandler(function() {
+    document.getElementById('setup-banner').classList.add('visible');
+    ['buyer','seller','dealer','tradein'].forEach(markUnavailable);
+  })
+  .getPortalLinks();
+</script>
+</body>
+</html>

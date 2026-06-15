@@ -1,0 +1,19 @@
+# Files NOT uploaded to Cloud Build / Cloud Run source deploys.
+.git
+.github
+node_modules
+tools
+*.gs
+*.html
+appsscript.json
+.clasp*
+package*.json
+.eslint*
+.env
+.env.*
+backend/.env
+backend/.env.*
+**/__pycache__
+.venv
+venv
+.pytest_cache

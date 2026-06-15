@@ -1,0 +1,24 @@
+# Keep the backend image lean — exclude the Apps Script app and tooling.
+*.gs
+*.html
+*.md
+*.patch
+appsscript.json
+.clasp*
+.git
+.github
+.gitignore
+node_modules
+tools
+Makefile
+package*.json
+.eslint*
+.env
+.env.*
+**/__pycache__
+**/*.pyc
+.venv
+venv
+.pytest_cache
+backend/.env
+backend/.env.*

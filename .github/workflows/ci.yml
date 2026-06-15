@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    name: Lint (Apps Script + CLI)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+      - run: npm install
+      - run: npm run lint
+      - run: node --check tools/manheim.mjs
+
+  deploy:
+    name: Push to Apps Script
+    needs: lint
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+      - run: npm install
+
+      # clasp auth + target script come from repo secrets:
+      #   CLASPRC_JSON  = contents of your local ~/.clasprc.json (after `clasp login`)
+      #   SCRIPT_ID     = the Apps Script project ID
+      - name: Configure clasp credentials
+        env:
+          CLASPRC_JSON: ${{ secrets.CLASPRC_JSON }}
+          SCRIPT_ID: ${{ secrets.SCRIPT_ID }}
+        run: |
+          if [ -z "$CLASPRC_JSON" ] || [ -z "$SCRIPT_ID" ]; then
+            echo "::notice::CLASPRC_JSON or SCRIPT_ID secret not set — skipping push."
+            exit 0
+          fi
+          echo "$CLASPRC_JSON" > "$HOME/.clasprc.json"
+          node -e "const fs=require('fs');const c=JSON.parse(fs.readFileSync('.clasp.json'));c.scriptId=process.env.SCRIPT_ID;fs.writeFileSync('.clasp.json',JSON.stringify(c,null,2));"
+
+      - name: clasp push
+        env:
+          CLASPRC_JSON: ${{ secrets.CLASPRC_JSON }}
+          SCRIPT_ID: ${{ secrets.SCRIPT_ID }}
+        run: |
+          if [ -z "$CLASPRC_JSON" ] || [ -z "$SCRIPT_ID" ]; then exit 0; fi
+          npx clasp push --force

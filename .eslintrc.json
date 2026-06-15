@@ -1,0 +1,26 @@
+{
+  "root": true,
+  "plugins": ["googleappsscript"],
+  "env": {
+    "es2021": true,
+    "googleappsscript/googleappsscript": true
+  },
+  "parserOptions": {
+    "ecmaVersion": 2021,
+    "sourceType": "script"
+  },
+  "extends": "eslint:recommended",
+  "rules": {
+    "no-unused-vars": ["warn", { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_" }],
+    "no-undef": "error",
+    "no-empty": ["warn", { "allowEmptyCatch": true }],
+    "no-constant-condition": ["error", { "checkLoops": false }]
+  },
+  "overrides": [
+    {
+      "files": ["tools/**/*.mjs"],
+      "env": { "node": true, "es2022": true, "googleappsscript/googleappsscript": false },
+      "parserOptions": { "ecmaVersion": 2022, "sourceType": "module" }
+    }
+  ]
+}

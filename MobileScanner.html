@@ -1,0 +1,1204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Lux Scanner">
+<meta name="theme-color" content="#0d0d1a">
+<title>Lux Auto — VIN Scanner</title>
+<script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.20.0/umd/index.min.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:        #0d0d1a;
+  --bg2:       #12122a;
+  --bg3:       #1a1a35;
+  --gold:      #d4af37;
+  --gold-dim:  rgba(212,175,55,0.15);
+  --gold-glow: rgba(212,175,55,0.35);
+  --white:     #f0f0f8;
+  --muted:     #8888aa;
+  --green:     #22c55e;
+  --yellow:    #f59e0b;
+  --red:       #ef4444;
+  --card-bg:   rgba(18,18,42,0.96);
+  --radius:    14px;
+  --transition: 0.25s ease;
+}
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--white);
+  font-family: -apple-system, 'SF Pro Display', 'Google Sans', Arial, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Layout Shell ── */
+#app {
+  height: 100vh;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+}
+
+/* ── Header ── */
+.header {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px 10px;
+  background: linear-gradient(180deg, rgba(13,13,26,0.98) 0%, rgba(13,13,26,0.85) 100%);
+  border-bottom: 1px solid rgba(212,175,55,0.12);
+  z-index: 20;
+}
+.logo { font-size: 18px; font-weight: 700; letter-spacing: 1.5px; }
+.logo span { color: var(--gold); }
+.header-right { display: flex; gap: 10px; align-items: center; }
+
+/* ── VIN Display ── */
+.vin-bar {
+  flex-shrink: 0;
+  padding: 10px 18px;
+  background: var(--bg2);
+  border-bottom: 1px solid rgba(212,175,55,0.08);
+}
+.vin-label { font-size: 10px; letter-spacing: 2px; color: var(--gold); text-transform: uppercase; margin-bottom: 4px; }
+.vin-value {
+  font-size: 16px;
+  font-weight: 600;
+  font-family: 'Courier New', monospace;
+  letter-spacing: 2px;
+  color: var(--white);
+  min-height: 24px;
+  word-break: break-all;
+}
+.vin-value.empty { color: var(--muted); font-style: italic; font-size: 13px; letter-spacing: 0; font-family: inherit; font-weight: 400; }
+
+/* ── Scanner Viewfinder ── */
+.scanner-area {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  background: #000;
+  min-height: 0;
+}
+
+#video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+#canvas { display: none; }
+
+.scan-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.scan-frame {
+  width: min(88%, 320px);
+  height: 80px;
+  position: relative;
+  border: 2px solid rgba(212,175,55,0.6);
+  border-radius: 6px;
+}
+
+.scan-frame::before,
+.scan-frame::after {
+  content: '';
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border-color: var(--gold);
+  border-style: solid;
+}
+.scan-frame::before { top: -2px; left: -2px; border-width: 3px 0 0 3px; border-radius: 4px 0 0 0; }
+.scan-frame::after  { bottom: -2px; right: -2px; border-width: 0 3px 3px 0; border-radius: 0 0 4px 0; }
+
+.scan-line {
+  position: absolute;
+  left: 4px; right: 4px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  animation: scanline 2s ease-in-out infinite;
+  box-shadow: 0 0 8px var(--gold);
+}
+@keyframes scanline {
+  0%   { top: 8px; opacity: 0; }
+  15%  { opacity: 1; }
+  85%  { opacity: 1; }
+  100% { top: calc(100% - 8px); opacity: 0; }
+}
+
+.scan-label {
+  margin-top: 16px;
+  font-size: 12px;
+  color: rgba(255,255,255,0.75);
+  letter-spacing: 0.5px;
+  text-align: center;
+  animation: pulse 2s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 0.6; }
+  50%       { opacity: 1; }
+}
+
+.scan-success-flash {
+  position: absolute;
+  inset: 0;
+  background: rgba(34,197,94,0.25);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s;
+}
+.scan-success-flash.active { opacity: 1; }
+
+/* ── Camera Permission / Error States ── */
+.camera-placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 28px;
+  background: var(--bg2);
+  text-align: center;
+}
+.camera-placeholder .icon { font-size: 48px; margin-bottom: 4px; }
+.camera-placeholder p { font-size: 14px; color: var(--muted); line-height: 1.5; max-width: 280px; }
+.camera-placeholder p strong { color: var(--white); }
+
+/* ── Bottom Toolbar ── */
+.bottom-bar {
+  flex-shrink: 0;
+  display: flex;
+  gap: 8px;
+  padding: 10px 14px;
+  padding-bottom: calc(10px + env(safe-area-inset-bottom));
+  background: rgba(13,13,26,0.97);
+  border-top: 1px solid rgba(212,175,55,0.12);
+  z-index: 20;
+}
+.bottom-bar .btn-sm {
+  flex: 1;
+  padding: 10px 6px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  letter-spacing: 0.3px;
+  transition: filter var(--transition), transform var(--transition);
+}
+.bottom-bar .btn-sm:active { transform: scale(0.95); }
+.btn-gold   { background: linear-gradient(135deg, #d4af37, #b8952e); color: #0d0d1a; }
+.btn-ghost  { background: rgba(212,175,55,0.12); color: var(--gold); border: 1px solid rgba(212,175,55,0.25) !important; }
+
+/* ── Result Card ── */
+.result-card-wrapper {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+.result-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.65);
+  opacity: 0;
+  transition: opacity var(--transition);
+  pointer-events: none;
+}
+.result-card {
+  position: relative;
+  background: var(--card-bg);
+  border-top-left-radius: 22px;
+  border-top-right-radius: 22px;
+  border-top: 1px solid rgba(212,175,55,0.2);
+  padding: 18px 18px 0;
+  padding-bottom: calc(18px + env(safe-area-inset-bottom));
+  max-height: 90vh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  transform: translateY(110%);
+  transition: transform 0.38s cubic-bezier(0.16,1,0.3,1);
+  pointer-events: none;
+  -webkit-overflow-scrolling: touch;
+}
+.result-card-wrapper.open .result-backdrop { opacity: 1; pointer-events: auto; }
+.result-card-wrapper.open .result-card     { transform: translateY(0); pointer-events: auto; }
+
+.card-handle {
+  width: 40px; height: 4px;
+  background: rgba(255,255,255,0.15);
+  border-radius: 2px;
+  margin: 0 auto 14px;
+}
+
+.vehicle-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--white);
+  margin-bottom: 4px;
+  line-height: 1.25;
+}
+.vehicle-vin-small {
+  font-size: 11px;
+  color: var(--muted);
+  font-family: monospace;
+  letter-spacing: 1px;
+  margin-bottom: 14px;
+}
+
+/* Score badge */
+.score-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+.score-badge {
+  width: 60px; height: 60px;
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  font-weight: 800;
+  flex-shrink: 0;
+  border: 3px solid;
+}
+.score-badge.green  { color: var(--green); border-color: var(--green); background: rgba(34,197,94,0.1); }
+.score-badge.yellow { color: var(--yellow); border-color: var(--yellow); background: rgba(245,158,11,0.1); }
+.score-badge.red    { color: var(--red); border-color: var(--red); background: rgba(239,68,68,0.1); }
+.score-badge small  { font-size: 9px; font-weight: 600; letter-spacing: 1px; opacity: 0.8; }
+.score-label { font-size: 13px; color: var(--muted); line-height: 1.5; }
+.score-label strong { display: block; font-size: 15px; color: var(--white); margin-bottom: 2px; }
+
+/* Metrics grid */
+.metrics {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.metric {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+.metric-label { font-size: 10px; letter-spacing: 1px; color: var(--muted); text-transform: uppercase; margin-bottom: 4px; }
+.metric-value { font-size: 17px; font-weight: 700; color: var(--white); }
+.metric-value.gold { color: var(--gold); }
+.metric-value.green { color: var(--green); }
+.metric-value.red { color: var(--red); }
+
+/* Condition stars */
+.stars { color: var(--gold); letter-spacing: 2px; font-size: 14px; }
+
+/* Bid slider */
+.bid-section {
+  background: rgba(212,175,55,0.06);
+  border: 1px solid rgba(212,175,55,0.15);
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 14px;
+}
+.bid-section-title { font-size: 12px; letter-spacing: 1px; color: var(--gold); text-transform: uppercase; margin-bottom: 10px; }
+.slider-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.slider-row label { font-size: 11px; color: var(--muted); flex-shrink: 0; }
+input[type=range] {
+  flex: 1;
+  -webkit-appearance: none;
+  height: 4px;
+  background: rgba(212,175,55,0.25);
+  border-radius: 2px;
+  outline: none;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  background: var(--gold);
+  cursor: pointer;
+  box-shadow: 0 0 6px rgba(212,175,55,0.5);
+}
+.bid-readout {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--muted);
+}
+.bid-readout span { color: var(--white); font-weight: 600; }
+.profit-line {
+  text-align: center;
+  font-size: 13px;
+  font-weight: 700;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+  margin-top: 8px;
+}
+
+/* Action buttons */
+.actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.action-btn {
+  padding: 13px 10px;
+  border-radius: 12px;
+  border: none;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform var(--transition), filter var(--transition);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  line-height: 1.3;
+}
+.action-btn:active { transform: scale(0.95); }
+.action-btn .icon { font-size: 18px; }
+.ab-watchlist  { background: rgba(34,197,94,0.15);  color: var(--green);  border: 1px solid rgba(34,197,94,0.3); }
+.ab-bid        { background: rgba(212,175,55,0.15); color: var(--gold);   border: 1px solid rgba(212,175,55,0.3); }
+.ab-notify     { background: rgba(147,51,234,0.15); color: #a855f7;       border: 1px solid rgba(147,51,234,0.3); }
+.ab-scan       { background: rgba(59,130,246,0.15); color: #60a5fa;       border: 1px solid rgba(59,130,246,0.3); }
+.action-btn:disabled { opacity: 0.45; cursor: default; }
+
+/* Bid limit inline input */
+.bid-input-row {
+  display: none;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.bid-input-row.show { display: flex; }
+.bid-input-row input {
+  flex: 1;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(212,175,55,0.3);
+  color: var(--white);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 15px;
+  font-weight: 600;
+  outline: none;
+}
+.bid-input-row input:focus { border-color: var(--gold); }
+.bid-input-row .btn-set {
+  background: var(--gold);
+  color: #0d0d1a;
+  border: none;
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+/* Recent VINs */
+.recent-section {
+  border-top: 1px solid rgba(255,255,255,0.06);
+  padding: 12px 0 4px;
+}
+.recent-title { font-size: 10px; letter-spacing: 1.5px; color: var(--muted); text-transform: uppercase; margin-bottom: 8px; }
+.recent-list  { display: flex; gap: 6px; flex-wrap: wrap; }
+.recent-chip  {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 20px;
+  padding: 5px 10px;
+  font-size: 10px;
+  font-family: monospace;
+  letter-spacing: 1px;
+  color: var(--muted);
+  cursor: pointer;
+  transition: border-color var(--transition), color var(--transition);
+}
+.recent-chip:hover { border-color: var(--gold); color: var(--gold); }
+
+/* Loading spinner overlay on card */
+.card-loading {
+  display: none;
+  position: absolute;
+  inset: 0;
+  background: rgba(13,13,26,0.8);
+  border-radius: inherit;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 14px;
+  z-index: 5;
+  backdrop-filter: blur(4px);
+}
+.card-loading.show { display: flex; }
+.spinner {
+  width: 40px; height: 40px;
+  border: 3px solid rgba(212,175,55,0.2);
+  border-top-color: var(--gold);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.card-loading p { font-size: 13px; color: var(--muted); }
+
+/* Toast */
+.toast {
+  position: fixed;
+  top: 70px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-12px);
+  background: var(--bg3);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 30px;
+  padding: 10px 20px;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  z-index: 100;
+  opacity: 0;
+  transition: opacity 0.2s, transform 0.2s;
+  pointer-events: none;
+  max-width: 90vw;
+  text-align: center;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.toast.error { border-color: rgba(239,68,68,0.4); color: #fca5a5; }
+.toast.success { border-color: rgba(34,197,94,0.4); color: #86efac; }
+.toast.info { border-color: rgba(212,175,55,0.4); color: var(--gold); }
+
+/* Manual input row */
+.manual-row {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: var(--bg2);
+  border-top: 1px solid rgba(212,175,55,0.08);
+  flex-shrink: 0;
+}
+.manual-row.show { display: flex; }
+.manual-row input {
+  flex: 1;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(212,175,55,0.25);
+  color: var(--white);
+  border-radius: 10px;
+  padding: 10px 13px;
+  font-size: 14px;
+  font-weight: 500;
+  font-family: monospace;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  outline: none;
+}
+.manual-row input::placeholder { color: var(--muted); font-size: 12px; letter-spacing: 0; font-family: inherit; text-transform: none; }
+.manual-row input:focus { border-color: var(--gold); }
+.manual-row .btn-go {
+  background: var(--gold);
+  color: #0d0d1a;
+  border: none;
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+/* Landscape adjustments */
+@media (orientation: landscape) {
+  .scan-frame { height: 54px; }
+  .header { padding: 10px 18px 8px; }
+}
+
+@media (min-width: 600px) {
+  #app { max-width: 480px; margin: 0 auto; box-shadow: 0 0 60px rgba(0,0,0,0.8); }
+}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- Header -->
+  <header class="header">
+    <div class="logo">LUX<span>AUTO</span></div>
+    <div class="header-right">
+      <button class="btn-ghost btn-sm" onclick="toggleManual()" title="Manual VIN entry" style="font-size:12px;padding:7px 12px;border-radius:8px;cursor:pointer;">⌨ Manual</button>
+    </div>
+  </header>
+
+  <!-- VIN display bar -->
+  <div class="vin-bar">
+    <div class="vin-label">Detected VIN</div>
+    <div class="vin-value empty" id="vinDisplay">Point camera at barcode or enter VIN manually</div>
+  </div>
+
+  <!-- Camera / scanner -->
+  <div class="scanner-area" id="scannerArea">
+    <video id="video" autoplay muted playsinline></video>
+    <canvas id="canvas"></canvas>
+
+    <!-- Overlay: scanning state -->
+    <div class="scan-overlay" id="scanOverlay">
+      <div class="scan-frame">
+        <div class="scan-line"></div>
+      </div>
+      <div class="scan-label" id="scanLabel">Scanning for VIN barcode…</div>
+    </div>
+
+    <!-- Success flash -->
+    <div class="scan-success-flash" id="successFlash"></div>
+
+    <!-- Camera placeholder (shown before camera starts or on error) -->
+    <div class="camera-placeholder" id="cameraPlaceholder">
+      <div class="icon">📷</div>
+      <p><strong>Camera access required</strong></p>
+      <p>Allow camera access so you can scan VIN barcodes on window stickers directly on the auction floor.</p>
+      <button class="btn-gold btn-sm" style="padding:12px 24px;border-radius:10px;font-size:14px;cursor:pointer;" onclick="initCamera()">Allow Camera</button>
+    </div>
+  </div>
+
+  <!-- Manual VIN input -->
+  <div class="manual-row" id="manualRow">
+    <input type="text" id="manualVinInput" placeholder="Enter 17-character VIN…" maxlength="17" autocomplete="off" autocorrect="off" spellcheck="false"
+      onkeyup="this.value=this.value.toUpperCase().replace(/[^A-HJ-NPR-Z0-9]/g,'')"
+      onkeypress="if(event.key==='Enter')submitManualVin()">
+    <button class="btn-go" onclick="submitManualVin()">Look Up</button>
+  </div>
+
+  <!-- Bottom bar -->
+  <div class="bottom-bar">
+    <button class="btn-sm btn-ghost" onclick="toggleScan()" id="scanToggleBtn">⏸ Pause</button>
+    <button class="btn-sm btn-ghost" onclick="toggleManual()">⌨ Type VIN</button>
+    <button class="btn-sm btn-gold" onclick="showRecent()">🕐 Recent</button>
+  </div>
+
+</div><!-- #app -->
+
+<!-- Result Card (slide-up) -->
+<div class="result-card-wrapper" id="resultWrapper">
+  <div class="result-backdrop" onclick="closeCard()"></div>
+  <div class="result-card" id="resultCard">
+    <div class="card-handle"></div>
+
+    <!-- Loading overlay -->
+    <div class="card-loading" id="cardLoading">
+      <div class="spinner"></div>
+      <p>Looking up vehicle…</p>
+    </div>
+
+    <div id="cardContent">
+      <div class="vehicle-title" id="vehicleTitle">—</div>
+      <div class="vehicle-vin-small" id="vehicleVinSmall">—</div>
+
+      <div class="score-row">
+        <div class="score-badge" id="scoreBadge">
+          <span id="scoreNum">—</span>
+          <small>SCORE</small>
+        </div>
+        <div class="score-label">
+          <strong id="scoreDesc">—</strong>
+          <span id="conditionStars" class="stars"></span>
+          <span id="conditionCR" style="font-size:11px;color:var(--muted)"></span>
+        </div>
+      </div>
+
+      <div class="metrics">
+        <div class="metric">
+          <div class="metric-label">MMR Value</div>
+          <div class="metric-value gold" id="mtrMMR">—</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Current Bid</div>
+          <div class="metric-value" id="mtrBid">—</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Rec. Max Bid</div>
+          <div class="metric-value" id="mtrMaxBid">—</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Est. Profit</div>
+          <div class="metric-value" id="mtrProfit">—</div>
+        </div>
+      </div>
+
+      <!-- Bid calculator -->
+      <div class="bid-section">
+        <div class="bid-section-title">Bid Calculator</div>
+        <div class="slider-row">
+          <label>Bid</label>
+          <input type="range" id="bidSlider" min="1000" max="100000" step="250" value="20000" oninput="updateBidCalc()">
+        </div>
+        <div class="bid-readout">
+          <div>Bid: <span id="sliderBidVal">$20,000</span></div>
+          <div>Margin: <span id="sliderMargin">—</span></div>
+        </div>
+        <div class="profit-line" id="profitLine">Enter bid to calculate</div>
+      </div>
+
+      <!-- Bid limit input -->
+      <div class="bid-input-row" id="bidInputRow">
+        <input type="number" id="bidLimitInput" placeholder="Enter max bid $" min="0">
+        <button class="btn-set" onclick="confirmBidLimit()">Set</button>
+      </div>
+
+      <!-- Action buttons -->
+      <div class="actions">
+        <button class="action-btn ab-watchlist" id="btnWatchlist" onclick="doAddWatchlist()">
+          <span class="icon">📋</span>Add to Watchlist
+        </button>
+        <button class="action-btn ab-bid" id="btnBidLimit" onclick="toggleBidInput()">
+          <span class="icon">💰</span>Set Bid Limit
+        </button>
+        <button class="action-btn ab-notify" id="btnNotify" onclick="doNotifyBuyer()">
+          <span class="icon">🔔</span>Notify Buyer
+        </button>
+        <button class="action-btn ab-scan" onclick="closeCard()">
+          <span class="icon">🔁</span>Scan Another
+        </button>
+      </div>
+
+      <!-- Recent scanned VINs -->
+      <div class="recent-section" id="recentSection" style="display:none">
+        <div class="recent-title">Recently Scanned</div>
+        <div class="recent-list" id="recentList"></div>
+      </div>
+
+    </div><!-- #cardContent -->
+  </div><!-- .result-card -->
+</div><!-- .result-card-wrapper -->
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────────────
+const state = {
+  currentVin:   null,
+  scanning:     true,
+  cameraActive: false,
+  currentData:  null,
+  recentVins:   [],    // last 5 VINs
+  stream:       null,
+};
+
+// ── DOM refs ──────────────────────────────────────────────────────────────────
+const $  = id => document.getElementById(id);
+const video           = $('video');
+const canvas          = $('canvas');
+const ctx             = canvas.getContext('2d', { willReadFrequently: true });
+const vinDisplay      = $('vinDisplay');
+const cameraPlaceholder = $('cameraPlaceholder');
+const scanOverlay     = $('scanOverlay');
+const successFlash    = $('successFlash');
+const resultWrapper   = $('resultWrapper');
+const cardLoading     = $('cardLoading');
+const manualRow       = $('manualRow');
+const scanToggleBtn   = $('scanToggleBtn');
+const bidInputRow     = $('bidInputRow');
+const recentSection   = $('recentSection');
+
+// ── ZXing reader ──────────────────────────────────────────────────────────────
+let codeReader = null;
+let scanInterval = null;
+
+function initZXing() {
+  if (typeof ZXing === 'undefined') {
+    setTimeout(initZXing, 300);
+    return;
+  }
+  const hints = new Map();
+  const formats = [
+    ZXing.BarcodeFormat.CODE_128,
+    ZXing.BarcodeFormat.CODE_39,
+    ZXing.BarcodeFormat.DATA_MATRIX,
+    ZXing.BarcodeFormat.PDF_417,
+    ZXing.BarcodeFormat.QR_CODE,
+  ];
+  hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, formats);
+  hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
+  codeReader = new ZXing.MultiFormatReader();
+  codeReader.setHints(hints);
+  initCamera();
+}
+
+// ── Camera ────────────────────────────────────────────────────────────────────
+async function initCamera() {
+  try {
+    const constraints = {
+      video: {
+        facingMode: { ideal: 'environment' },
+        width:  { ideal: 1280 },
+        height: { ideal: 720 },
+      }
+    };
+    state.stream = await navigator.mediaDevices.getUserMedia(constraints);
+    video.srcObject = state.stream;
+    video.onloadedmetadata = () => {
+      video.play();
+      cameraPlaceholder.style.display = 'none';
+      scanOverlay.style.display = 'flex';
+      state.cameraActive = true;
+      startFrameScan();
+    };
+  } catch (err) {
+    const msg = err.name === 'NotAllowedError'
+      ? 'Camera permission denied. Use Manual Entry below.'
+      : 'Camera unavailable: ' + err.message + '. Use Manual Entry.';
+    showCameraError(msg);
+  }
+}
+
+function showCameraError(msg) {
+  cameraPlaceholder.innerHTML = `
+    <div class="icon">🚫</div>
+    <p><strong>Camera Unavailable</strong></p>
+    <p>${msg}</p>
+    <button class="btn-gold btn-sm" style="padding:12px 24px;border-radius:10px;font-size:14px;cursor:pointer;" onclick="toggleManual()">Use Manual Entry</button>
+  `;
+  cameraPlaceholder.style.display = 'flex';
+  scanOverlay.style.display = 'none';
+  manualRow.classList.add('show');
+}
+
+// ── Frame scanning loop ───────────────────────────────────────────────────────
+function startFrameScan() {
+  if (scanInterval) clearInterval(scanInterval);
+  scanInterval = setInterval(scanFrame, 150);
+}
+
+function stopFrameScan() {
+  if (scanInterval) { clearInterval(scanInterval); scanInterval = null; }
+}
+
+function scanFrame() {
+  if (!state.scanning || !state.cameraActive || !codeReader) return;
+  if (video.readyState < video.HAVE_ENOUGH_DATA) return;
+
+  const vw = video.videoWidth;
+  const vh = video.videoHeight;
+  if (!vw || !vh) return;
+
+  canvas.width  = vw;
+  canvas.height = vh;
+  ctx.drawImage(video, 0, 0, vw, vh);
+
+  try {
+    const imageData = ctx.getImageData(0, 0, vw, vh);
+    const luminance = new ZXing.RGBLuminanceSource(imageData.data, vw, vh);
+    const binary    = new ZXing.HybridBinarizer(luminance);
+    const bmp       = new ZXing.BinaryBitmap(binary);
+    const result    = codeReader.decode(bmp);
+    const text      = result.getText().trim().toUpperCase().replace(/[^A-HJ-NPR-Z0-9]/g, '');
+    if (isValidVin(text)) {
+      onVinDetected(text);
+    }
+  } catch (e) {
+    // NotFoundException is normal — no barcode in frame
+  }
+}
+
+// ── VIN validation ────────────────────────────────────────────────────────────
+function isValidVin(v) {
+  return v && v.length === 17 && /^[A-HJ-NPR-Z0-9]{17}$/.test(v);
+}
+
+// ── On VIN found ──────────────────────────────────────────────────────────────
+function onVinDetected(vin) {
+  if (vin === state.currentVin) return;
+  state.currentVin = vin;
+  state.scanning   = false;
+  stopFrameScan();
+
+  // Vibrate
+  if (navigator.vibrate) navigator.vibrate(200);
+
+  // Flash green
+  successFlash.classList.add('active');
+  setTimeout(() => successFlash.classList.remove('active'), 500);
+
+  // Update VIN bar
+  vinDisplay.textContent = vin;
+  vinDisplay.classList.remove('empty');
+
+  // Add to recent
+  addToRecent(vin);
+
+  // Open card + lookup
+  openResultCard(vin);
+}
+
+// ── Recent VINs ───────────────────────────────────────────────────────────────
+function addToRecent(vin) {
+  state.recentVins = [vin, ...state.recentVins.filter(v => v !== vin)].slice(0, 5);
+}
+
+function showRecent() {
+  if (!state.recentVins.length) {
+    showToast('No recently scanned VINs', 'info');
+    return;
+  }
+  const list = $('recentList');
+  list.innerHTML = state.recentVins.map(v =>
+    `<div class="recent-chip" onclick="lookupRecentVin('${v}')">${v}</div>`
+  ).join('');
+  recentSection.style.display = 'block';
+  openResultCard(state.recentVins[0], true);
+}
+
+function lookupRecentVin(vin) {
+  state.currentVin = vin;
+  vinDisplay.textContent = vin;
+  vinDisplay.classList.remove('empty');
+  openResultCard(vin);
+}
+
+// ── Result card ───────────────────────────────────────────────────────────────
+function openResultCard(vin, skipLookup) {
+  resultWrapper.classList.add('open');
+  cardLoading.classList.add('show');
+  resetCardActions();
+  if (!skipLookup) {
+    doLookup(vin);
+  }
+}
+
+function closeCard() {
+  resultWrapper.classList.remove('open');
+  bidInputRow.classList.remove('show');
+  state.currentVin = null;
+  state.currentData = null;
+  state.scanning   = true;
+  vinDisplay.textContent = 'Point camera at barcode or enter VIN manually';
+  vinDisplay.classList.add('empty');
+  startFrameScan();
+  scanToggleBtn.textContent = '⏸ Pause';
+}
+
+function resetCardActions() {
+  $('btnWatchlist').disabled = false;
+  $('btnWatchlist').textContent = '';
+  $('btnWatchlist').innerHTML = '<span class="icon">📋</span>Add to Watchlist';
+  $('btnBidLimit').disabled = false;
+  $('btnNotify').disabled = false;
+  $('btnNotify').innerHTML = '<span class="icon">🔔</span>Notify Buyer';
+  bidInputRow.classList.remove('show');
+}
+
+// ── Server lookup via GAS ─────────────────────────────────────────────────────
+function doLookup(vin) {
+  // Check if running inside GAS (google.script.run available)
+  if (typeof google !== 'undefined' && google.script && google.script.run) {
+    google.script.run
+      .withSuccessHandler(data => onLookupSuccess(vin, data))
+      .withFailureHandler(err => onLookupError(err))
+      .lookupVinScore(vin);
+  } else {
+    // Dev/preview mode — use mock data
+    setTimeout(() => onLookupSuccess(vin, mockLookup(vin)), 800);
+  }
+}
+
+function mockLookup(vin) {
+  const score = Math.floor(Math.random() * 60) + 30;
+  const mmr   = Math.floor(Math.random() * 30000) + 18000;
+  return {
+    vin,
+    year:  2021 + Math.floor(Math.random() * 4),
+    make:  ['BMW','Mercedes-Benz','Lexus','Porsche','Audi'][Math.floor(Math.random()*5)],
+    model: ['M3','GLE','IS 350','Cayenne','A6'][Math.floor(Math.random()*5)],
+    score,
+    mmr,
+    recommendedMax: Math.round(mmr * 0.92),
+    condition: Math.floor(Math.random() * 2) + 3,
+    crGrade: '3.5',
+  };
+}
+
+function onLookupSuccess(vin, data) {
+  cardLoading.classList.remove('show');
+  if (!data || data.error) {
+    onLookupError(data ? data.error : 'Unknown error');
+    return;
+  }
+  state.currentData = data;
+  renderCard(vin, data);
+}
+
+function onLookupError(err) {
+  cardLoading.classList.remove('show');
+  showToast('Lookup failed: ' + (err.message || err), 'error');
+  // Still show partial card with VIN
+  renderCard(state.currentVin, { vin: state.currentVin, error: true });
+}
+
+// ── Render card data ──────────────────────────────────────────────────────────
+function renderCard(vin, data) {
+  const mmr        = data.mmr || 0;
+  const recMax     = data.recommendedMax || Math.round(mmr * 0.92);
+  const score      = data.score || 0;
+  const year       = data.year  || '';
+  const make       = data.make  || '';
+  const model      = data.model || '';
+
+  $('vehicleTitle').textContent   = [year, make, model].filter(Boolean).join(' ') || 'Unknown Vehicle';
+  $('vehicleVinSmall').textContent = 'VIN: ' + vin;
+
+  // Score badge
+  const badge = $('scoreBadge');
+  $('scoreNum').textContent = score || '—';
+  badge.className = 'score-badge ' + (score >= 70 ? 'green' : score >= 40 ? 'yellow' : 'red');
+  $('scoreDesc').textContent = score >= 70 ? 'Strong Deal' : score >= 40 ? 'Fair Deal' : score ? 'Weak Deal' : 'No Score';
+
+  // Condition stars
+  const cond  = data.condition || 0;
+  const stars = cond ? '★'.repeat(Math.round(cond)) + '☆'.repeat(5 - Math.round(cond)) : '';
+  $('conditionStars').textContent = stars;
+  $('conditionCR').textContent    = data.crGrade ? 'CR ' + data.crGrade : '';
+
+  // Metrics
+  $('mtrMMR').textContent    = mmr    ? '$' + mmr.toLocaleString()    : '—';
+  $('mtrMaxBid').textContent = recMax ? '$' + recMax.toLocaleString() : '—';
+  $('mtrBid').textContent    = '—';
+  $('mtrProfit').textContent = '—';
+
+  // Bid slider setup
+  const sliderMin = Math.round(mmr * 0.4) || 5000;
+  const sliderMax = Math.round(mmr * 1.1) || 80000;
+  const slider    = $('bidSlider');
+  slider.min   = sliderMin;
+  slider.max   = sliderMax;
+  slider.step  = 250;
+  slider.value = recMax || Math.round(mmr * 0.80);
+  updateBidCalc();
+
+  // Recent section
+  if (state.recentVins.length > 1) {
+    const list = $('recentList');
+    list.innerHTML = state.recentVins.map(v =>
+      `<div class="recent-chip" onclick="lookupRecentVin('${v}')">${v}</div>`
+    ).join('');
+    recentSection.style.display = 'block';
+  }
+}
+
+// ── Bid calculator ────────────────────────────────────────────────────────────
+function updateBidCalc() {
+  const data   = state.currentData;
+  const mmr    = data ? data.mmr : 0;
+  const recMax = data ? (data.recommendedMax || Math.round(mmr * 0.92)) : 0;
+  const bid    = parseInt($('bidSlider').value) || 0;
+  const fees   = Math.round(bid * 0.08);
+  const profit = mmr ? mmr - bid - fees : 0;
+
+  $('sliderBidVal').textContent  = '$' + bid.toLocaleString();
+  $('mtrBid').textContent        = '$' + bid.toLocaleString();
+  $('mtrProfit').textContent     = profit ? (profit >= 0 ? '+' : '') + '$' + profit.toLocaleString() : '—';
+
+  const profitEl = $('mtrProfit');
+  profitEl.className = 'metric-value ' + (profit > 0 ? 'green' : profit < 0 ? 'red' : '');
+
+  $('sliderMargin').textContent = profit ? (profit >= 0 ? '+' : '') + '$' + profit.toLocaleString() : '—';
+  $('sliderMargin').style.color = profit > 0 ? 'var(--green)' : profit < 0 ? 'var(--red)' : 'var(--muted)';
+
+  const overMax = recMax && bid > recMax;
+  $('profitLine').textContent = overMax
+    ? '⚠️ Bid exceeds recommended max by $' + (bid - recMax).toLocaleString()
+    : (profit > 0 ? '✓ Estimated profit after fees: $' + profit.toLocaleString() : profit < 0 ? '✗ Loss at this bid' : 'Adjust bid to calculate');
+  $('profitLine').style.color = overMax || profit < 0 ? 'var(--red)' : profit > 0 ? 'var(--green)' : 'var(--muted)';
+}
+
+// ── Action: Add to Watchlist ──────────────────────────────────────────────────
+function doAddWatchlist() {
+  const vin = state.currentVin;
+  if (!vin) return;
+
+  $('btnWatchlist').disabled = true;
+  $('btnWatchlist').innerHTML = '<span class="icon">⏳</span>Adding…';
+
+  const callFn = (typeof google !== 'undefined' && google.script && google.script.run)
+    ? cb => google.script.run.withSuccessHandler(cb).withFailureHandler(e => {
+        showToast('Error: ' + (e.message || e), 'error');
+        $('btnWatchlist').disabled = false;
+        $('btnWatchlist').innerHTML = '<span class="icon">📋</span>Add to Watchlist';
+      }).addToWatchlist(vin)
+    : cb => setTimeout(() => cb({ success: true }), 600);
+
+  callFn(res => {
+    if (res && res.success) {
+      $('btnWatchlist').innerHTML = '<span class="icon">✓</span>Watchlisted';
+      showToast('Added to watchlist', 'success');
+    } else {
+      showToast('Failed to add: ' + (res && res.error || 'Unknown'), 'error');
+      $('btnWatchlist').disabled = false;
+      $('btnWatchlist').innerHTML = '<span class="icon">📋</span>Add to Watchlist';
+    }
+  });
+}
+
+// ── Action: Set Bid Limit ─────────────────────────────────────────────────────
+function toggleBidInput() {
+  bidInputRow.classList.toggle('show');
+  if (bidInputRow.classList.contains('show')) {
+    const recMax = state.currentData ? (state.currentData.recommendedMax || '') : '';
+    $('bidLimitInput').value = recMax || '';
+    $('bidLimitInput').focus();
+  }
+}
+
+function confirmBidLimit() {
+  const vin   = state.currentVin;
+  const limit = parseFloat($('bidLimitInput').value);
+  if (!vin || !limit || limit <= 0) { showToast('Enter a valid bid amount', 'error'); return; }
+
+  $('btnBidLimit').disabled = true;
+  bidInputRow.classList.remove('show');
+
+  const callFn = (typeof google !== 'undefined' && google.script && google.script.run)
+    ? cb => google.script.run.withSuccessHandler(cb).withFailureHandler(e => {
+        showToast('Error: ' + (e.message || e), 'error');
+        $('btnBidLimit').disabled = false;
+      }).setBidLimit(vin, limit)
+    : cb => setTimeout(() => cb({ success: true }), 500);
+
+  callFn(res => {
+    $('btnBidLimit').disabled = false;
+    if (res && res.success !== false) {
+      showToast('Bid limit set: $' + limit.toLocaleString(), 'success');
+      $('btnBidLimit').innerHTML = '<span class="icon">✓</span>Limit Set';
+    } else {
+      showToast('Failed to set limit', 'error');
+    }
+  });
+}
+
+// ── Action: Notify Buyer ──────────────────────────────────────────────────────
+function doNotifyBuyer() {
+  const vin = state.currentVin;
+  if (!vin) return;
+
+  $('btnNotify').disabled = true;
+  $('btnNotify').innerHTML = '<span class="icon">⏳</span>Notifying…';
+
+  const callFn = (typeof google !== 'undefined' && google.script && google.script.run)
+    ? cb => google.script.run.withSuccessHandler(cb).withFailureHandler(e => {
+        showToast('Error: ' + (e.message || e), 'error');
+        $('btnNotify').disabled = false;
+        $('btnNotify').innerHTML = '<span class="icon">🔔</span>Notify Buyer';
+      }).notifyWaitlistForVin(vin)
+    : cb => setTimeout(() => cb({ success: true, notified: Math.floor(Math.random()*3)+1 }), 700);
+
+  callFn(res => {
+    $('btnNotify').disabled = false;
+    if (res && res.success !== false) {
+      const n = res.notified || res.count || '';
+      const label = n ? n + ' buyer' + (n > 1 ? 's' : '') + ' notified' : 'Buyers notified';
+      $('btnNotify').innerHTML = '<span class="icon">✓</span>' + label;
+      showToast(label, 'success');
+    } else {
+      showToast('Notification failed', 'error');
+      $('btnNotify').innerHTML = '<span class="icon">🔔</span>Notify Buyer';
+    }
+  });
+}
+
+// ── Scan toggle ───────────────────────────────────────────────────────────────
+function toggleScan() {
+  state.scanning = !state.scanning;
+  if (state.scanning) {
+    startFrameScan();
+    scanToggleBtn.textContent = '⏸ Pause';
+    $('scanLabel').textContent = 'Scanning for VIN barcode…';
+  } else {
+    stopFrameScan();
+    scanToggleBtn.textContent = '▶ Resume';
+    $('scanLabel').textContent = 'Scanner paused';
+  }
+}
+
+// ── Manual entry ──────────────────────────────────────────────────────────────
+function toggleManual() {
+  manualRow.classList.toggle('show');
+  if (manualRow.classList.contains('show')) {
+    $('manualVinInput').focus();
+  }
+}
+
+function submitManualVin() {
+  const raw = $('manualVinInput').value.trim().toUpperCase().replace(/[^A-HJ-NPR-Z0-9]/g, '');
+  if (!isValidVin(raw)) {
+    showToast('Please enter a valid 17-character VIN', 'error');
+    return;
+  }
+  $('manualVinInput').value = '';
+  manualRow.classList.remove('show');
+  onVinDetected(raw);
+}
+
+// ── Toast notifications ───────────────────────────────────────────────────────
+let toastTimer = null;
+function showToast(msg, type) {
+  const el = $('toast');
+  el.textContent = msg;
+  el.className   = 'toast ' + (type || 'info');
+  el.classList.add('show');
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+// ── Swipe-down to close card ──────────────────────────────────────────────────
+(function setupSwipe() {
+  let startY = 0;
+  const card = $('resultCard');
+  card.addEventListener('touchstart', e => { startY = e.touches[0].clientY; }, { passive: true });
+  card.addEventListener('touchend',   e => {
+    if (e.changedTouches[0].clientY - startY > 80) closeCard();
+  }, { passive: true });
+})();
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    showCameraError('Your browser does not support camera access. Use Manual Entry.');
+    return;
+  }
+  initZXing();
+});
+
+// Clean up camera stream if page is hidden
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    stopFrameScan();
+  } else if (state.cameraActive && state.scanning && !resultWrapper.classList.contains('open')) {
+    startFrameScan();
+  }
+});
+</script>
+</body>
+</html>

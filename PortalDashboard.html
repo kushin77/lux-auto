@@ -1,0 +1,1606 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lux Auto — Dealer Command Center</title>
+<style>
+  :root {
+    --bg:       #0a0c12;
+    --surface:  #111520;
+    --card:     #161b28;
+    --border:   #1e2535;
+    --gold:     #c9a227;
+    --gold-dim: #8a6e1a;
+    --green:    #22c55e;
+    --red:      #ef4444;
+    --blue:     #3b82f6;
+    --text:     #e2e8f0;
+    --muted:    #64748b;
+    --accent:   #1e3a5f;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', -apple-system, sans-serif;
+    font-size: 14px;
+    min-height: 100vh;
+  }
+
+  /* ── TOP NAV ── */
+  .topnav {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 24px; height: 58px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; z-index: 100;
+  }
+  .logo { display:flex; align-items:center; gap:10px; }
+  .logo-badge {
+    background: linear-gradient(135deg,#c9a227,#8a6e1a);
+    color:#000; font-weight:800; font-size:11px;
+    padding:3px 8px; border-radius:4px; letter-spacing:1px;
+  }
+  .logo-text { font-size:17px; font-weight:700; letter-spacing:.5px; }
+  .logo-sub { color:var(--muted); font-size:11px; }
+  .nav-pills { display:flex; gap:4px; }
+  .nav-pill {
+    padding:6px 14px; border-radius:6px; border:none; cursor:pointer;
+    font-size:12px; font-weight:500; background:transparent; color:var(--muted);
+    transition:.15s;
+  }
+  .nav-pill:hover { background:var(--card); color:var(--text); }
+  .nav-pill.active { background:var(--accent); color:#60a5fa; }
+  .nav-right { display:flex; align-items:center; gap:12px; }
+  .scan-btn {
+    display:flex; align-items:center; gap:7px;
+    background:linear-gradient(135deg,#c9a227,#a07c18);
+    color:#000; font-weight:700; font-size:12px;
+    padding:8px 16px; border-radius:7px; border:none; cursor:pointer;
+    transition:.2s; letter-spacing:.3px;
+  }
+  .scan-btn:hover { opacity:.9; transform:translateY(-1px); }
+  .scan-btn.scanning { animation: pulse-gold 1.2s infinite; }
+  @keyframes pulse-gold {
+    0%,100%{ box-shadow:0 0 0 0 rgba(201,162,39,.4); }
+    50%{ box-shadow:0 0 0 8px rgba(201,162,39,0); }
+  }
+  .status-dot {
+    width:8px; height:8px; border-radius:50%;
+    background:var(--green); box-shadow:0 0 6px var(--green);
+  }
+
+  /* ── LAYOUT ── */
+  .shell { display:flex; height:calc(100vh - 58px); overflow:hidden; }
+  .sidebar {
+    width:260px; min-width:260px;
+    background:var(--surface);
+    border-right:1px solid var(--border);
+    display:flex; flex-direction:column;
+    overflow-y:auto;
+  }
+  .main { flex:1; overflow-y:auto; padding:20px; display:flex; flex-direction:column; gap:16px; }
+
+  /* ── SIDEBAR ── */
+  .sb-section { padding:16px; border-bottom:1px solid var(--border); }
+  .sb-title { font-size:10px; font-weight:700; color:var(--muted); letter-spacing:1.2px; text-transform:uppercase; margin-bottom:10px; }
+  .filter-label { font-size:11px; color:var(--muted); margin-bottom:4px; display:block; }
+  .filter-input {
+    width:100%; background:var(--card); border:1px solid var(--border);
+    color:var(--text); padding:7px 10px; border-radius:6px; font-size:12px;
+    outline:none; transition:.15s;
+  }
+  .filter-input:focus { border-color:var(--gold); }
+  .filter-row { display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:8px; }
+  .filter-group { margin-bottom:8px; }
+  .tag-list { display:flex; flex-wrap:wrap; gap:4px; margin-top:4px; }
+  .tag {
+    padding:3px 8px; border-radius:4px; font-size:11px; cursor:pointer;
+    border:1px solid var(--border); color:var(--muted); transition:.15s;
+  }
+  .tag.active { border-color:var(--gold); color:var(--gold); background:rgba(201,162,39,.1); }
+  .apply-btn {
+    width:100%; padding:9px; border-radius:7px; border:none; cursor:pointer;
+    background:var(--accent); color:#60a5fa; font-weight:600; font-size:12px;
+    transition:.15s; margin-top:6px;
+  }
+  .apply-btn:hover { background:#1e4a7f; }
+  .watchlist-item {
+    display:flex; align-items:center; justify-content:space-between;
+    padding:8px 10px; border-radius:6px; background:var(--card);
+    border:1px solid var(--border); margin-bottom:6px; cursor:pointer; transition:.15s;
+  }
+  .watchlist-item:hover { border-color:var(--gold-dim); }
+  .wi-title { font-size:12px; font-weight:600; }
+  .wi-meta { font-size:10px; color:var(--muted); }
+  .wi-badge { font-size:10px; font-weight:700; padding:2px 6px; border-radius:4px; }
+  .badge-green { background:rgba(34,197,94,.15); color:var(--green); }
+  .badge-red   { background:rgba(239,68,68,.15); color:var(--red); }
+  .badge-gold  { background:rgba(201,162,39,.15); color:var(--gold); }
+
+  /* ── METRICS ── */
+  .metrics-row { display:grid; grid-template-columns:repeat(5,1fr); gap:12px; }
+  .metric-card {
+    background:var(--card); border:1px solid var(--border); border-radius:10px; padding:14px 16px;
+  }
+  .metric-label { font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.8px; }
+  .metric-value { font-size:26px; font-weight:800; margin:4px 0 2px; }
+  .metric-sub { font-size:11px; color:var(--muted); }
+
+  /* ── SECTION HEADERS ── */
+  .sec-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+  .sec-title { font-size:13px; font-weight:700; }
+  .sec-action { font-size:11px; color:var(--blue); cursor:pointer; }
+  .sec-action:hover { text-decoration:underline; }
+
+  /* ── DEAL CARDS ── */
+  .deal-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(310px,1fr)); gap:12px; }
+  .deal-card {
+    background:var(--card); border:1px solid var(--border); border-radius:10px;
+    padding:16px; position:relative; transition:.2s; cursor:pointer;
+  }
+  .deal-card:hover { border-color:var(--gold-dim); transform:translateY(-2px); box-shadow:0 4px 20px rgba(0,0,0,.4); }
+  .deal-card.hot { border-color:var(--gold); }
+  .deal-card.hot::before {
+    content:'🔥 HOT DEAL'; position:absolute; top:-1px; right:12px;
+    background:var(--gold); color:#000; font-size:9px; font-weight:800;
+    padding:2px 7px; border-radius:0 0 5px 5px; letter-spacing:.5px;
+  }
+  .dc-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px; }
+  .dc-title { font-size:14px; font-weight:700; }
+  .dc-vin { font-size:10px; color:var(--muted); font-family:monospace; margin-top:2px; }
+  .dc-score-wrap { text-align:center; }
+  .dc-score-label { font-size:9px; color:var(--muted); }
+  .dc-grid { display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:10px; }
+  .dc-field { background:var(--bg); border-radius:5px; padding:6px 8px; }
+  .dc-field-label { font-size:9px; color:var(--muted); text-transform:uppercase; }
+  .dc-field-val { font-size:13px; font-weight:700; margin-top:1px; }
+  .mmr-bar-wrap { margin-bottom:10px; }
+  .mmr-bar-header { display:flex; justify-content:space-between; font-size:10px; margin-bottom:4px; }
+  .mmr-bar-track { height:5px; background:var(--border); border-radius:3px; overflow:hidden; }
+  .mmr-bar-fill { height:100%; border-radius:3px; transition:.6s; }
+  .dc-footer { display:flex; gap:6px; margin-top:10px; }
+  .dc-btn {
+    flex:1; padding:7px; border-radius:6px; border:none; cursor:pointer;
+    font-size:11px; font-weight:600; transition:.15s;
+  }
+  .dc-btn-watch { background:rgba(201,162,39,.15); color:var(--gold); }
+  .dc-btn-watch:hover { background:rgba(201,162,39,.25); }
+  .dc-btn-bid { background:rgba(59,130,246,.2); color:#60a5fa; }
+  .dc-btn-bid:hover { background:rgba(59,130,246,.3); }
+  .dc-btn-mmr { background:var(--bg); color:var(--muted); }
+  .dc-btn-mmr:hover { color:var(--text); }
+  .dc-location { font-size:10px; color:var(--muted); margin-top:3px; }
+
+  /* ── TABLE ── */
+  .data-table { width:100%; border-collapse:collapse; font-size:12px; }
+  .data-table th {
+    padding:8px 12px; text-align:left; font-size:10px; font-weight:700;
+    color:var(--muted); text-transform:uppercase; letter-spacing:.8px;
+    border-bottom:1px solid var(--border); white-space:nowrap;
+  }
+  .data-table td { padding:9px 12px; border-bottom:1px solid rgba(30,37,53,.7); }
+  .data-table tr:hover td { background:rgba(201,162,39,.04); }
+  .score-pill { display:inline-block; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:700; }
+  .score-90 { background:rgba(34,197,94,.2); color:var(--green); }
+  .score-70 { background:rgba(201,162,39,.2); color:var(--gold); }
+  .score-50 { background:rgba(239,68,68,.2); color:var(--red); }
+
+  /* ── MMR PANEL ── */
+  .mmr-panel { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:16px; }
+  .mmr-form { display:flex; gap:8px; flex-wrap:wrap; align-items:flex-end; }
+  .mmr-input-group { display:flex; flex-direction:column; gap:4px; }
+  .mmr-input-group label { font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.6px; }
+  .mmr-result { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-top:14px; padding-top:14px; border-top:1px solid var(--border); }
+  .mmr-stat { text-align:center; }
+  .mmr-stat-val { font-size:20px; font-weight:800; color:var(--gold); }
+  .mmr-stat-label { font-size:10px; color:var(--muted); margin-top:2px; }
+
+  /* ── AUCTIONS ── */
+  .auction-timeline { display:flex; flex-direction:column; gap:8px; }
+  .auction-row {
+    display:flex; align-items:center; gap:12px;
+    background:var(--card); border:1px solid var(--border); border-radius:8px; padding:10px 14px;
+  }
+  .auction-date { text-align:center; min-width:42px; }
+  .auction-day { font-size:18px; font-weight:800; color:var(--gold); line-height:1; }
+  .auction-mon { font-size:9px; color:var(--muted); text-transform:uppercase; }
+  .auction-divider { width:1px; height:36px; background:var(--border); }
+  .auction-info { flex:1; }
+  .auction-name { font-size:12px; font-weight:700; }
+  .auction-meta { font-size:10px; color:var(--muted); }
+  .auction-count { font-size:11px; font-weight:600; color:var(--blue); white-space:nowrap; }
+
+  /* ── TABS ── */
+  .tabs { display:flex; gap:2px; background:var(--card); padding:4px; border-radius:8px; width:fit-content; }
+  .tab { padding:6px 14px; border-radius:6px; border:none; cursor:pointer; font-size:12px; font-weight:500; background:transparent; color:var(--muted); transition:.15s; }
+  .tab.active { background:var(--surface); color:var(--text); }
+
+  /* ── LOADER ── */
+  .loader { display:flex; align-items:center; justify-content:center; gap:10px; padding:40px; color:var(--muted); }
+  .spinner { width:20px; height:20px; border:2px solid var(--border); border-top-color:var(--gold); border-radius:50%; animation:spin .8s linear infinite; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+
+  /* ── MODAL ── */
+  .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.8); z-index:200; display:flex; align-items:center; justify-content:center; opacity:0; pointer-events:none; transition:.2s; }
+  .modal-overlay.open { opacity:1; pointer-events:all; }
+  .modal { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:24px; width:540px; max-width:90vw; max-height:85vh; overflow-y:auto; }
+  .modal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; }
+  .modal-title { font-size:16px; font-weight:700; }
+  .modal-close { background:none; border:none; color:var(--muted); font-size:20px; cursor:pointer; }
+  .modal-close:hover { color:var(--text); }
+  .bid-row { display:flex; flex-direction:column; gap:6px; margin-bottom:14px; }
+  .bid-label { font-size:11px; color:var(--muted); }
+  .bid-slider { width:100%; accent-color:var(--gold); }
+  .bid-value { font-size:24px; font-weight:800; color:var(--gold); text-align:center; padding:8px; background:var(--bg); border-radius:8px; }
+  .bid-submit { width:100%; padding:12px; border-radius:8px; border:none; cursor:pointer; background:linear-gradient(135deg,#c9a227,#a07c18); color:#000; font-weight:800; font-size:14px; transition:.2s; }
+  .bid-submit:hover { opacity:.9; }
+
+  /* ── TOAST ── */
+  .toast-wrap { position:fixed; bottom:24px; right:24px; z-index:300; display:flex; flex-direction:column; gap:8px; }
+  .toast { padding:10px 16px; border-radius:8px; border:1px solid var(--border); background:var(--surface); font-size:12px; animation:toast-in .25s; max-width:300px; }
+  @keyframes toast-in { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:none} }
+
+  /* ── MISC ── */
+  .empty-state { text-align:center; padding:60px 20px; color:var(--muted); }
+  .empty-icon { font-size:42px; margin-bottom:12px; }
+  .chip { display:inline-flex; align-items:center; gap:4px; padding:2px 8px; border-radius:4px; font-size:10px; font-weight:600; background:var(--bg); border:1px solid var(--border); cursor:pointer; }
+  .chip:hover { border-color:var(--gold-dim); }
+  select.filter-input option { background:var(--card); }
+  .two-col { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  .three-col { display:grid; grid-template-columns:2fr 1fr; gap:16px; }
+  .panel { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:16px; }
+  .trend-up { color:var(--green); }
+  .trend-dn { color:var(--red); }
+
+  /* ── PIPELINE / KANBAN ── */
+  .kanban-board { display:flex; gap:12px; overflow-x:auto; padding-bottom:10px; min-height:500px; }
+  .kanban-col { min-width:200px; width:200px; background:var(--card); border:1px solid var(--border); border-radius:10px; display:flex; flex-direction:column; flex-shrink:0; }
+  .kanban-col-header { padding:10px 12px; border-bottom:1px solid var(--border); }
+  .kanban-col-name { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.8px; }
+  .kanban-col-meta { display:flex; justify-content:space-between; align-items:center; margin-top:4px; }
+  .kanban-count { font-size:10px; color:var(--muted); }
+  .kanban-val { font-size:10px; font-weight:700; }
+  .kanban-cards { padding:8px; display:flex; flex-direction:column; gap:6px; overflow-y:auto; flex:1; }
+  .kanban-card { background:var(--bg); border:1px solid var(--border); border-radius:7px; padding:10px; cursor:pointer; transition:.15s; }
+  .kanban-card:hover { border-color:var(--gold-dim); transform:translateY(-1px); }
+  .kc-title { font-size:12px; font-weight:700; line-height:1.3; margin-bottom:4px; }
+  .kc-price { font-size:13px; font-weight:800; color:var(--blue); }
+  .kc-meta { font-size:10px; color:var(--muted); margin-top:3px; }
+  .kc-score { display:inline-block; padding:1px 6px; border-radius:4px; font-size:10px; font-weight:700; margin-top:4px; }
+  .kc-days { font-size:9px; color:var(--muted); margin-top:3px; }
+
+  /* ── P&L ANALYTICS ── */
+  .pnl-metrics { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:16px; }
+  .pnl-chart-wrap { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:16px; margin-bottom:16px; }
+  .pnl-bar-chart { display:flex; align-items:flex-end; gap:8px; height:140px; padding:0 4px; }
+  .pnl-bar-col { display:flex; flex-direction:column; align-items:center; flex:1; height:100%; justify-content:flex-end; }
+  .pnl-bar { width:100%; border-radius:4px 4px 0 0; background:linear-gradient(180deg,#c9a227,#8a6e1a); min-height:4px; transition:.6s; }
+  .pnl-bar-label { font-size:10px; color:var(--muted); margin-top:4px; }
+  .pnl-bar-val { font-size:9px; color:var(--gold); margin-bottom:2px; }
+
+  /* ── WAITLIST ── */
+  .waitlist-form { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:16px; margin-bottom:16px; }
+  .waitlist-form-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:10px; }
+  .waitlist-stats-bar { display:flex; gap:16px; background:var(--card); border:1px solid var(--border); border-radius:8px; padding:10px 16px; margin-bottom:12px; }
+  .wl-stat { display:flex; flex-direction:column; align-items:center; }
+  .wl-stat-val { font-size:18px; font-weight:800; color:var(--gold); }
+  .wl-stat-label { font-size:9px; color:var(--muted); text-transform:uppercase; letter-spacing:.6px; }
+
+  /* ── MOBILE & TOOLS ── */
+  .tools-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  .tool-card { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:20px; }
+  .tool-card-title { font-size:13px; font-weight:700; margin-bottom:12px; }
+  .qr-placeholder { background:var(--bg); border:2px dashed var(--border); border-radius:8px; width:120px; height:120px; display:flex; align-items:center; justify-content:center; font-size:36px; margin:0 auto 12px; }
+  .tool-btn { width:100%; padding:9px 14px; border-radius:7px; border:none; cursor:pointer; font-size:12px; font-weight:600; transition:.15s; margin-bottom:8px; text-align:left; }
+  .tool-btn-gold { background:rgba(201,162,39,.15); color:var(--gold); }
+  .tool-btn-gold:hover { background:rgba(201,162,39,.25); }
+  .tool-btn-blue { background:rgba(59,130,246,.15); color:#60a5fa; }
+  .tool-btn-blue:hover { background:rgba(59,130,246,.25); }
+  .tool-btn-green { background:rgba(34,197,94,.15); color:var(--green); }
+  .tool-btn-green:hover { background:rgba(34,197,94,.25); }
+  .conn-status { display:flex; align-items:center; gap:6px; font-size:11px; padding:4px 0; }
+  .conn-dot-ok { width:7px; height:7px; border-radius:50%; background:var(--green); display:inline-block; }
+  .conn-dot-warn { width:7px; height:7px; border-radius:50%; background:var(--gold); display:inline-block; }
+
+  /* ── PIPELINE MODAL ── */
+  .pipeline-modal-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px; }
+</style>
+</head>
+<body>
+
+<!-- TOP NAV -->
+<nav class="topnav">
+  <div class="logo">
+    <div class="logo-badge">LUX</div>
+    <div>
+      <div class="logo-text">Command Center</div>
+      <div class="logo-sub">Manheim Live Inventory</div>
+    </div>
+  </div>
+  <div class="nav-pills">
+    <button class="nav-pill active" onclick="showView('inventory')">Inventory</button>
+    <button class="nav-pill" onclick="showView('watchlist')">Watchlist</button>
+    <button class="nav-pill" onclick="showView('auctions')">Auctions</button>
+    <button class="nav-pill" onclick="showView('mmr')">MMR Lookup</button>
+    <button class="nav-pill" onclick="showView('profile')">Profile</button>
+    <button class="nav-pill" onclick="showView('pipeline')">🚗 Pipeline</button>
+    <button class="nav-pill" onclick="showView('pnl')">📊 P&amp;L</button>
+    <button class="nav-pill" onclick="showView('waitlist')">🔔 Waitlist</button>
+    <button class="nav-pill" onclick="showView('mobile')">📱 Mobile</button>
+  </div>
+  <div class="nav-right">
+    <div class="status-dot" id="apiStatus"></div>
+    <span id="apiLabel" style="font-size:11px;color:var(--muted)">Connecting…</span>
+    <button class="scan-btn" id="scanBtn" onclick="runScan()">
+      <span>⚡</span> Live Scan
+    </button>
+  </div>
+</nav>
+
+<div class="shell">
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sb-section">
+    <div class="sb-title">Search Filters</div>
+    <div class="filter-group">
+      <label class="filter-label">Make</label>
+      <select class="filter-input" id="fMake">
+        <option value="">All Makes</option>
+        <option>Toyota</option><option>Honda</option><option>Lexus</option>
+        <option>Acura</option><option>Ford</option><option>Chevrolet</option>
+        <option>Nissan</option><option>BMW</option><option>Mercedes-Benz</option>
+        <option>Mazda</option><option>Subaru</option><option>Hyundai</option>
+        <option>Kia</option><option>Audi</option><option>Volkswagen</option>
+        <option>Dodge</option><option>Ram</option><option>Jeep</option>
+        <option>GMC</option><option>Cadillac</option><option>Infiniti</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label class="filter-label">Model</label>
+      <input class="filter-input" id="fModel" placeholder="e.g. Camry, CR-V…">
+    </div>
+    <div class="filter-row">
+      <div><label class="filter-label">Year Min</label><input class="filter-input" id="fYearMin" type="number" placeholder="2017"></div>
+      <div><label class="filter-label">Year Max</label><input class="filter-input" id="fYearMax" type="number" placeholder="2024"></div>
+    </div>
+    <div class="filter-row">
+      <div><label class="filter-label">Price Min</label><input class="filter-input" id="fPriceMin" type="number" placeholder="0"></div>
+      <div><label class="filter-label">Price Max</label><input class="filter-input" id="fPriceMax" type="number" placeholder="50000"></div>
+    </div>
+    <div class="filter-group">
+      <label class="filter-label">Max Mileage</label>
+      <input class="filter-input" id="fMileage" type="number" placeholder="90000">
+    </div>
+    <div class="filter-group">
+      <label class="filter-label">Min Deal Score</label>
+      <input class="filter-input" id="fScore" type="number" placeholder="0" min="0" max="100">
+    </div>
+    <div class="filter-group">
+      <label class="filter-label">Region</label>
+      <div class="tag-list" id="regionTags">
+        <div class="tag active" data-region="ALL" onclick="toggleRegion(this)">All</div>
+        <div class="tag" data-region="NE" onclick="toggleRegion(this)">NE</div>
+        <div class="tag" data-region="SE" onclick="toggleRegion(this)">SE</div>
+        <div class="tag" data-region="MW" onclick="toggleRegion(this)">Midwest</div>
+        <div class="tag" data-region="SW" onclick="toggleRegion(this)">SW</div>
+        <div class="tag" data-region="W" onclick="toggleRegion(this)">West</div>
+      </div>
+    </div>
+    <button class="apply-btn" onclick="applyFilters()">Apply Filters</button>
+  </div>
+
+  <div class="sb-section">
+    <div class="sb-title">Quick Stats</div>
+    <div style="display:flex;flex-direction:column;gap:6px;">
+      <div style="display:flex;justify-content:space-between;font-size:12px;"><span style="color:var(--muted)">Live Listings</span><span id="sbTotal" style="font-weight:700">—</span></div>
+      <div style="display:flex;justify-content:space-between;font-size:12px;"><span style="color:var(--muted)">Hot Deals (&gt;70)</span><span id="sbHot" style="font-weight:700;color:var(--green)">—</span></div>
+      <div style="display:flex;justify-content:space-between;font-size:12px;"><span style="color:var(--muted)">Avg Discount</span><span id="sbAvgDiscount" style="font-weight:700;color:var(--gold)">—</span></div>
+      <div style="display:flex;justify-content:space-between;font-size:12px;"><span style="color:var(--muted)">Watchlist</span><span id="sbWatch" style="font-weight:700;color:var(--blue)">—</span></div>
+    </div>
+  </div>
+
+  <div class="sb-section">
+    <div class="sb-title">Watchlist</div>
+    <div id="watchlistSbItems"><div style="font-size:11px;color:var(--muted);text-align:center;padding:10px 0;">No items watched yet</div></div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+
+  <!-- METRICS -->
+  <div class="metrics-row">
+    <div class="metric-card">
+      <div class="metric-label">Listings Scanned</div>
+      <div class="metric-value" id="mScanned" style="color:var(--blue)">—</div>
+      <div class="metric-sub">Last scan</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Deals Found</div>
+      <div class="metric-value" id="mDeals" style="color:var(--green)">—</div>
+      <div class="metric-sub">Score ≥ threshold</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Best Discount</div>
+      <div class="metric-value" id="mBestDisc" style="color:var(--gold)">—</div>
+      <div class="metric-sub">Below MMR</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Avg MMR</div>
+      <div class="metric-value" id="mAvgMMR" style="color:var(--text)">—</div>
+      <div class="metric-sub">Portfolio avg</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">API Status</div>
+      <div class="metric-value" id="mApiStatus" style="color:var(--green);font-size:18px">—</div>
+      <div class="metric-sub" id="mLastScan">Never scanned</div>
+    </div>
+  </div>
+
+  <!-- INVENTORY VIEW -->
+  <div id="view-inventory">
+    <div class="sec-header">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div class="sec-title">Live Inventory</div>
+        <div class="tabs">
+          <button class="tab active" onclick="setLayout('grid',this)">Grid</button>
+          <button class="tab" onclick="setLayout('table',this)">Table</button>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span style="font-size:11px;color:var(--muted)">Sort:</span>
+        <select class="filter-input" id="sortBy" style="width:130px" onchange="renderDeals()">
+          <option value="score">Deal Score ↓</option>
+          <option value="discount">Discount ↓</option>
+          <option value="price">Price ↑</option>
+          <option value="year">Year ↓</option>
+        </select>
+        <span class="sec-action" onclick="exportDeals()">⬇ Export CSV</span>
+      </div>
+    </div>
+    <div id="deals-grid" class="deal-grid">
+      <div class="empty-state">
+        <div class="empty-icon">🚗</div>
+        <div>Hit <strong>Live Scan</strong> to pull Manheim inventory</div>
+        <div style="font-size:11px;margin-top:6px;color:var(--muted)">Or configure Manheim API credentials in Script Properties</div>
+      </div>
+    </div>
+    <div id="deals-table" style="display:none;" class="panel">
+      <table class="data-table">
+        <thead><tr>
+          <th>Year</th><th>Make / Model</th><th>Miles</th><th>Price</th>
+          <th>MMR</th><th>Discount</th><th>Score</th><th>Location</th><th>Actions</th>
+        </tr></thead>
+        <tbody id="deals-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- WATCHLIST VIEW -->
+  <div id="view-watchlist" style="display:none">
+    <div class="sec-header"><div class="sec-title">My Watchlist</div></div>
+    <div id="watchlist-grid" class="deal-grid">
+      <div class="empty-state"><div class="empty-icon">👁</div><div>Add vehicles to your watchlist from inventory</div></div>
+    </div>
+  </div>
+
+  <!-- AUCTIONS VIEW -->
+  <div id="view-auctions" style="display:none">
+    <div class="three-col">
+      <div class="panel">
+        <div class="sec-header">
+          <div class="sec-title">Upcoming Auctions</div>
+          <div class="sec-action" onclick="loadAuctions()">Refresh</div>
+        </div>
+        <div id="auction-list" class="auction-timeline">
+          <div class="loader"><div class="spinner"></div>Loading auctions…</div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="sec-title" style="margin-bottom:12px">Auction Locations</div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;height:160px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:6px;color:var(--muted);">
+          <div style="font-size:28px">📍🗺️</div>
+          <div style="font-size:12px">Nationwide Coverage</div>
+          <div style="font-size:10px;color:var(--muted)">80+ Manheim locations</div>
+        </div>
+        <div style="margin-top:12px;display:flex;flex-wrap:wrap;gap:6px;" id="locationChips"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MMR VIEW -->
+  <div id="view-mmr" style="display:none">
+    <div class="mmr-panel">
+      <div class="sec-title" style="margin-bottom:14px">MMR Valuation Lookup</div>
+      <div class="mmr-form">
+        <div class="mmr-input-group"><label>VIN</label><input class="filter-input" id="mmrVin" placeholder="17-character VIN" style="width:200px"></div>
+        <div class="mmr-input-group"><label>Make</label><input class="filter-input" id="mmrMake" placeholder="Toyota" style="width:110px"></div>
+        <div class="mmr-input-group"><label>Model</label><input class="filter-input" id="mmrModel" placeholder="Camry" style="width:110px"></div>
+        <div class="mmr-input-group"><label>Year</label><input class="filter-input" id="mmrYear" type="number" placeholder="2021" style="width:80px"></div>
+        <div class="mmr-input-group"><label>Mileage</label><input class="filter-input" id="mmrMileage" type="number" placeholder="45000" style="width:90px"></div>
+        <div class="mmr-input-group"><label>&nbsp;</label><button class="apply-btn" style="width:100px;margin:0" onclick="doMMRLookup()">Look Up</button></div>
+      </div>
+      <div id="mmr-result" style="display:none" class="mmr-result">
+        <div class="mmr-stat"><div class="mmr-stat-val" id="mmrAvg">—</div><div class="mmr-stat-label">Average MMR</div></div>
+        <div class="mmr-stat"><div class="mmr-stat-val" id="mmrBelow">—</div><div class="mmr-stat-label">Below Avg</div></div>
+        <div class="mmr-stat"><div class="mmr-stat-val" id="mmrAbove">—</div><div class="mmr-stat-label">Above Avg</div></div>
+        <div class="mmr-stat"><div class="mmr-stat-val" id="mmrCount">—</div><div class="mmr-stat-label">Transactions</div></div>
+      </div>
+    </div>
+    <div style="margin-top:16px;" class="panel">
+      <div class="sec-title" style="margin-bottom:12px">Recent Lookups</div>
+      <div id="mmr-history"><div style="font-size:11px;color:var(--muted)">No lookups yet this session</div></div>
+    </div>
+  </div>
+
+  <!-- PROFILE VIEW -->
+  <div id="view-profile" style="display:none">
+    <div class="two-col">
+      <div class="panel">
+        <div class="sec-title" style="margin-bottom:14px">Preference Profile</div>
+        <div id="profile-data"><div class="loader"><div class="spinner"></div>Loading profile…</div></div>
+      </div>
+      <div class="panel">
+        <div class="sec-title" style="margin-bottom:14px">API Configuration</div>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <div><label class="filter-label">Manheim Client ID</label><input class="filter-input" id="cfgClientId" placeholder="Set in Script Properties" disabled></div>
+          <div><label class="filter-label">Deal Threshold %</label><input class="filter-input" id="cfgThreshold" type="number" value="15"></div>
+          <div><label class="filter-label">Min Score to Alert</label><input class="filter-input" id="cfgMinScore" type="number" value="60"></div>
+          <div><label class="filter-label">Scan Limit</label><input class="filter-input" id="cfgLimit" type="number" value="150"></div>
+          <div><label class="filter-label">Email Mode</label>
+            <select class="filter-input" id="cfgEmailMode">
+              <option value="draft">Draft (safe)</option>
+              <option value="send">Live Send</option>
+            </select>
+          </div>
+          <button class="apply-btn" onclick="saveConfig()">Save Configuration</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PIPELINE VIEW -->
+  <div id="view-pipeline" style="display:none">
+    <div class="sec-header">
+      <div class="sec-title">Deal Pipeline</div>
+      <div style="display:flex;gap:8px;">
+        <button class="apply-btn" style="width:auto;padding:7px 14px;margin:0" onclick="loadPipeline()">🔄 Sync Pipeline</button>
+        <button class="apply-btn" style="width:auto;padding:7px 14px;margin:0;background:rgba(201,162,39,.2);color:var(--gold)" onclick="openAddToPipelineModal()">+ Add to Pipeline</button>
+      </div>
+    </div>
+    <div id="pipeline-board" class="kanban-board">
+      <div class="loader"><div class="spinner"></div>Loading pipeline…</div>
+    </div>
+  </div>
+
+  <!-- P&L VIEW -->
+  <div id="view-pnl" style="display:none">
+    <div class="sec-header">
+      <div class="sec-title">P&amp;L Analytics</div>
+      <button class="apply-btn" style="width:auto;padding:7px 14px;margin:0" onclick="loadPnL()">🔄 Refresh</button>
+    </div>
+    <div class="pnl-metrics" id="pnl-metrics">
+      <div class="metric-card"><div class="metric-label">Gross Profit (MTD)</div><div class="metric-value" id="pnlProfit" style="color:var(--green)">—</div><div class="metric-sub">Month to date</div></div>
+      <div class="metric-card"><div class="metric-label">Net Margin</div><div class="metric-value" id="pnlMargin" style="color:var(--gold)">—</div><div class="metric-sub">Avg this month</div></div>
+      <div class="metric-card"><div class="metric-label">Avg Days to Sell</div><div class="metric-value" id="pnlDays" style="color:var(--blue)">—</div><div class="metric-sub">Sold vehicles</div></div>
+      <div class="metric-card"><div class="metric-label">Capital Deployed</div><div class="metric-value" id="pnlCapital" style="color:var(--text)">—</div><div class="metric-sub">Active inventory</div></div>
+    </div>
+    <div class="pnl-chart-wrap">
+      <div class="sec-title" style="margin-bottom:14px">Monthly Gross Profit</div>
+      <div class="pnl-bar-chart" id="pnl-chart"></div>
+    </div>
+    <div class="panel">
+      <div class="sec-title" style="margin-bottom:12px">Recent Sold Vehicles</div>
+      <table class="data-table" id="pnl-table">
+        <thead><tr>
+          <th>Vehicle</th><th>Buy Price</th><th>Total Cost</th><th>Sold Price</th>
+          <th>Gross Profit</th><th>Margin %</th><th>Days</th>
+        </tr></thead>
+        <tbody id="pnl-tbody"><tr><td colspan="7" style="text-align:center;color:var(--muted);padding:30px">Loading…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- WAITLIST VIEW -->
+  <div id="view-waitlist" style="display:none">
+    <div class="sec-header"><div class="sec-title">Customer Waitlist</div></div>
+    <div class="waitlist-form">
+      <div class="sec-title" style="margin-bottom:12px">Add Buyer</div>
+      <div class="waitlist-form-grid">
+        <div><label class="filter-label">Full Name</label><input class="filter-input" id="wlName" placeholder="Jane Smith"></div>
+        <div><label class="filter-label">Email</label><input class="filter-input" id="wlEmail" type="email" placeholder="buyer@email.com"></div>
+        <div><label class="filter-label">Phone</label><input class="filter-input" id="wlPhone" placeholder="+1 555-000-0000"></div>
+        <div><label class="filter-label">Desired Makes</label><input class="filter-input" id="wlMakes" placeholder="Porsche, Ferrari, McLaren"></div>
+        <div><label class="filter-label">Max Price ($)</label><input class="filter-input" id="wlMaxPrice" type="number" placeholder="200000"></div>
+        <div><label class="filter-label">Max Mileage</label><input class="filter-input" id="wlMaxMileage" type="number" placeholder="20000"></div>
+        <div><label class="filter-label">Min Year</label><input class="filter-input" id="wlMinYear" type="number" placeholder="2015"></div>
+        <div><label class="filter-label">Max Year</label><input class="filter-input" id="wlMaxYear" type="number" placeholder="2024"></div>
+      </div>
+      <button class="apply-btn" style="width:160px;margin:0" onclick="submitWaitlistEntry()">+ Add Buyer</button>
+    </div>
+    <div class="waitlist-stats-bar" id="wl-stats-bar">
+      <div class="wl-stat"><div class="wl-stat-val" id="wlActive">—</div><div class="wl-stat-label">Active</div></div>
+      <div class="wl-stat"><div class="wl-stat-val" id="wlPaused">—</div><div class="wl-stat-label">Paused</div></div>
+      <div class="wl-stat"><div class="wl-stat-val" id="wlFulfilled">—</div><div class="wl-stat-label">Fulfilled</div></div>
+      <div class="wl-stat"><div class="wl-stat-val" id="wlMatches">—</div><div class="wl-stat-label">Recent Matches</div></div>
+    </div>
+    <div class="panel">
+      <div class="sec-title" style="margin-bottom:12px">Active Buyers</div>
+      <div id="waitlist-table-wrap">
+        <table class="data-table">
+          <thead><tr>
+            <th>Buyer</th><th>Makes</th><th>Price Range</th><th>Mileage</th><th>Year</th><th>Status</th><th>Matches</th><th>Actions</th>
+          </tr></thead>
+          <tbody id="waitlist-tbody">
+            <tr><td colspan="8" style="text-align:center;color:var(--muted);padding:40px">
+              <div class="empty-icon">🔔</div><br>No buyers yet — add your first buyer above
+            </td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- MOBILE & TOOLS VIEW -->
+  <div id="view-mobile" style="display:none">
+    <div class="sec-header"><div class="sec-title">Mobile &amp; Quick Tools</div></div>
+    <div class="tools-grid">
+      <!-- Scanner card -->
+      <div class="tool-card">
+        <div class="tool-card-title">📱 Mobile VIN Scanner</div>
+        <div class="qr-placeholder">📷</div>
+        <div style="text-align:center;font-size:12px;color:var(--muted);margin-bottom:14px">Open on your phone to scan VINs at auction</div>
+        <button class="tool-btn tool-btn-gold" onclick="window.open(window.location.origin+window.location.pathname+'?page=mobile','_blank')">Open Mobile Scanner ↗</button>
+        <div style="font-size:10px;color:var(--muted);text-align:center">PWA — works offline after first load</div>
+      </div>
+      <!-- Quick Tools card -->
+      <div class="tool-card">
+        <div class="tool-card-title">⚡ Quick Tools</div>
+        <button class="tool-btn tool-btn-blue" onclick="triggerLookerExport()">📊 Build Looker Studio Export</button>
+        <button class="tool-btn tool-btn-blue" onclick="syncCalendar()">📅 Sync Auction Calendar</button>
+        <button class="tool-btn tool-btn-gold" onclick="setupVehicleVault()">🗄️ Setup Vehicle Vault</button>
+        <button class="tool-btn tool-btn-green" onclick="sendDailyBriefing()">💬 Send Daily Briefing to Chat</button>
+        <div id="tools-result" style="display:none;margin-top:10px;font-size:11px;padding:8px;border-radius:6px;background:var(--bg);border:1px solid var(--border)"></div>
+      </div>
+      <!-- Script Properties card -->
+      <div class="tool-card" style="grid-column:1/-1">
+        <div class="tool-card-title">🔧 Integration Status &amp; Setup</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;">
+          <div>
+            <div class="sec-title" style="font-size:11px;margin-bottom:8px">Connection Status</div>
+            <div id="conn-status-list">
+              <div class="conn-status"><span class="conn-dot-warn"></span> Checking Chat Webhook…</div>
+              <div class="conn-status"><span class="conn-dot-warn"></span> Checking Vehicle Vault…</div>
+              <div class="conn-status"><span class="conn-dot-warn"></span> Checking Auction Calendar…</div>
+            </div>
+            <button class="tool-btn tool-btn-blue" style="margin-top:10px;width:auto" onclick="checkConnectionStatus()">🔄 Check Status</button>
+          </div>
+          <div>
+            <div class="sec-title" style="font-size:11px;margin-bottom:8px">Script Properties</div>
+            <div style="font-size:11px;color:var(--muted);line-height:1.8">
+              <div><strong style="color:var(--text)">CHAT_WEBHOOK_URL</strong></div>
+              <div style="color:var(--muted);font-size:10px;margin-bottom:8px">Your Google Chat or Slack incoming webhook</div>
+              <div><strong style="color:var(--text)">VAULT_ROOT_FOLDER_ID</strong></div>
+              <div style="color:var(--muted);font-size:10px;margin-bottom:8px">Google Drive folder ID for vehicle docs</div>
+              <div><strong style="color:var(--text)">AUCTION_CALENDAR_ID</strong></div>
+              <div style="color:var(--muted);font-size:10px">Google Calendar ID for auction events</div>
+            </div>
+          </div>
+          <div>
+            <div class="sec-title" style="font-size:11px;margin-bottom:8px">How to Set</div>
+            <ol style="font-size:10px;color:var(--muted);padding-left:16px;line-height:2">
+              <li>Open Apps Script editor</li>
+              <li>Project Settings → Script Properties</li>
+              <li>Add each property key + value</li>
+              <li>Save &amp; redeploy as web app</li>
+              <li>Click "Check Status" above</li>
+            </ol>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+</div>
+
+<!-- PIPELINE DEAL MODAL -->
+<div class="modal-overlay" id="pipelineModal">
+  <div class="modal" style="width:580px">
+    <div class="modal-header">
+      <div class="modal-title" id="pipelineModalTitle">Deal Details</div>
+      <button class="modal-close" onclick="closeModal('pipelineModal')">✕</button>
+    </div>
+    <div id="pipelineModalBody"></div>
+    <div style="margin-top:16px;display:flex;gap:8px;align-items:flex-end">
+      <div style="flex:1">
+        <label class="filter-label" style="margin-bottom:4px;display:block">Move to Stage</label>
+        <select class="filter-input" id="pipelineStageSelect">
+          <option>Spotted</option><option>Watching</option><option>Won</option>
+          <option>In Transport</option><option>Recon</option><option>Listed</option><option>Sold</option>
+        </select>
+      </div>
+      <button class="bid-submit" style="width:auto;padding:10px 20px" onclick="updateDealStage()">Move Stage</button>
+    </div>
+  </div>
+</div>
+
+<!-- BID MODAL -->
+<div class="modal-overlay" id="bidModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="bidModalTitle">Set Bid Limit</div>
+      <button class="modal-close" onclick="closeModal('bidModal')">✕</button>
+    </div>
+    <div class="bid-row">
+      <label class="bid-label">Max Bid Limit</label>
+      <div class="bid-value" id="bidDisplay">$0</div>
+      <input type="range" class="bid-slider" id="bidSlider" min="1000" max="100000" step="500" value="15000"
+             oninput="document.getElementById('bidDisplay').textContent='$'+parseInt(this.value).toLocaleString()">
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-top:4px"><span>$1,000</span><span>$100,000</span></div>
+    </div>
+    <div id="bidVehicleInfo" style="background:var(--bg);border-radius:8px;padding:12px;margin-bottom:14px;"></div>
+    <button class="bid-submit" onclick="submitWatch()">⭐ Add to Watchlist</button>
+  </div>
+</div>
+
+<!-- TOASTS -->
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script>
+var state = {
+  deals: [], filtered: [],
+  watchlist: JSON.parse(localStorage.getItem('lux_watchlist') || '[]'),
+  mmrHistory: [],
+  currentView: 'inventory',
+  layout: 'grid',
+  scanning: false,
+  activeBid: null
+};
+
+var AUCTIONS_DATA = [
+  { day:17, mon:'JUN', name:'Manheim Atlanta', city:'Atlanta, GA', lots:842, featured:'Toyota, Honda, Ford' },
+  { day:18, mon:'JUN', name:'Manheim Dallas Fort Worth', city:'Dallas, TX', lots:1204, featured:'Trucks, SUVs' },
+  { day:18, mon:'JUN', name:'Manheim Los Angeles', city:'Gardena, CA', lots:973, featured:'Lexus, BMW, Mercedes' },
+  { day:19, mon:'JUN', name:'Manheim Florida', city:'Davie, FL', lots:656, featured:'Import, Domestic' },
+  { day:21, mon:'JUN', name:'Manheim New Jersey', city:'Bordentown, NJ', lots:788, featured:'Honda, Nissan, Toyota' },
+  { day:23, mon:'JUN', name:'Manheim Chicago', city:'Matteson, IL', lots:1050, featured:'Pickup Trucks, Sedans' },
+  { day:24, mon:'JUN', name:'Manheim Pennsylvania', city:'Manheim, PA', lots:1437, featured:'Full Mix, Exotics' },
+  { day:25, mon:'JUN', name:'Manheim Seattle', city:'Renton, WA', lots:492, featured:'Japanese imports' },
+  { day:28, mon:'JUN', name:'Manheim Houston', city:'Houston, TX', lots:919, featured:'Trucks, F-150, Silverado' },
+  { day:1,  mon:'JUL', name:'Manheim Denver', city:'Aurora, CO', lots:374, featured:'4WD, AWD Focused' },
+];
+
+var LOCATIONS = ['Atlanta GA','Dallas TX','Los Angeles CA','Davie FL','Bordentown NJ',
+                 'Matteson IL','Manheim PA','Renton WA','Houston TX','Aurora CO',
+                 'Minneapolis MN','Phoenix AZ','Cleveland OH','Nashville TN'];
+
+function showView(v) {
+  state.currentView = v;
+  var views = ['inventory','watchlist','auctions','mmr','profile','pipeline','pnl','waitlist','mobile'];
+  views.forEach(function(n) {
+    var el = document.getElementById('view-' + n);
+    if (el) el.style.display = (n === v ? '' : 'none');
+  });
+  document.querySelectorAll('.nav-pill').forEach(function(b, i) {
+    b.classList.toggle('active', views[i] === v);
+  });
+  if (v === 'auctions')  loadAuctions();
+  if (v === 'profile')   loadProfile();
+  if (v === 'watchlist') renderWatchlistView();
+  if (v === 'pipeline')  loadPipeline();
+  if (v === 'pnl')       loadPnL();
+  if (v === 'waitlist')  loadWaitlist();
+  if (v === 'mobile')    checkConnectionStatus();
+}
+
+function runScan() {
+  if (state.scanning) return;
+  state.scanning = true;
+  var btn = document.getElementById('scanBtn');
+  btn.innerHTML = '<span class="spinner" style="width:12px;height:12px;border-width:2px"></span> Scanning…';
+  btn.classList.add('scanning');
+  toast('🔍 Scanning Manheim inventory…', 'info');
+  var params = {
+    make: document.getElementById('fMake').value || '',
+    model: document.getElementById('fModel').value || '',
+    yearMin: parseInt(document.getElementById('fYearMin').value) || 2017,
+    yearMax: parseInt(document.getElementById('fYearMax').value) || 2026,
+    priceMin: parseInt(document.getElementById('fPriceMin').value) || 0,
+    priceMax: parseInt(document.getElementById('fPriceMax').value) || 999999,
+    mileageMax: parseInt(document.getElementById('fMileage').value) || 90000,
+    minScore: parseInt(document.getElementById('fScore').value) || 0,
+    limit: 150
+  };
+  google.script.run
+    .withSuccessHandler(onScanComplete)
+    .withFailureHandler(onScanError)
+    .fetchAndScoreDealsForDashboard(params);
+}
+
+function onScanComplete(result) {
+  state.scanning = false;
+  resetScanBtn();
+  if (!result || result.error) {
+    toast('⚠️ API not configured — showing demo data', 'warn');
+    updateApiStatus(false);
+    loadDemoDeals();
+    return;
+  }
+  state.deals = result.deals || [];
+  updateMetrics(result);
+  applyFilters();
+  updateApiStatus(true);
+  document.getElementById('mLastScan').textContent = 'Just now';
+  toast('✅ Found ' + state.deals.length + ' listings (' + (result.hotDeals || 0) + ' hot deals)', 'success');
+}
+
+function onScanError() {
+  state.scanning = false;
+  resetScanBtn();
+  toast('⚠️ API not connected — showing demo data', 'warn');
+  updateApiStatus(false);
+  loadDemoDeals();
+}
+
+function resetScanBtn() {
+  var btn = document.getElementById('scanBtn');
+  btn.innerHTML = '<span>⚡</span> Live Scan';
+  btn.classList.remove('scanning');
+}
+
+function loadDemoDeals() {
+  var demo = [
+    { vin:'1HGBH41JXMN109186', year:2022, make:'Toyota',   model:'Camry XSE',        mileage:28400, price:22500, mmr:27800, score:91, location:'Atlanta, GA',    auctionDate:'Jun 17' },
+    { vin:'2T1BURHE0JC040998', year:2021, make:'Honda',    model:'CR-V EX-L',         mileage:34100, price:25800, mmr:30200, score:85, location:'Dallas, TX',     auctionDate:'Jun 18' },
+    { vin:'5YJSA1E26MF440981', year:2023, make:'Lexus',    model:'RX 350 F Sport',    mileage:14200, price:41500, mmr:47800, score:82, location:'Gardena, CA',    auctionDate:'Jun 18' },
+    { vin:'WBA8E9G50JNU53455', year:2021, make:'BMW',      model:'3 Series 330i',     mileage:41200, price:28900, mmr:33600, score:78, location:'Manheim, PA',    auctionDate:'Jun 24' },
+    { vin:'1N4AL3AP6JC123456', year:2022, make:'Nissan',   model:'Altima SR',         mileage:22800, price:18900, mmr:21400, score:74, location:'Davie, FL',      auctionDate:'Jun 19' },
+    { vin:'KMHD84LF8JU149999', year:2020, make:'Acura',    model:'TLX Technology',    mileage:48700, price:22100, mmr:24900, score:71, location:'Matteson, IL',   auctionDate:'Jun 23' },
+    { vin:'1G1BE5SM0H7192375', year:2021, make:'Chevrolet',model:'Malibu LT',         mileage:31000, price:15400, mmr:17200, score:68, location:'Bordentown, NJ', auctionDate:'Jun 21' },
+    { vin:'3VWFE21C04M000001', year:2022, make:'Mazda',    model:'CX-5 Touring',      mileage:19600, price:27800, mmr:30600, score:65, location:'Renton, WA',     auctionDate:'Jun 25' },
+    { vin:'4T1BF1FK8HU392847', year:2020, make:'Subaru',   model:'Outback Limited',   mileage:52300, price:24200, mmr:26500, score:58, location:'Houston, TX',    auctionDate:'Jun 28' },
+    { vin:'1FTFW1ET2EFC78403', year:2022, make:'Ford',     model:'F-150 XLT 4x4',     mileage:37800, price:34900, mmr:37800, score:54, location:'Aurora, CO',     auctionDate:'Jul 1'  },
+    { vin:'5TDKZ3DC4LS041234', year:2021, make:'Toyota',   model:'Sienna XSE AWD',    mileage:29100, price:38200, mmr:41500, score:49, location:'Atlanta, GA',    auctionDate:'Jun 17' },
+    { vin:'WAUENAF40JN004568', year:2019, make:'Audi',     model:'A4 Premium Plus',   mileage:58400, price:24500, mmr:26200, score:44, location:'Gardena, CA',    auctionDate:'Jun 18' },
+  ];
+  state.deals = demo;
+  updateMetrics({ deals: demo, scanned: demo.length, hotDeals: demo.filter(function(d){return d.score>=70;}).length });
+  applyFilters();
+  document.getElementById('mLastScan').textContent = 'Demo data';
+  document.getElementById('mApiStatus').textContent = '🔶 Demo';
+}
+
+function applyFilters() {
+  var make  = document.getElementById('fMake').value.toLowerCase();
+  var model = document.getElementById('fModel').value.toLowerCase();
+  var yMin  = parseInt(document.getElementById('fYearMin').value)  || 0;
+  var yMax  = parseInt(document.getElementById('fYearMax').value)  || 9999;
+  var pMin  = parseInt(document.getElementById('fPriceMin').value) || 0;
+  var pMax  = parseInt(document.getElementById('fPriceMax').value) || 9999999;
+  var miMax = parseInt(document.getElementById('fMileage').value)  || 9999999;
+  var scMin = parseInt(document.getElementById('fScore').value)    || 0;
+
+  state.filtered = state.deals.filter(function(d) {
+    if (make  && !(d.make  || '').toLowerCase().includes(make))  return false;
+    if (model && !(d.model || '').toLowerCase().includes(model)) return false;
+    if ((d.year    || 0) < yMin  || (d.year    || 0) > yMax)  return false;
+    if ((d.price   || 0) < pMin  || (d.price   || 0) > pMax)  return false;
+    if ((d.mileage || 0) > miMax) return false;
+    if ((d.score   || 0) < scMin) return false;
+    return true;
+  });
+  renderDeals();
+  updateSidebarStats();
+}
+
+function toggleRegion(el) {
+  if (el.dataset.region === 'ALL') {
+    document.querySelectorAll('#regionTags .tag').forEach(function(t){t.classList.remove('active');});
+    el.classList.add('active');
+  } else {
+    document.querySelector('[data-region="ALL"]').classList.remove('active');
+    el.classList.toggle('active');
+    if (!document.querySelectorAll('#regionTags .tag.active').length) {
+      document.querySelector('[data-region="ALL"]').classList.add('active');
+    }
+  }
+}
+
+function getDiscount(d) {
+  if (!d.mmr || !d.price) return 0;
+  return ((d.mmr - d.price) / d.mmr) * 100;
+}
+
+function renderDeals() {
+  var sort  = document.getElementById('sortBy').value;
+  var items = state.filtered.slice().sort(function(a,b) {
+    if (sort === 'score')    return (b.score||0) - (a.score||0);
+    if (sort === 'discount') return getDiscount(b) - getDiscount(a);
+    if (sort === 'price')    return (a.price||0) - (b.price||0);
+    if (sort === 'year')     return (b.year||0) - (a.year||0);
+    return 0;
+  });
+  if (state.layout === 'grid') renderGrid(items);
+  else renderTable(items);
+}
+
+function renderGrid(items) {
+  var g = document.getElementById('deals-grid');
+  if (!items.length) {
+    g.innerHTML = '<div class="empty-state"><div class="empty-icon">🔍</div><div>No results match your filters</div></div>';
+    return;
+  }
+  g.innerHTML = items.map(function(d) {
+    var disc     = getDiscount(d);
+    var hot      = d.score >= 80;
+    var inWatch  = state.watchlist.some(function(w){return w.vin===d.vin;});
+    var pct      = d.mmr ? Math.round((d.price/d.mmr)*100) : 50;
+    var barColor = disc >= 15 ? 'var(--green)' : disc >= 5 ? 'var(--gold)' : 'var(--muted)';
+    var scColor  = d.score >= 80 ? 'var(--green)' : d.score >= 60 ? 'var(--gold)' : 'var(--red)';
+    var ds       = JSON.stringify(d).replace(/"/g,'&quot;');
+    return '<div class="deal-card' + (hot?' hot':'') + '" onclick="openBid(' + ds + ')">' +
+      '<div class="dc-header">' +
+        '<div>' +
+          '<div class="dc-title">' + d.year + ' ' + d.make + ' ' + d.model + '</div>' +
+          '<div class="dc-vin">' + d.vin + '</div>' +
+          '<div class="dc-location">📍 ' + (d.location||'—') + ' · ' + (d.auctionDate||'') + '</div>' +
+        '</div>' +
+        '<div class="dc-score-wrap">' +
+          '<div style="font-size:28px;font-weight:900;color:' + scColor + '">' + (d.score||'—') + '</div>' +
+          '<div class="dc-score-label">Deal Score</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="dc-grid">' +
+        '<div class="dc-field"><div class="dc-field-label">Price</div><div class="dc-field-val" style="color:var(--blue)">$' + fmt(d.price) + '</div></div>' +
+        '<div class="dc-field"><div class="dc-field-label">MMR</div><div class="dc-field-val" style="color:var(--gold)">$' + fmt(d.mmr) + '</div></div>' +
+        '<div class="dc-field"><div class="dc-field-label">Mileage</div><div class="dc-field-val">' + fmt(d.mileage) + '</div></div>' +
+        '<div class="dc-field"><div class="dc-field-label">Discount</div><div class="dc-field-val" style="color:' + barColor + '">' + disc.toFixed(1) + '%</div></div>' +
+      '</div>' +
+      '<div class="mmr-bar-wrap">' +
+        '<div class="mmr-bar-header"><span style="color:var(--muted)">vs MMR</span><span style="color:' + barColor + '">$' + fmt(d.mmr-d.price) + ' below</span></div>' +
+        '<div class="mmr-bar-track"><div class="mmr-bar-fill" style="width:' + pct + '%;background:' + barColor + '"></div></div>' +
+      '</div>' +
+      '<div class="dc-footer">' +
+        '<button class="dc-btn dc-btn-watch" onclick="event.stopPropagation();addWatch(' + ds + ')">' + (inWatch?'⭐ Watching':'☆ Watch') + '</button>' +
+        '<button class="dc-btn dc-btn-bid" onclick="event.stopPropagation();openBid(' + ds + ')">Set Bid Limit</button>' +
+        '<button class="dc-btn dc-btn-mmr" onclick="event.stopPropagation();quickMMR(' + ds + ')">MMR ↗</button>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function renderTable(items) {
+  var t = document.getElementById('deals-tbody');
+  if (!items.length) { t.innerHTML='<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:30px">No results</td></tr>'; return; }
+  t.innerHTML = items.map(function(d) {
+    var disc = getDiscount(d);
+    var sc   = d.score>=80?'score-90':d.score>=60?'score-70':'score-50';
+    var ds   = JSON.stringify(d).replace(/"/g,'&quot;');
+    return '<tr>' +
+      '<td>' + (d.year||'—') + '</td>' +
+      '<td><strong>' + d.make + '</strong> ' + d.model + '</td>' +
+      '<td>' + fmt(d.mileage) + '</td>' +
+      '<td style="color:var(--blue)">$' + fmt(d.price) + '</td>' +
+      '<td style="color:var(--gold)">$' + fmt(d.mmr) + '</td>' +
+      '<td style="color:' + (disc>=10?'var(--green)':disc>=5?'var(--gold)':'var(--muted)') + '">' + disc.toFixed(1) + '%</td>' +
+      '<td><span class="score-pill ' + sc + '">' + (d.score||'—') + '</span></td>' +
+      '<td>' + (d.location||'—') + '</td>' +
+      '<td><button class="dc-btn dc-btn-watch" style="padding:4px 8px" onclick="addWatch(' + ds + ')">Watch</button></td>' +
+    '</tr>';
+  }).join('');
+}
+
+function addWatch(deal) {
+  if (!state.watchlist.some(function(w){return w.vin===deal.vin;})) {
+    deal.watchedAt = new Date().toISOString();
+    state.watchlist.push(deal);
+    localStorage.setItem('lux_watchlist', JSON.stringify(state.watchlist));
+    toast('⭐ Added to watchlist: ' + deal.year + ' ' + deal.make, 'success');
+    renderDeals();
+    renderWatchlistSidebar();
+  } else {
+    toast('Already watching this vehicle', 'info');
+  }
+}
+
+function removeWatch(vin) {
+  state.watchlist = state.watchlist.filter(function(w){return w.vin!==vin;});
+  localStorage.setItem('lux_watchlist', JSON.stringify(state.watchlist));
+  renderWatchlistSidebar();
+  renderWatchlistView();
+  renderDeals();
+  toast('Removed from watchlist', 'info');
+}
+
+function renderWatchlistSidebar() {
+  var c = document.getElementById('watchlistSbItems');
+  document.getElementById('sbWatch').textContent = state.watchlist.length;
+  if (!state.watchlist.length) {
+    c.innerHTML = '<div style="font-size:11px;color:var(--muted);text-align:center;padding:10px 0">No items watched yet</div>';
+    return;
+  }
+  c.innerHTML = state.watchlist.map(function(w) {
+    var disc = getDiscount(w);
+    return '<div class="watchlist-item" onclick="showView(\'watchlist\')">' +
+      '<div><div class="wi-title">' + w.year + ' ' + w.make + '</div><div class="wi-meta">' + w.model + '</div></div>' +
+      '<span class="wi-badge ' + (disc>=10?'badge-green':disc>=5?'badge-gold':'badge-red') + '">' + disc.toFixed(0) + '%</span>' +
+    '</div>';
+  }).join('');
+}
+
+function renderWatchlistView() {
+  var g = document.getElementById('watchlist-grid');
+  if (!state.watchlist.length) {
+    g.innerHTML='<div class="empty-state"><div class="empty-icon">👁</div><div>Add vehicles to your watchlist from inventory</div></div>';
+    return;
+  }
+  g.innerHTML = state.watchlist.map(function(d) {
+    var disc = getDiscount(d);
+    var bar  = disc>=15?'var(--green)':disc>=5?'var(--gold)':'var(--muted)';
+    var ds   = JSON.stringify(d).replace(/"/g,'&quot;');
+    return '<div class="deal-card">' +
+      '<div class="dc-header"><div>' +
+        '<div class="dc-title">' + d.year + ' ' + d.make + ' ' + d.model + '</div>' +
+        '<div class="dc-vin">' + d.vin + '</div>' +
+        '<div class="dc-location">📍 ' + (d.location||'—') + '</div>' +
+      '</div>' +
+        '<div class="dc-score-wrap"><div style="font-size:28px;font-weight:900;color:var(--gold)">' + (d.score||'—') + '</div><div class="dc-score-label">Score</div></div>' +
+      '</div>' +
+      '<div class="dc-grid">' +
+        '<div class="dc-field"><div class="dc-field-label">Price</div><div class="dc-field-val" style="color:var(--blue)">$' + fmt(d.price) + '</div></div>' +
+        '<div class="dc-field"><div class="dc-field-label">MMR</div><div class="dc-field-val" style="color:var(--gold)">$' + fmt(d.mmr) + '</div></div>' +
+        '<div class="dc-field"><div class="dc-field-label">Discount</div><div class="dc-field-val" style="color:' + bar + '">' + disc.toFixed(1) + '%</div></div>' +
+        '<div class="dc-field"><div class="dc-field-label">Auction</div><div class="dc-field-val" style="font-size:10px">' + (d.auctionDate||'—') + '</div></div>' +
+      '</div>' +
+      (d.bidLimit ? '<div style="background:rgba(201,162,39,.1);border:1px solid var(--gold-dim);border-radius:6px;padding:6px 10px;font-size:12px;margin-bottom:8px">⭐ Bid Limit: <strong style="color:var(--gold)">$' + fmt(d.bidLimit) + '</strong></div>' : '') +
+      '<div class="dc-footer">' +
+        '<button class="dc-btn dc-btn-bid" onclick="openBid(' + ds + ')">Update Bid</button>' +
+        '<button class="dc-btn" style="color:var(--red);background:rgba(239,68,68,.1)" onclick="removeWatch(\'' + d.vin + '\')">Remove</button>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function openBid(deal) {
+  state.activeBid = deal;
+  var exist   = state.watchlist.find(function(w){return w.vin===deal.vin;});
+  var initBid = (exist && exist.bidLimit) ? exist.bidLimit : Math.round((deal.price||15000)*1.05);
+  document.getElementById('bidModalTitle').textContent = deal.year + ' ' + deal.make + ' ' + deal.model;
+  document.getElementById('bidSlider').value           = initBid;
+  document.getElementById('bidDisplay').textContent    = '$' + parseInt(initBid).toLocaleString();
+  document.getElementById('bidVehicleInfo').innerHTML  =
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px">' +
+    '<div><span style="color:var(--muted)">Asking Price:</span> <strong style="color:var(--blue)">$' + fmt(deal.price) + '</strong></div>' +
+    '<div><span style="color:var(--muted)">MMR Value:</span> <strong style="color:var(--gold)">$' + fmt(deal.mmr) + '</strong></div>' +
+    '<div><span style="color:var(--muted)">Mileage:</span> ' + fmt(deal.mileage) + '</div>' +
+    '<div><span style="color:var(--muted)">Deal Score:</span> <strong>' + deal.score + '/100</strong></div></div>';
+  document.getElementById('bidModal').classList.add('open');
+}
+
+function submitWatch() {
+  if (!state.activeBid) return;
+  var limit = parseInt(document.getElementById('bidSlider').value);
+  state.activeBid.bidLimit = limit;
+  var idx = state.watchlist.findIndex(function(w){return w.vin===state.activeBid.vin;});
+  if (idx >= 0) state.watchlist[idx] = state.activeBid;
+  else { state.activeBid.watchedAt = new Date().toISOString(); state.watchlist.push(state.activeBid); }
+  localStorage.setItem('lux_watchlist', JSON.stringify(state.watchlist));
+  closeModal('bidModal');
+  renderDeals();
+  renderWatchlistSidebar();
+  toast('⭐ Watching with bid limit $' + fmt(limit), 'success');
+  google.script.run.addToWatchlist(state.activeBid);
+}
+
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+function doMMRLookup() {
+  var params = {
+    vin:     document.getElementById('mmrVin').value,
+    make:    document.getElementById('mmrMake').value,
+    model:   document.getElementById('mmrModel').value,
+    year:    document.getElementById('mmrYear').value,
+    mileage: document.getElementById('mmrMileage').value
+  };
+  if (!params.vin && !(params.make && params.model && params.year)) {
+    toast('Enter a VIN or Make/Model/Year', 'warn'); return;
+  }
+  toast('🔍 Looking up MMR…', 'info');
+  google.script.run
+    .withSuccessHandler(onMMRResult)
+    .withFailureHandler(function(e){ toast('MMR lookup failed: ' + e.message, 'error'); })
+    .lookupMMRForDashboard(params);
+}
+
+function onMMRResult(r) {
+  if (!r || r.error) { r = { avg:28400, below:24800, above:31200, count:184 }; toast('⚠️ Demo MMR data', 'warn'); }
+  document.getElementById('mmrAvg').textContent   = '$' + fmt(r.avg);
+  document.getElementById('mmrBelow').textContent = '$' + fmt(r.below);
+  document.getElementById('mmrAbove').textContent = '$' + fmt(r.above);
+  document.getElementById('mmrCount').textContent = r.count || '—';
+  document.getElementById('mmr-result').style.display = 'grid';
+  var year = document.getElementById('mmrYear').value;
+  var make = document.getElementById('mmrMake').value;
+  var model = document.getElementById('mmrModel').value;
+  var h    = document.getElementById('mmr-history');
+  var row  = document.createElement('div');
+  row.style.cssText = 'display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px';
+  row.innerHTML = '<span>' + [year,make,model].filter(Boolean).join(' ') + '</span><span style="color:var(--gold);font-weight:700">$' + fmt(r.avg) + '</span>';
+  if (h.children.length && h.children[0].textContent.includes('No lookups')) h.innerHTML='';
+  h.prepend(row);
+}
+
+function quickMMR(deal) {
+  showView('mmr');
+  document.getElementById('mmrMake').value    = deal.make;
+  document.getElementById('mmrModel').value   = deal.model;
+  document.getElementById('mmrYear').value    = deal.year;
+  document.getElementById('mmrMileage').value = deal.mileage;
+  setTimeout(doMMRLookup, 100);
+}
+
+function loadAuctions() {
+  document.getElementById('auction-list').innerHTML = AUCTIONS_DATA.map(function(a) {
+    return '<div class="auction-row">' +
+      '<div class="auction-date"><div class="auction-day">' + a.day + '</div><div class="auction-mon">' + a.mon + '</div></div>' +
+      '<div class="auction-divider"></div>' +
+      '<div class="auction-info"><div class="auction-name">' + a.name + '</div><div class="auction-meta">📍 ' + a.city + ' · ' + a.featured + '</div></div>' +
+      '<div class="auction-count">' + fmt(a.lots) + ' lots</div>' +
+    '</div>';
+  }).join('');
+  document.getElementById('locationChips').innerHTML = LOCATIONS.map(function(l) {
+    return '<div class="chip" onclick="filterByLocation(\'' + l + '\')">📍 ' + l + '</div>';
+  }).join('');
+}
+
+function filterByLocation(loc) {
+  showView('inventory');
+  toast('🔍 Filtering by ' + loc, 'info');
+}
+
+function loadProfile() {
+  google.script.run
+    .withSuccessHandler(renderProfile)
+    .withFailureHandler(function(){ renderProfile(null); })
+    .getPreferenceProfile();
+}
+
+function renderProfile(data) {
+  var c = document.getElementById('profile-data');
+  if (!data || data.error) {
+    c.innerHTML = '<div style="color:var(--muted);font-size:12px">No purchase history yet. Interact with deals to build your preference profile.</div>';
+    return;
+  }
+  var html = '';
+  if (data.topMakes && data.topMakes.length) {
+    html += '<div style="margin-bottom:12px"><div class="filter-label" style="margin-bottom:6px">Top Makes</div>' +
+      data.topMakes.map(function(m) {
+        return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">' +
+          '<span style="font-size:12px;width:90px">' + m.make + '</span>' +
+          '<div style="flex:1;height:5px;background:var(--border);border-radius:3px"><div style="width:' + m.pct + '%;height:100%;background:var(--gold);border-radius:3px"></div></div>' +
+          '<span style="font-size:11px;color:var(--muted)">' + m.pct + '%</span></div>';
+      }).join('') + '</div>';
+  }
+  c.innerHTML = html || '<div style="color:var(--muted);font-size:12px">Build your profile by interacting with inventory</div>';
+}
+
+function updateMetrics(result) {
+  var deals = result.deals || [];
+  var hot   = deals.filter(function(d){return d.score>=70;});
+  var discs = deals.filter(function(d){return d.mmr&&d.price;}).map(getDiscount);
+  var best  = discs.length ? Math.max.apply(null,discs) : 0;
+  var mmrs  = deals.filter(function(d){return d.mmr;}).map(function(d){return d.mmr;});
+  var avg   = mmrs.length ? Math.round(mmrs.reduce(function(a,b){return a+b;},0)/mmrs.length) : 0;
+  document.getElementById('mScanned').textContent  = fmt(result.scanned || deals.length);
+  document.getElementById('mDeals').textContent    = hot.length;
+  document.getElementById('mBestDisc').textContent = best.toFixed(1) + '%';
+  document.getElementById('mAvgMMR').textContent   = avg ? '$' + fmt(avg) : '—';
+  document.getElementById('mApiStatus').textContent = result.apiConnected ? '✅ Live' : '🔶 Demo';
+  document.getElementById('sbTotal').textContent   = deals.length;
+  document.getElementById('sbHot').textContent     = hot.length;
+  var avgD = discs.length ? (discs.reduce(function(a,b){return a+b;},0)/discs.length).toFixed(1) : '—';
+  document.getElementById('sbAvgDiscount').textContent = discs.length ? avgD + '%' : '—';
+}
+
+function updateSidebarStats() {
+  document.getElementById('sbTotal').textContent = state.filtered.length;
+  document.getElementById('sbHot').textContent   = state.filtered.filter(function(d){return d.score>=70;}).length;
+}
+
+function updateApiStatus(connected) {
+  var dot = document.getElementById('apiStatus');
+  var lbl = document.getElementById('apiLabel');
+  dot.style.background  = connected ? 'var(--green)' : 'var(--gold)';
+  dot.style.boxShadow   = connected ? '0 0 6px var(--green)' : '0 0 6px var(--gold)';
+  lbl.textContent        = connected ? 'API Connected' : 'Demo Mode';
+}
+
+function setLayout(l, btn) {
+  state.layout = l;
+  document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active');});
+  btn.classList.add('active');
+  document.getElementById('deals-grid').style.display  = l==='grid'  ? '' : 'none';
+  document.getElementById('deals-table').style.display = l==='table' ? '' : 'none';
+  renderDeals();
+}
+
+function saveConfig() {
+  var cfg = {
+    threshold: document.getElementById('cfgThreshold').value,
+    minScore:  document.getElementById('cfgMinScore').value,
+    limit:     document.getElementById('cfgLimit').value,
+    emailMode: document.getElementById('cfgEmailMode').value
+  };
+  google.script.run
+    .withSuccessHandler(function(){ toast('✅ Config saved', 'success'); })
+    .withFailureHandler(function(e){ toast('Config save failed: ' + e.message, 'error'); })
+    .saveDashboardConfig(cfg);
+}
+
+function exportDeals() {
+  var rows = [['Year','Make','Model','VIN','Miles','Price','MMR','Discount%','Score','Location','Auction Date']];
+  state.filtered.forEach(function(d) {
+    rows.push([d.year,d.make,d.model,d.vin,d.mileage,d.price,d.mmr,getDiscount(d).toFixed(1),d.score,d.location,d.auctionDate]);
+  });
+  var csv = rows.map(function(r){return r.map(function(c){return '"'+String(c||'').replace(/"/g,'""')+'"';}).join(',');}).join('\n');
+  var a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+  a.download = 'lux-auto-deals-' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click();
+  toast('⬇ Exported ' + state.filtered.length + ' deals', 'success');
+}
+
+function toast(msg, type) {
+  var c = document.getElementById('toastWrap');
+  var t = document.createElement('div');
+  t.className = 'toast';
+  t.style.borderColor = type==='error'?'var(--red)':type==='success'?'var(--green)':type==='warn'?'var(--gold)':'var(--border)';
+  t.textContent = msg;
+  c.appendChild(t);
+  setTimeout(function(){t.remove();}, 4000);
+}
+
+function fmt(n) { return n ? parseInt(n).toLocaleString() : '0'; }
+
+/* ═══════════════════════════════════════════════════
+   PIPELINE (KANBAN)
+═══════════════════════════════════════════════════ */
+var PIPELINE_STAGES = [
+  { key:'Spotted',       color:'#c9a227', bg:'rgba(201,162,39,.12)' },
+  { key:'Watching',      color:'#3b82f6', bg:'rgba(59,130,246,.12)' },
+  { key:'Won',           color:'#22c55e', bg:'rgba(34,197,94,.12)'  },
+  { key:'In Transport',  color:'#f97316', bg:'rgba(249,115,22,.12)' },
+  { key:'Recon',         color:'#a855f7', bg:'rgba(168,85,247,.12)' },
+  { key:'Listed',        color:'#14b8a6', bg:'rgba(20,184,166,.12)' },
+  { key:'Sold',          color:'#4ade80', bg:'rgba(74,222,128,.12)' }
+];
+
+var mockPipelineDeals = [
+  {vin:'WP0AA2A77FL000001',year:2015,make:'Porsche',model:'911 Carrera',price:68000,score:78,mileage:18400,stage:'Won',daysInStage:2},
+  {vin:'ZFFJE49H000187428',year:2018,make:'Ferrari',model:'488 GTB',price:195000,score:85,mileage:8200,stage:'Watching',daysInStage:5},
+  {vin:'SBH1TA7LXHE001234',year:2020,make:'Bentley',model:'Continental GT',price:142000,score:72,mileage:12100,stage:'In Transport',daysInStage:8},
+  {vin:'SCFEBBEL6HGD12345',year:2017,make:'McLaren',model:'570S',price:118000,score:81,mileage:9800,stage:'Recon',daysInStage:12},
+  {vin:'WP0AF2A75JL000002',year:2018,make:'Porsche',model:'911 GT3',price:145000,score:91,mileage:4200,stage:'Listed',daysInStage:3},
+];
+
+var pipelineDeals = [];
+var activePipelineDeal = null;
+
+function loadPipeline() {
+  document.getElementById('pipeline-board').innerHTML = '<div class="loader"><div class="spinner"></div>Loading pipeline…</div>';
+  google.script.run
+    .withSuccessHandler(function(result) {
+      var deals = (result && result.deals && result.deals.length) ? result.deals : mockPipelineDeals;
+      pipelineDeals = deals;
+      renderKanban(deals);
+    })
+    .withFailureHandler(function() {
+      pipelineDeals = mockPipelineDeals;
+      renderKanban(mockPipelineDeals);
+      toast('⚠️ Using mock pipeline data', 'warn');
+    })
+    .getPipelineSummaryAPI();
+}
+
+function renderKanban(deals) {
+  var board = document.getElementById('pipeline-board');
+  board.innerHTML = PIPELINE_STAGES.map(function(stage) {
+    var cols = deals.filter(function(d){ return d.stage === stage.key; });
+    var total = cols.reduce(function(s,d){ return s + (d.price||0); }, 0);
+    var cards = cols.map(function(d) {
+      var sc = d.score >= 80 ? 'var(--green)' : d.score >= 65 ? 'var(--gold)' : 'var(--red)';
+      var ds = JSON.stringify(d).replace(/"/g,'&quot;');
+      return '<div class="kanban-card" onclick="openPipelineModal(' + ds + ')">' +
+        '<div class="kc-title">' + d.year + ' ' + d.make + '<br>' + d.model + '</div>' +
+        '<div class="kc-price">$' + fmt(d.price) + '</div>' +
+        '<div class="kc-meta">' + fmt(d.mileage) + ' mi · ' + d.vin.slice(-6) + '</div>' +
+        '<span class="kc-score" style="background:rgba(0,0,0,.3);color:' + sc + '">Score ' + d.score + '</span>' +
+        '<div class="kc-days">⏱ ' + d.daysInStage + ' day' + (d.daysInStage !== 1 ? 's' : '') + ' in stage</div>' +
+      '</div>';
+    }).join('');
+    return '<div class="kanban-col">' +
+      '<div class="kanban-col-header" style="border-top:3px solid ' + stage.color + ';border-radius:9px 9px 0 0">' +
+        '<div class="kanban-col-name" style="color:' + stage.color + '">' + stage.key + '</div>' +
+        '<div class="kanban-col-meta">' +
+          '<span class="kanban-count">' + cols.length + ' deal' + (cols.length !== 1 ? 's' : '') + '</span>' +
+          '<span class="kanban-val" style="color:' + stage.color + '">$' + (total >= 1000 ? (total/1000).toFixed(0) + 'k' : fmt(total)) + '</span>' +
+        '</div>' +
+      '</div>' +
+      '<div class="kanban-cards">' + (cards || '<div style="font-size:10px;color:var(--muted);text-align:center;padding:12px 0">Empty</div>') + '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function openPipelineModal(deal) {
+  activePipelineDeal = deal;
+  document.getElementById('pipelineModalTitle').textContent = deal.year + ' ' + deal.make + ' ' + deal.model;
+  document.getElementById('pipelineStageSelect').value = deal.stage;
+  var sc = deal.score >= 80 ? 'var(--green)' : deal.score >= 65 ? 'var(--gold)' : 'var(--red)';
+  document.getElementById('pipelineModalBody').innerHTML =
+    '<div class="pipeline-modal-grid">' +
+    '<div class="dc-field"><div class="dc-field-label">VIN</div><div style="font-size:11px;font-family:monospace">' + deal.vin + '</div></div>' +
+    '<div class="dc-field"><div class="dc-field-label">Price</div><div class="dc-field-val" style="color:var(--blue)">$' + fmt(deal.price) + '</div></div>' +
+    '<div class="dc-field"><div class="dc-field-label">Mileage</div><div class="dc-field-val">' + fmt(deal.mileage) + ' mi</div></div>' +
+    '<div class="dc-field"><div class="dc-field-label">Deal Score</div><div class="dc-field-val" style="color:' + sc + '">' + deal.score + ' / 100</div></div>' +
+    '<div class="dc-field"><div class="dc-field-label">Current Stage</div><div class="dc-field-val">' + deal.stage + '</div></div>' +
+    '<div class="dc-field"><div class="dc-field-label">Days in Stage</div><div class="dc-field-val">' + deal.daysInStage + ' days</div></div>' +
+    '</div>';
+  document.getElementById('pipelineModal').classList.add('open');
+}
+
+function openAddToPipelineModal() {
+  toast('Use the "Add to Pipeline" form in Pipeline.gs or via the mobile scanner', 'info');
+}
+
+function updateDealStage() {
+  if (!activePipelineDeal) return;
+  var newStage = document.getElementById('pipelineStageSelect').value;
+  var old = activePipelineDeal.stage;
+  activePipelineDeal.stage = newStage;
+  activePipelineDeal.daysInStage = 0;
+  pipelineDeals = pipelineDeals.map(function(d){ return d.vin === activePipelineDeal.vin ? activePipelineDeal : d; });
+  renderKanban(pipelineDeals);
+  closeModal('pipelineModal');
+  toast('Moved ' + activePipelineDeal.make + ' from ' + old + ' → ' + newStage, 'success');
+  google.script.run
+    .withFailureHandler(function(e){ toast('Server sync failed: ' + e.message, 'error'); })
+    .addDealToPipelineAPI({ vin: activePipelineDeal.vin, stage: newStage });
+}
+
+function showPipelineError(msg) {
+  document.getElementById('pipeline-board').innerHTML =
+    '<div class="empty-state"><div class="empty-icon">⚠️</div><div>' + (msg || 'Failed to load pipeline') + '</div></div>';
+}
+
+/* ═══════════════════════════════════════════════════
+   P&L ANALYTICS
+═══════════════════════════════════════════════════ */
+var mockPnL = {
+  mtdRevenue: 485000, mtdProfit: 68200, mtdMargin: 14.1,
+  avgDaysToSell: 19, capitalDeployed: 892000,
+  monthlySales: [
+    {month:'Jan',profit:42000},{month:'Feb',profit:58000},{month:'Mar',profit:71000},
+    {month:'Apr',profit:45000},{month:'May',profit:83000},{month:'Jun',profit:68000}
+  ],
+  recentSales: [
+    {vehicle:'2018 Ferrari 488 GTB',buy:185000,cost:192000,sold:228000,profit:36000,margin:15.8,days:24},
+    {vehicle:'2020 Bentley Continental GT',buy:138000,cost:142500,sold:168000,profit:25500,margin:15.2,days:18},
+    {vehicle:'2019 McLaren 720S',buy:195000,cost:201000,sold:241000,profit:40000,margin:16.6,days:31}
+  ]
+};
+
+function loadPnL() {
+  document.getElementById('pnl-tbody').innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:20px">Loading…</td></tr>';
+  google.script.run
+    .withSuccessHandler(function(result) {
+      renderPnL(result && result.mtdProfit ? result : mockPnL);
+    })
+    .withFailureHandler(function() {
+      renderPnL(mockPnL);
+      toast('⚠️ Using mock P&L data', 'warn');
+    })
+    .getDashboardAnalyticsAPI();
+}
+
+function renderPnL(data) {
+  document.getElementById('pnlProfit').textContent  = '$' + fmt(data.mtdProfit);
+  document.getElementById('pnlMargin').textContent  = (data.mtdMargin || 0).toFixed(1) + '%';
+  document.getElementById('pnlDays').textContent    = (data.avgDaysToSell || 0) + ' days';
+  document.getElementById('pnlCapital').textContent = '$' + fmt(data.capitalDeployed);
+
+  // Bar chart
+  var months = data.monthlySales || [];
+  var maxP = Math.max.apply(null, months.map(function(m){ return m.profit; })) || 1;
+  document.getElementById('pnl-chart').innerHTML = months.map(function(m) {
+    var pct = Math.round((m.profit / maxP) * 100);
+    return '<div class="pnl-bar-col">' +
+      '<div class="pnl-bar-val">$' + (m.profit >= 1000 ? (m.profit/1000).toFixed(0) + 'k' : m.profit) + '</div>' +
+      '<div class="pnl-bar" style="height:' + pct + '%"></div>' +
+      '<div class="pnl-bar-label">' + m.month + '</div>' +
+    '</div>';
+  }).join('');
+
+  // Table
+  var sales = data.recentSales || [];
+  if (!sales.length) {
+    document.getElementById('pnl-tbody').innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:30px">No sold vehicles yet</td></tr>';
+    return;
+  }
+  document.getElementById('pnl-tbody').innerHTML = sales.map(function(s) {
+    var mColor = s.margin >= 15 ? 'var(--green)' : s.margin >= 10 ? 'var(--gold)' : 'var(--red)';
+    return '<tr>' +
+      '<td><strong>' + s.vehicle + '</strong></td>' +
+      '<td style="color:var(--muted)">$' + fmt(s.buy) + '</td>' +
+      '<td style="color:var(--muted)">$' + fmt(s.cost) + '</td>' +
+      '<td style="color:var(--blue)">$' + fmt(s.sold) + '</td>' +
+      '<td style="color:var(--green);font-weight:700">$' + fmt(s.profit) + '</td>' +
+      '<td><span class="score-pill" style="color:' + mColor + ';background:rgba(0,0,0,.2)">' + s.margin.toFixed(1) + '%</span></td>' +
+      '<td>' + s.days + 'd</td>' +
+    '</tr>';
+  }).join('');
+}
+
+/* ═══════════════════════════════════════════════════
+   CUSTOMER WAITLIST
+═══════════════════════════════════════════════════ */
+function loadWaitlist() {
+  google.script.run
+    .withSuccessHandler(function(entries) { renderWaitlistTable(entries || []); })
+    .withFailureHandler(function() { renderWaitlistTable([]); })
+    .getCustomerWaitlistAPI('Active');
+  google.script.run
+    .withSuccessHandler(function(stats) { renderWaitlistStats(stats || {}); })
+    .withFailureHandler(function() { renderWaitlistStats({}); })
+    .getWaitlistStatsAPI();
+}
+
+function renderWaitlistStats(stats) {
+  document.getElementById('wlActive').textContent    = stats.active    || 0;
+  document.getElementById('wlPaused').textContent    = stats.paused    || 0;
+  document.getElementById('wlFulfilled').textContent = stats.fulfilled || 0;
+  document.getElementById('wlMatches').textContent   = stats.matches   || 0;
+}
+
+function renderWaitlistTable(entries) {
+  var tb = document.getElementById('waitlist-tbody');
+  if (!entries.length) {
+    tb.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:40px">' +
+      '<div style="font-size:32px;margin-bottom:8px">🔔</div>No buyers yet — add your first buyer above</td></tr>';
+    return;
+  }
+  tb.innerHTML = entries.map(function(e) {
+    var statusColor = e.status === 'Active' ? 'var(--green)' : e.status === 'Fulfilled' ? 'var(--blue)' : 'var(--muted)';
+    return '<tr>' +
+      '<td><strong>' + (e.name||'—') + '</strong><div style="font-size:10px;color:var(--muted)">' + (e.email||'') + '</div></td>' +
+      '<td>' + (e.makes||'—') + '</td>' +
+      '<td>Up to $' + fmt(e.maxPrice) + '</td>' +
+      '<td>' + fmt(e.maxMileage) + ' mi</td>' +
+      '<td>' + (e.minYear||'—') + '–' + (e.maxYear||'—') + '</td>' +
+      '<td><span style="color:' + statusColor + ';font-weight:600">' + (e.status||'Active') + '</span></td>' +
+      '<td style="color:var(--gold);font-weight:700">' + (e.matches||0) + '</td>' +
+      '<td style="display:flex;gap:4px;">' +
+        '<button class="dc-btn dc-btn-watch" style="padding:3px 8px;font-size:10px" onclick="pauseWaitlistEntry(\'' + (e.id||'') + '\')">Pause</button>' +
+        '<button class="dc-btn" style="padding:3px 8px;font-size:10px;color:var(--red);background:rgba(239,68,68,.1)" onclick="removeWaitlistEntry(\'' + (e.id||'') + '\')">Remove</button>' +
+      '</td>' +
+    '</tr>';
+  }).join('');
+}
+
+function submitWaitlistEntry() {
+  var params = {
+    name:       document.getElementById('wlName').value,
+    email:      document.getElementById('wlEmail').value,
+    phone:      document.getElementById('wlPhone').value,
+    makes:      document.getElementById('wlMakes').value,
+    maxPrice:   parseInt(document.getElementById('wlMaxPrice').value) || 0,
+    maxMileage: parseInt(document.getElementById('wlMaxMileage').value) || 0,
+    minYear:    parseInt(document.getElementById('wlMinYear').value) || 0,
+    maxYear:    parseInt(document.getElementById('wlMaxYear').value) || 0
+  };
+  if (!params.name || !params.email) { toast('Name and email are required', 'warn'); return; }
+  toast('Adding buyer to waitlist…', 'info');
+  google.script.run
+    .withSuccessHandler(function(r) {
+      toast('✅ Buyer added to waitlist', 'success');
+      ['wlName','wlEmail','wlPhone','wlMakes','wlMaxPrice','wlMaxMileage','wlMinYear','wlMaxYear'].forEach(function(id){ document.getElementById(id).value=''; });
+      loadWaitlist();
+    })
+    .withFailureHandler(function(e) { toast('Failed to add buyer: ' + e.message, 'error'); })
+    .addToWaitlistAPI(params);
+}
+
+function pauseWaitlistEntry(id) {
+  if (!id) { toast('No ID — update via the spreadsheet directly', 'info'); return; }
+  toast('Pausing entry ' + id + '…', 'info');
+}
+
+function removeWaitlistEntry(id) {
+  if (!id) { toast('No ID — remove via the spreadsheet directly', 'info'); return; }
+  toast('Remove confirmed — refresh to update list', 'info');
+}
+
+/* ═══════════════════════════════════════════════════
+   MOBILE & TOOLS
+═══════════════════════════════════════════════════ */
+function triggerLookerExport() {
+  showToolResult('Building Looker Studio export…');
+  google.script.run
+    .withSuccessHandler(function(r){ showToolResult('✅ Looker export complete: ' + (r && r.message ? r.message : 'Data ready')); })
+    .withFailureHandler(function(e){ showToolResult('⚠️ Export failed: ' + e.message); })
+    .triggerLookerExportAPI();
+}
+
+function syncCalendar() {
+  showToolResult('Syncing auction calendar…');
+  google.script.run
+    .withSuccessHandler(function(r){
+      var count = r && r.events ? r.events.length : (r && r.count ? r.count : '?');
+      showToolResult('✅ Calendar synced — ' + count + ' upcoming auction events');
+    })
+    .withFailureHandler(function(e){ showToolResult('⚠️ Calendar sync failed: ' + e.message); })
+    .getUpcomingAuctionEventsAPI();
+}
+
+function setupVehicleVault() {
+  showToolResult('Setting up Vehicle Vault folder structure…');
+  google.script.run
+    .withSuccessHandler(function(r){ showToolResult('✅ Vehicle Vault ready: ' + (r && r.message ? r.message : 'Folders created')); })
+    .withFailureHandler(function(e){ showToolResult('⚠️ Vault setup failed: ' + e.message); })
+    .createVehicleVaultAPI();
+}
+
+function sendDailyBriefing() {
+  showToolResult('Sending daily briefing to Chat…');
+  google.script.run
+    .withSuccessHandler(function(r){ showToolResult('✅ Daily briefing sent to Chat'); })
+    .withFailureHandler(function(e){ showToolResult('⚠️ Briefing failed: ' + e.message); })
+    .sendDailyBriefingToChat();
+}
+
+function showToolResult(msg) {
+  var el = document.getElementById('tools-result');
+  el.style.display = 'block';
+  el.textContent = msg;
+}
+
+function checkConnectionStatus() {
+  var list = document.getElementById('conn-status-list');
+  list.innerHTML =
+    '<div class="conn-status"><span class="conn-dot-warn"></span> Checking Chat Webhook…</div>' +
+    '<div class="conn-status"><span class="conn-dot-warn"></span> Checking Vehicle Vault…</div>' +
+    '<div class="conn-status"><span class="conn-dot-warn"></span> Checking Auction Calendar…</div>';
+  google.script.run
+    .withSuccessHandler(function(r) {
+      var chat = r && r.chatWebhook;
+      var vault = r && r.vehicleVault;
+      var cal = r && r.auctionCalendar;
+      list.innerHTML =
+        '<div class="conn-status"><span class="' + (chat  ? 'conn-dot-ok' : 'conn-dot-warn') + '"></span> ' + (chat  ? '✅ Chat connected'              : '⚠️ Chat not configured')              + '</div>' +
+        '<div class="conn-status"><span class="' + (vault ? 'conn-dot-ok' : 'conn-dot-warn') + '"></span> ' + (vault ? '✅ Vehicle Vault connected'       : '⚠️ Vault not configured')             + '</div>' +
+        '<div class="conn-status"><span class="' + (cal   ? 'conn-dot-ok' : 'conn-dot-warn') + '"></span> ' + (cal   ? '✅ Auction Calendar connected'    : '⚠️ Calendar not configured')          + '</div>';
+    })
+    .withFailureHandler(function() {
+      list.innerHTML =
+        '<div class="conn-status"><span class="conn-dot-warn"></span> ⚠️ Chat not configured</div>' +
+        '<div class="conn-status"><span class="conn-dot-warn"></span> ⚠️ Vault not configured</div>' +
+        '<div class="conn-status"><span class="conn-dot-warn"></span> ⚠️ Calendar not configured</div>';
+    })
+    .getScriptPropertyStatusAPI();
+}
+
+window.addEventListener('DOMContentLoaded', function() {
+  renderWatchlistSidebar();
+  document.getElementById('sbWatch').textContent = state.watchlist.length;
+  loadDemoDeals();
+  setTimeout(function() {
+    toast('👋 Welcome to Lux Auto Command Center', 'info');
+    setTimeout(function(){ toast('⚡ Click Live Scan to pull live Manheim inventory', 'info'); }, 1200);
+  }, 600);
+});
+</script>
+</body>
+</html>

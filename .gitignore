@@ -1,0 +1,44 @@
+# ── Secrets & credentials ───────────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+clasprc.json
+.clasprc.json
+*.pem
+*.key
+service-account*.json
+credentials.json
+token.json
+
+# clasp local auth (never commit — contains your Google OAuth token)
+~/.clasprc.json
+
+# ── Node ────────────────────────────────────────────────────────────────
+node_modules/
+npm-debug.log*
+.npm/
+
+# ── Python (backend) ────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+
+# ── OS / editor ─────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# ── Build / logs ────────────────────────────────────────────────────────
+dist/
+build/
+*.log
+
+# ── Backend local artifacts ─────────────────────────────────────────────
+backend/.env
+*.db
+.ruff_cache/

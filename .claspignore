@@ -1,0 +1,30 @@
+# Files clasp should NOT push to Apps Script.
+# Everything in rootDir is pushed UNLESS matched here.
+# Only *.gs / *.html source and appsscript.json belong in the GAS project.
+
+# Python / FastAPI backend (Phase 2 heavy-compute layer — deployed separately)
+backend/**
+
+# Local dev tooling (Node CLIs, never runs in GAS)
+tools/**
+node_modules/**
+
+# CI / repo meta
+.github/**
+.git/**
+
+# Docs & notes
+*.md
+*.patch
+
+# Node + lint + env config
+package.json
+package-lock.json
+.eslintrc.json
+.eslintignore
+Makefile
+.env
+.env.*
+.gitignore
+.claspignore
+.clasp.json

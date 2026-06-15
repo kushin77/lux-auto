@@ -1,0 +1,38 @@
+# Local dev stack: Postgres + the API. Mirrors Cloud SQL + Cloud Run.
+#   docker compose -f backend/docker-compose.yml up --build
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: luxauto
+      POSTGRES_PASSWORD: luxauto
+      POSTGRES_DB: luxauto
+    ports:
+      - "5432:5432"
+    volumes:
+      - luxauto_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U luxauto"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build:
+      context: ..
+      dockerfile: backend/Dockerfile
+    environment:
+      DATABASE_URL: postgresql+psycopg2://luxauto:luxauto@db:5432/luxauto
+      FASTAPI_SECRET_KEY: dev-secret-change-me
+      ADMIN_USER_EMAIL: alex@luxauto.com
+      ENVIRONMENT: development
+      LOG_LEVEL: INFO
+      PORT: "8080"
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  luxauto_pgdata:

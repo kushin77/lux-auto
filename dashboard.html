@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Lux Auto — Dealer Dashboard</title>
+<style>
+:root{
+  --bg:#09090f;--bg2:#111118;--bg3:#16161f;--border:#1e1e2a;
+  --gold:#c9a84c;--gold2:#e8c96a;--text:#e8e8f0;--muted:#6b6b80;
+  --elite:#7c3aed;--premium:#1d4ed8;--good:#065f46;--watch:#7f1d1d;
+  --r:10px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Inter',system-ui,sans-serif;min-height:100vh;font-size:14px}
+a{color:var(--gold);text-decoration:none}
+
+/* ── NAV ──────────────────────────────────── */
+.topbar{
+  background:var(--bg2);border-bottom:1px solid var(--border);
+  padding:14px 24px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;
+  position:sticky;top:0;z-index:100;
+}
+.logo{font-size:18px;font-weight:700;letter-spacing:.5px;color:var(--gold);flex:0 0 auto}
+.stat-pills{display:flex;gap:10px;flex-wrap:wrap;flex:1}
+.pill{
+  background:var(--bg3);border:1px solid var(--border);border-radius:20px;
+  padding:6px 14px;font-size:12px;display:flex;gap:8px;align-items:center;white-space:nowrap;
+}
+.pill b{color:var(--gold);font-size:15px}
+.pill.elite b{color:#a78bfa}
+.pill.premium b{color:#60a5fa}
+.topbar-actions{display:flex;gap:8px;align-items:center}
+.btn{
+  padding:8px 16px;border-radius:8px;border:none;cursor:pointer;font-size:13px;font-weight:600;
+  transition:.15s;display:flex;align-items:center;gap:6px;
+}
+.btn-gold{background:var(--gold);color:#09090f}
+.btn-gold:hover{background:var(--gold2)}
+.btn-ghost{background:transparent;color:var(--text);border:1px solid var(--border)}
+.btn-ghost:hover{background:var(--bg3)}
+.btn-sm{padding:5px 10px;font-size:12px}
+
+/* ── TABS ─────────────────────────────────── */
+.tabs{
+  display:flex;gap:2px;padding:0 24px;background:var(--bg2);
+  border-bottom:1px solid var(--border);
+}
+.tab{
+  padding:12px 20px;cursor:pointer;font-size:13px;font-weight:500;color:var(--muted);
+  border-bottom:2px solid transparent;transition:.15s;white-space:nowrap;
+}
+.tab.active{color:var(--gold);border-bottom-color:var(--gold)}
+.tab:hover{color:var(--text)}
+.tab-badge{
+  background:var(--border);border-radius:10px;padding:1px 7px;font-size:11px;
+  margin-left:6px;color:var(--muted);
+}
+.tab.active .tab-badge{background:var(--gold);color:#09090f}
+
+/* ── LAYOUT ───────────────────────────────── */
+.layout{display:flex;height:calc(100vh - 111px)}
+.sidebar{
+  width:240px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--border);
+  padding:16px;overflow-y:auto;display:flex;flex-direction:column;gap:16px;
+}
+.main{flex:1;overflow-y:auto;padding:20px}
+
+/* ── SIDEBAR ──────────────────────────────── */
+.sb-section{display:flex;flex-direction:column;gap:8px}
+.sb-label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:2px}
+
+.vin-box{display:flex;flex-direction:column;gap:6px}
+.vin-box input,.vin-box select{
+  background:var(--bg3);border:1px solid var(--border);color:var(--text);
+  padding:8px 10px;border-radius:6px;font-size:13px;width:100%;
+}
+.vin-box input:focus,.vin-box select:focus{outline:none;border-color:var(--gold)}
+.vin-result{font-size:13px;padding:8px;background:var(--bg3);border-radius:6px;display:none}
+.vin-result.ok{color:#4ade80;display:block}
+.vin-result.err{color:#f87171;display:block}
+
+.chip-row{display:flex;flex-wrap:wrap;gap:5px}
+.chip{
+  padding:4px 10px;border-radius:12px;font-size:12px;cursor:pointer;
+  background:var(--bg3);border:1px solid var(--border);color:var(--muted);transition:.15s;
+}
+.chip:hover,.chip.on{background:var(--gold);color:#09090f;border-color:var(--gold);font-weight:600}
+.chip.elite-chip.on{background:#7c3aed;border-color:#7c3aed;color:#fff}
+.chip.premium-chip.on{background:#1d4ed8;border-color:#1d4ed8;color:#fff}
+.chip.good-chip.on{background:#065f46;border-color:#065f46;color:#fff}
+.chip.watch-chip.on{background:#7f1d1d;border-color:#7f1d1d;color:#f87171}
+
+.range-row{display:flex;flex-direction:column;gap:4px}
+.range-row label{font-size:12px;color:var(--muted);display:flex;justify-content:space-between}
+.range-row input[type=range]{width:100%;accent-color:var(--gold)}
+
+.profile-card{
+  background:var(--bg3);border:1px solid var(--border);border-radius:8px;
+  padding:12px;display:flex;flex-direction:column;gap:6px;
+}
+.profile-card .pc-title{font-size:11px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:.6px}
+.profile-card .pc-row{display:flex;justify-content:space-between;font-size:12px}
+.profile-card .pc-row span{color:var(--muted)}
+.profile-card .pc-makes{font-size:12px;color:var(--text);margin-top:4px;line-height:1.5}
+
+/* ── CONTENT ──────────────────────────────── */
+.pane{display:none}
+.pane.active{display:block}
+
+.status-bar{
+  display:flex;align-items:center;gap:10px;padding:10px 0 14px;
+  font-size:13px;color:var(--muted);
+}
+.count-badge{
+  background:var(--bg3);border:1px solid var(--border);border-radius:20px;
+  padding:4px 12px;font-size:12px;
+}
+.count-badge b{color:var(--gold)}
+
+.view-toggle{display:flex;gap:4px;margin-left:auto}
+.vt{background:var(--bg3);border:1px solid var(--border);padding:5px 9px;border-radius:6px;cursor:pointer;font-size:14px}
+.vt.on{background:var(--gold);color:#09090f;border-color:var(--gold)}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px}
+.list .grid{grid-template-columns:1fr}
+
+/* ── DEAL CARD ────────────────────────────── */
+.card{
+  background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);
+  padding:16px;display:flex;flex-direction:column;gap:12px;
+  transition:.2s;cursor:default;
+}
+.card:hover{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold)20}
+
+.card-head{display:flex;gap:12px;align-items:flex-start}
+.score-ring{
+  width:56px;height:56px;border-radius:50%;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  font-size:16px;font-weight:700;color:#fff;position:relative;
+}
+.card-title{flex:1}
+.card-title h3{font-size:14px;font-weight:700;line-height:1.3;margin-bottom:3px}
+.card-title .sub{font-size:12px;color:var(--muted)}
+
+.badges{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.tier-badge{
+  padding:3px 9px;border-radius:10px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;
+}
+.t-elite{background:#4c1d95;color:#c4b5fd}
+.t-premium{background:#1e3a8a;color:#93c5fd}
+.t-good{background:#064e3b;color:#6ee7b7}
+.t-watch{background:#450a0a;color:#fca5a5}
+.buyer-pill{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:2px 8px;font-size:11px;color:var(--muted)}
+
+.resell-bar-wrap{display:flex;flex-direction:column;gap:3px}
+.resell-label{display:flex;justify-content:space-between;font-size:11px;color:var(--muted)}
+.resell-bar{height:4px;background:var(--border);border-radius:2px;overflow:hidden}
+.resell-fill{height:100%;background:linear-gradient(90deg,var(--gold),var(--gold2));border-radius:2px}
+
+.metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.metric{background:var(--bg3);border-radius:7px;padding:8px;text-align:center}
+.metric .mv{font-size:14px;font-weight:700;color:var(--gold)}
+.metric .mk{font-size:11px;color:var(--muted);margin-top:2px}
+
+.card-footer{display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--muted)}
+.card-actions{display:flex;gap:6px}
+.act-btn{
+  background:var(--bg3);border:1px solid var(--border);color:var(--text);
+  padding:5px 10px;border-radius:6px;font-size:12px;cursor:pointer;transition:.15s;
+}
+.act-btn:hover{background:var(--gold);color:#09090f;border-color:var(--gold)}
+.act-btn.bought{border-color:#4ade80;color:#4ade80}
+.act-btn.bought:hover{background:#4ade80;color:#09090f}
+
+/* ── UPCOMING TABLE ───────────────────────── */
+.up-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px}
+.up-header h2{font-size:16px;font-weight:700}
+.up-info{font-size:13px;color:var(--muted);max-width:500px}
+
+.up-table-wrap{overflow-x:auto}
+.up-table{width:100%;border-collapse:collapse;font-size:13px}
+.up-table th{
+  background:var(--bg2);padding:10px 12px;text-align:left;
+  font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;
+  border-bottom:1px solid var(--border);white-space:nowrap;
+}
+.up-table td{padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:middle}
+.up-table tr:hover td{background:var(--bg3)}
+.days-chip{
+  display:inline-block;padding:3px 9px;border-radius:10px;font-size:11px;font-weight:700;
+}
+.days-7{background:#1e3a8a;color:#93c5fd}
+.days-14{background:#064e3b;color:#6ee7b7}
+.days-21{background:#451a03;color:#fed7aa}
+.prof-bar{width:60px;height:6px;background:var(--border);border-radius:3px;overflow:hidden;display:inline-block;vertical-align:middle;margin-right:6px}
+.prof-fill{height:100%;background:var(--gold);border-radius:3px}
+
+/* ── LOADING / EMPTY ──────────────────────── */
+.spinner-wrap{text-align:center;padding:60px;color:var(--muted)}
+.spinner{
+  width:40px;height:40px;border:3px solid var(--border);
+  border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite;
+  margin:0 auto 16px;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+.empty{text-align:center;padding:60px;color:var(--muted)}
+.empty h3{font-size:20px;margin-bottom:8px;color:var(--text)}
+
+.toast-wrap{position:fixed;bottom:20px;right:20px;display:flex;flex-direction:column;gap:8px;z-index:1000}
+.toast{
+  background:var(--bg2);border:1px solid var(--border);border-radius:8px;
+  padding:12px 16px;font-size:13px;max-width:280px;
+  animation:fadeIn .3s;box-shadow:0 4px 20px #00000060;
+}
+.toast.ok{border-left:3px solid #4ade80}
+.toast.err{border-left:3px solid #f87171}
+.toast.info{border-left:3px solid var(--gold)}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo">🚗 LUX AUTO</div>
+  <div class="stat-pills">
+    <div class="pill">Deals <b id="sTotal">—</b></div>
+    <div class="pill elite"><b id="sElite">—</b> Elite</div>
+    <div class="pill premium"><b id="sPremium">—</b> Premium</div>
+    <div class="pill">Avg Score <b id="sAvg">—</b></div>
+    <div class="pill">Pot. Margin <b id="sMargin">—</b></div>
+    <div class="pill">Buyers <b id="sBuyers">—</b></div>
+  </div>
+  <div class="topbar-actions">
+    <a id="sheetLink" href="#" target="_blank" class="btn btn-ghost btn-sm">📊 Sheet</a>
+    <button class="btn btn-gold" onclick="doScan()" id="scanBtn">📡 Scan Now</button>
+  </div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="setTab('deals',this)">Active Deals <span class="tab-badge" id="tbDeals">0</span></div>
+  <div class="tab" onclick="setTab('upcoming',this)">Upcoming Watch <span class="tab-badge" id="tbUpcoming">0</span></div>
+</div>
+
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+
+    <!-- VIN MMR Lookup -->
+    <div class="sb-section">
+      <div class="sb-label">MMR Lookup</div>
+      <div class="vin-box">
+        <input id="vinInput" type="text" placeholder="Enter VIN…" maxlength="17">
+        <input id="mileInput" type="number" placeholder="Mileage" min="0">
+        <button class="btn btn-gold" onclick="doVin()">Get MMR</button>
+        <div id="vinResult" class="vin-result"></div>
+      </div>
+    </div>
+
+    <!-- Preference Profile card -->
+    <div class="sb-section" id="profileSection" style="display:none">
+      <div class="sb-label">Your Profile</div>
+      <div class="profile-card">
+        <div class="pc-title">📈 Preference Profile</div>
+        <div id="profileContent"></div>
+      </div>
+    </div>
+
+    <!-- Tier Filter -->
+    <div class="sb-section">
+      <div class="sb-label">Quality Tier</div>
+      <div class="chip-row">
+        <div class="chip on" onclick="setT('all',this)">All</div>
+        <div class="chip elite-chip" onclick="setT('elite',this)">Elite</div>
+        <div class="chip premium-chip" onclick="setT('premium',this)">Premium</div>
+        <div class="chip good-chip" onclick="setT('good',this)">Good</div>
+        <div class="chip watch-chip" onclick="setT('watch',this)">Watch</div>
+      </div>
+    </div>
+
+    <!-- Make Filter -->
+    <div class="sb-section">
+      <div class="sb-label">Make</div>
+      <div class="chip-row" id="makeChips"></div>
+    </div>
+
+    <!-- Range filters -->
+    <div class="sb-section">
+      <div class="sb-label">Min Score</div>
+      <div class="range-row">
+        <label>Score ≥ <span id="scoreVal">0</span></label>
+        <input type="range" min="0" max="100" value="0" id="scoreRange" oninput="scoreVal.textContent=this.value;render()">
+      </div>
+    </div>
+    <div class="sb-section">
+      <div class="sb-label">Max Mileage</div>
+      <div class="range-row">
+        <label>≤ <span id="mileVal">200k</span></label>
+        <input type="range" min="0" max="200000" step="5000" value="200000" id="mileRange" oninput="mileVal.textContent=Math.round(this.value/1000)+'k';render()">
+      </div>
+    </div>
+    <div class="sb-section">
+      <div class="sb-label">Max Price</div>
+      <div class="range-row">
+        <label>≤ $<span id="priceVal">500k</span></label>
+        <input type="range" min="0" max="500000" step="5000" value="500000" id="priceRange" oninput="priceVal.textContent=Math.round(this.value/1000)+'k';render()">
+      </div>
+    </div>
+    <div class="sb-section">
+      <div class="sb-label">Sort By</div>
+      <div class="vin-box">
+        <select id="sortBy" onchange="render()">
+          <option value="score">Deal Score ↓</option>
+          <option value="margin">Net Margin ↓</option>
+          <option value="resell">Resell Index ↓</option>
+          <option value="discount">Discount % ↓</option>
+          <option value="price">Price ↑</option>
+        </select>
+      </div>
+    </div>
+
+  </div><!-- /sidebar -->
+
+  <!-- MAIN CONTENT -->
+  <div class="main">
+
+    <!-- DEALS PANE -->
+    <div id="pDeals" class="pane active">
+      <div id="dealsSpinner" class="spinner-wrap">
+        <div class="spinner"></div>
+        <div>Loading deals…</div>
+      </div>
+      <div id="dealsContent" style="display:none">
+        <div class="status-bar">
+          <div class="count-badge">Showing <b id="showCount">0</b> of <b id="totalCount">0</b> deals</div>
+          <div class="view-toggle">
+            <div class="vt on" onclick="setView('grid',this)">⊞</div>
+            <div class="vt" onclick="setView('list',this)">☰</div>
+          </div>
+        </div>
+        <div id="dealGrid" class="grid"></div>
+      </div>
+      <div id="dealsEmpty" class="empty" style="display:none">
+        <h3>No deals found</h3>
+        <p>Adjust filters or hit Scan Now to fetch fresh listings.</p>
+      </div>
+    </div>
+
+    <!-- UPCOMING PANE -->
+    <div id="pUpcoming" class="pane">
+      <div id="upcomingSpinner" class="spinner-wrap" style="display:none">
+        <div class="spinner"></div>
+        <div>Loading upcoming watch…</div>
+      </div>
+      <div id="upcomingContent">
+        <div class="up-header">
+          <div>
+            <h2>🔮 Upcoming Watch</h2>
+            <div class="up-info">
+              Vehicles 7–21 days from auction that match your preference profile.
+              The daily digest runs every morning at 7 AM — install it from <b>Apps Script → installDailyDigestTrigger()</b>.
+            </div>
+          </div>
+          <button class="btn btn-ghost" onclick="loadUpcoming()">↺ Refresh</button>
+        </div>
+        <div id="upcomingTable"></div>
+      </div>
+    </div>
+
+  </div><!-- /main -->
+</div>
+
+<div class="toast-wrap" id="toasts"></div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────────
+let ALL_DEALS   = [];
+let ALL_UPCOM   = [];
+let FILTER_TIER = 'all';
+let FILTER_MAKE = 'all';
+let VIEW        = 'grid';
+
+// ── Boot ───────────────────────────────────────────────────────────────────
+function init() {
+  google.script.run
+    .withSuccessHandler(load)
+    .withFailureHandler(e => toast('Load failed: ' + e.message, 'err'))
+    .getDashboardData();
+}
+
+function load(d) {
+  if (!d || !d.ok) { toast('Error loading data', 'err'); return; }
+
+  // Stats bar
+  const s = d.stats || {};
+  document.getElementById('sTotal').textContent   = s.totalDeals || 0;
+  document.getElementById('sElite').textContent   = s.eliteDeals || 0;
+  document.getElementById('sPremium').textContent = s.premiumDeals || 0;
+  document.getElementById('sAvg').textContent     = s.avgScore || 0;
+  document.getElementById('sMargin').textContent  = '$' + Math.round((s.potMargin||0)/1000) + 'k';
+  document.getElementById('sBuyers').textContent  = s.activeBuyers || 0;
+  if (d.ssUrl) document.getElementById('sheetLink').href = d.ssUrl;
+
+  // Tab badges
+  document.getElementById('tbDeals').textContent    = (d.deals||[]).length;
+  document.getElementById('tbUpcoming').textContent = d.upcomingCount || 0;
+
+  ALL_DEALS = d.deals || [];
+
+  // Preference profile card
+  if (d.profile) renderProfile(d.profile);
+
+  // Make chips
+  const makes = [...new Set(ALL_DEALS.map(d => d.make).filter(Boolean))].sort();
+  const mc = document.getElementById('makeChips');
+  mc.innerHTML = '<div class="chip on" onclick="setM(\'all\',this)">All</div>'
+    + makes.map(m => '<div class="chip" onclick="setM(\'' + m + '\',this)">' + m + '</div>').join('');
+
+  document.getElementById('dealsSpinner').style.display = 'none';
+  document.getElementById('dealsContent').style.display = 'block';
+  render();
+}
+
+function renderProfile(p) {
+  document.getElementById('profileSection').style.display = 'block';
+  const fmtN = n => n ? n.toLocaleString() : 'N/A';
+  document.getElementById('profileContent').innerHTML =
+    '<div class="pc-makes"><b>' + (p.topMakes||[]).slice(0,4).join(', ') + '</b></div>'
+    + '<div class="pc-row"><span>Avg Price</span> $' + fmtN(p.avgPrice) + '</div>'
+    + '<div class="pc-row"><span>Avg Miles</span> ' + fmtN(p.avgMileage) + '</div>'
+    + '<div class="pc-row"><span>Avg Year</span> ' + (p.avgYear || 'N/A') + '</div>'
+    + '<div class="pc-row" style="color:var(--muted);font-size:11px">'
+    + p.sampleSize + ' interactions logged</div>';
+}
+
+// ── Deals Rendering ────────────────────────────────────────────────────────
+function render() {
+  const minScore = +document.getElementById('scoreRange').value;
+  const maxMile  = +document.getElementById('mileRange').value;
+  const maxPrice = +document.getElementById('priceRange').value;
+  const sortBy   = document.getElementById('sortBy').value;
+
+  let filtered = ALL_DEALS.filter(d => {
+    if (FILTER_TIER !== 'all' && d.tier !== FILTER_TIER) return false;
+    if (FILTER_MAKE !== 'all' && d.make  !== FILTER_MAKE) return false;
+    if (d.score   < minScore) return false;
+    if (d.mileage > maxMile)  return false;
+    if (d.price   > maxPrice) return false;
+    return true;
+  });
+
+  const sortFns = {
+    score   : (a,b) => b.score - a.score,
+    margin  : (a,b) => (b.netMargin||0) - (a.netMargin||0),
+    resell  : (a,b) => (b.resellIdx||0) - (a.resellIdx||0),
+    discount: (a,b) => (b.discountPct||0) - (a.discountPct||0),
+    price   : (a,b) => (a.price||0) - (b.price||0),
+  };
+  filtered.sort(sortFns[sortBy] || sortFns.score);
+
+  document.getElementById('showCount').textContent  = filtered.length;
+  document.getElementById('totalCount').textContent = ALL_DEALS.length;
+
+  const grid = document.getElementById('dealGrid');
+  if (!filtered.length) {
+    grid.innerHTML = '';
+    document.getElementById('dealsContent').style.display = 'none';
+    document.getElementById('dealsEmpty').style.display   = 'block';
+    return;
+  }
+  document.getElementById('dealsContent').style.display = 'block';
+  document.getElementById('dealsEmpty').style.display   = 'none';
+  grid.innerHTML = filtered.map(d => card(d)).join('');
+}
+
+function card(d) {
+  const pct  = Math.min(100, Math.max(0, d.score));
+  const hue  = d.tier === 'elite' ? '#7c3aed' : d.tier === 'premium' ? '#1d4ed8' : d.tier === 'good' ? '#059669' : '#dc2626';
+  const ring = 'background:conic-gradient(' + hue + ' ' + (pct*3.6) + 'deg,var(--border) 0);box-shadow:inset 0 0 0 6px var(--bg2)';
+  const disc = d.discountPct ? (d.discountPct*100).toFixed(1)+'%' : '—';
+  const margin = d.netMargin ? '$'+d.netMargin.toLocaleString() : '—';
+  const mmr    = d.mmr  ? '$'+d.mmr.toLocaleString() : '—';
+  const price  = d.price ? '$'+d.price.toLocaleString() : '—';
+  const tClass = {elite:'t-elite',premium:'t-premium',good:'t-good',watch:'t-watch'}[d.tier]||'t-watch';
+  const ri     = d.resellIdx || 0;
+  const buyers = d.matchedBuyers ? '<span class="buyer-pill">👤 '+d.matchedBuyers+'</span>' : '';
+  const vinLast = (d.vin||'').slice(-8);
+
+  return '<div class="card">'
+    + '<div class="card-head">'
+    +   '<div class="score-ring" style="' + ring + '"><span>' + d.score + '</span></div>'
+    +   '<div class="card-title">'
+    +     '<h3>' + (d.year||'') + ' ' + (d.make||'') + ' ' + (d.model||'') + '</h3>'
+    +     '<div class="sub">' + (d.trim||'Unknown trim') + ' · ' + (d.mileage||0).toLocaleString() + ' mi</div>'
+    +   '</div>'
+    + '</div>'
+    + '<div class="badges"><span class="tier-badge ' + tClass + '">' + (d.tier||'').toUpperCase() + '</span>' + buyers + '</div>'
+    + '<div class="resell-bar-wrap">'
+    +   '<div class="resell-label"><span>Resell Index</span><span>' + ri + '/100</span></div>'
+    +   '<div class="resell-bar"><div class="resell-fill" style="width:' + ri + '%"></div></div>'
+    + '</div>'
+    + '<div class="metrics">'
+    +   '<div class="metric"><div class="mv">' + price  + '</div><div class="mk">List Price</div></div>'
+    +   '<div class="metric"><div class="mv">' + mmr    + '</div><div class="mk">MMR</div></div>'
+    +   '<div class="metric"><div class="mv" style="color:#60a5fa">' + disc + '</div><div class="mk">Discount</div></div>'
+    +   '<div class="metric"><div class="mv" style="color:#4ade80">' + margin + '</div><div class="mk">Net Margin</div></div>'
+    +   '<div class="metric"><div class="mv">' + (d.year||'—') + '</div><div class="mk">Year</div></div>'
+    +   '<div class="metric"><div class="mv" style="font-size:12px">' + vinLast + '</div><div class="mk">VIN …' + vinLast + '</div></div>'
+    + '</div>'
+    + '<div class="card-footer">'
+    +   '<span>📍 ' + (d.location||'—') + ' · ' + (d.saleDate||'—') + '</span>'
+    +   '<div class="card-actions">'
+    +     '<button class="act-btn" onclick="cV(\'' + d.vin + '\',\'' + (d.make||'') + '\',\'' + (d.model||'') + '\',' + (d.year||0) + ',' + (d.mileage||0) + ',' + (d.price||0) + ')">Copy VIN</button>'
+    +     '<button class="act-btn" onclick="qV(\'' + d.vin + '\',' + (d.mileage||0) + ')">MMR</button>'
+    +     '<button class="act-btn bought" onclick="mB(\'' + d.vin + '\',\'' + (d.make||'') + '\',\'' + (d.model||'') + '\',' + (d.year||0) + ',' + (d.mileage||0) + ',' + (d.price||0) + ')">✓ Bought</button>'
+    +   '</div>'
+    + '</div>'
+    + '</div>';
+}
+
+// ── Upcoming Pane ──────────────────────────────────────────────────────────
+function loadUpcoming() {
+  document.getElementById('upcomingSpinner').style.display = 'block';
+  document.getElementById('upcomingTable').innerHTML = '';
+  google.script.run
+    .withSuccessHandler(function(d) {
+      document.getElementById('upcomingSpinner').style.display = 'none';
+      ALL_UPCOM = d.deals || [];
+      document.getElementById('tbUpcoming').textContent = ALL_UPCOM.length;
+      renderUpcoming();
+    })
+    .withFailureHandler(function(e) {
+      document.getElementById('upcomingSpinner').style.display = 'none';
+      toast('Upcoming load failed: ' + e.message, 'err');
+    })
+    .getUpcomingDeals();
+}
+
+function renderUpcoming() {
+  const wrap = document.getElementById('upcomingTable');
+  if (!ALL_UPCOM.length) {
+    wrap.innerHTML = '<div class="empty"><h3>No upcoming vehicles yet</h3>'
+      + '<p>Run <b>installDailyDigestTrigger()</b> in Apps Script to enable 7 AM daily scans.<br>'
+      + 'Or trigger manually via <b>runDailySuggestions()</b>.</p></div>';
+    return;
+  }
+  const rows = ALL_UPCOM.map(d => {
+    const daysOut  = d['Days Out'] || '?';
+    const daysCls  = daysOut <= 7 ? 'days-7' : daysOut <= 14 ? 'days-14' : 'days-21';
+    const profPct  = Math.min(100, Math.round(((d['Profile Match']||0) / 14) * 100));
+    const disc     = d['Discount %'] || '—';
+    const margin   = d['Est. Net Margin ($)'] ? '$' + Number(d['Est. Net Margin ($)']).toLocaleString() : '—';
+    const mmr      = d['MMR ($)'] ? '$' + Number(d['MMR ($)']).toLocaleString() : '—';
+    const price    = d['List Price ($)'] ? '$' + Number(d['List Price ($)']).toLocaleString() : '—';
+    return '<tr>'
+      + '<td>' + (d['Sale Date']||'—') + '</td>'
+      + '<td><span class="days-chip ' + daysCls + '">' + daysOut + 'd</span></td>'
+      + '<td><b>' + (d['Year']||'') + ' ' + (d['Make']||'') + ' ' + (d['Model']||'') + '</b><br>'
+      +     '<span style="color:var(--muted);font-size:12px">' + (d['Trim']||'') + ' · ' + Number(d['Mileage']||0).toLocaleString() + ' mi</span></td>'
+      + '<td>' + price + '</td>'
+      + '<td>' + mmr + '</td>'
+      + '<td style="color:#60a5fa">' + disc + '</td>'
+      + '<td>' + (d['Deal Score']||'—') + '</td>'
+      + '<td style="color:#4ade80">' + margin + '</td>'
+      + '<td><div class="prof-bar"><div class="prof-fill" style="width:' + profPct + '%"></div></div>' + (d['Profile Match']||0) + '/14</td>'
+      + '<td style="color:var(--muted)">' + (d['Location']||'—') + '</td>'
+      + '<td>'
+      +   '<button class="act-btn" style="font-size:11px" onclick="cVU(\'' + (d['VIN']||'') + '\')">' + (d['VIN']||'').slice(-8) + '</button>'
+      + '</td>'
+      + '</tr>';
+  }).join('');
+
+  wrap.innerHTML = '<div class="up-table-wrap"><table class="up-table">'
+    + '<thead><tr>'
+    + '<th>Sale Date</th><th>Days Out</th><th>Vehicle</th>'
+    + '<th>List</th><th>MMR</th><th>Discount</th>'
+    + '<th>Score</th><th>Net Margin</th>'
+    + '<th>Profile</th><th>Location</th><th>VIN</th>'
+    + '</tr></thead>'
+    + '<tbody>' + rows + '</tbody>'
+    + '</table></div>';
+}
+
+// ── Actions ────────────────────────────────────────────────────────────────
+
+function doScan() {
+  const btn = document.getElementById('scanBtn');
+  btn.textContent = '⏳ Scanning…';
+  btn.disabled = true;
+  google.script.run
+    .withSuccessHandler(function(d) {
+      btn.textContent = '📡 Scan Now';
+      btn.disabled = false;
+      load(d);
+      toast('Scan complete — ' + (d.deals||[]).length + ' deals found', 'ok');
+    })
+    .withFailureHandler(function(e) {
+      btn.textContent = '📡 Scan Now';
+      btn.disabled = false;
+      toast('Scan failed: ' + e.message, 'err');
+    })
+    .triggerScan();
+}
+
+function doVin() {
+  const vin  = document.getElementById('vinInput').value.trim();
+  const mile = parseInt(document.getElementById('mileInput').value) || 0;
+  const res  = document.getElementById('vinResult');
+  if (!vin) { res.className = 'vin-result err'; res.textContent = 'Enter a VIN first'; return; }
+  res.className = 'vin-result info'; res.textContent = 'Looking up…'; res.style.display = 'block';
+  // Log as mmr_lookup
+  google.script.run.logVehicleAction(vin,'','',null,mile,null,'mmr_lookup');
+  google.script.run
+    .withSuccessHandler(function(r) {
+      if (r.success) {
+        res.className = 'vin-result ok';
+        res.textContent = 'MMR: $' + Number(r.mmr).toLocaleString();
+      } else {
+        res.className = 'vin-result err';
+        res.textContent = r.error || 'Not found';
+      }
+    })
+    .withFailureHandler(function(e) { res.className='vin-result err'; res.textContent=e.message; })
+    .getMMRForVin(vin, mile);
+}
+
+// Copy VIN from deal card
+function cV(vin, make, model, year, mileage, price) {
+  navigator.clipboard.writeText(vin).catch(() => {});
+  google.script.run.logVehicleAction(vin, make, model, year, mileage, price, 'copied');
+  toast('VIN copied: ' + vin, 'ok');
+}
+
+// MMR from deal card
+function qV(vin, mileage) {
+  google.script.run.logVehicleAction(vin,'','',null,mileage,null,'mmr_lookup');
+  google.script.run
+    .withSuccessHandler(function(r) {
+      toast(r.success ? 'MMR: $' + Number(r.mmr).toLocaleString() : (r.error||'No MMR'), r.success?'ok':'err');
+    })
+    .getMMRForVin(vin, mileage);
+}
+
+// Mark bought
+function mB(vin, make, model, year, mileage, price) {
+  google.script.run.logVehicleAction(vin, make, model, year, mileage, price, 'bought');
+  toast('Marked as bought — preference profile updated', 'ok');
+}
+
+// Copy VIN from upcoming table
+function cVU(vin) {
+  navigator.clipboard.writeText(vin).catch(() => {});
+  google.script.run.logVehicleAction(vin,'','',null,null,null,'copied');
+  toast('VIN copied: ' + vin, 'ok');
+}
+
+// ── Tab & Filter helpers ───────────────────────────────────────────────────
+function setTab(tab, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  document.querySelectorAll('.pane').forEach(p => p.classList.remove('active'));
+  document.getElementById('p' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('active');
+  if (tab === 'upcoming' && !ALL_UPCOM.length) loadUpcoming();
+}
+
+function setT(tier, el) {
+  document.querySelectorAll('.chip-row .chip').forEach(c => {
+    if (['elite-chip','premium-chip','good-chip','watch-chip',''].some(x => c.classList.contains(x)||true)) {
+      // only turn off non-make chips
+    }
+  });
+  el.closest('.chip-row').querySelectorAll('.chip').forEach(c => c.classList.remove('on'));
+  el.classList.add('on');
+  FILTER_TIER = tier;
+  render();
+}
+
+function setM(make, el) {
+  el.closest('.chip-row').querySelectorAll('.chip').forEach(c => c.classList.remove('on'));
+  el.classList.add('on');
+  FILTER_MAKE = make;
+  render();
+}
+
+function setView(v, el) {
+  VIEW = v;
+  document.querySelectorAll('.vt').forEach(b => b.classList.remove('on'));
+  el.classList.add('on');
+  const wrap = document.getElementById('dealGrid').parentElement.parentElement;
+  if (v === 'list') wrap.classList.add('list'); else wrap.classList.remove('list');
+}
+
+function toast(msg, type) {
+  const wrap = document.getElementById('toasts');
+  const el   = document.createElement('div');
+  el.className = 'toast ' + (type||'info');
+  el.textContent = msg;
+  wrap.appendChild(el);
+  setTimeout(() => el.remove(), 4000);
+}
+
+// ── Init ───────────────────────────────────────────────────────────────────
+window.onload = init;
+</script>
+</body>
+</html>

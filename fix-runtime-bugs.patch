@@ -1,0 +1,135 @@
+From 39193dc39c4125311185889fdee4935d1c17051a Mon Sep 17 00:00:00 2001
+From: Alex Kushnir <kushin77@gmail.com>
+Date: Sun, 14 Jun 2026 19:58:39 -0400
+Subject: [PATCH] fix: resolve 7 runtime bugs across backend
+
+- models.py: alias UserRole enum import as UserRoleEnum to avoid name
+  collision with the UserRole ORM model class defined in same file
+- main.py: fix get_or_create_user arg order (was passing db as email) in
+  all 3 call sites (/api/me, /api/sessions/logout-all, /api/sessions)
+- main.py: fix revoke_all_user_sessions arg order (user_id must come first)
+- main.py: rename get_active_sessions -> list_user_sessions with correct
+  arg order to match SessionService method signature
+- main.py: fix /metrics endpoint to return Response with Prometheus
+  CONTENT_TYPE_LATEST instead of JSONResponse (which would double-encode)
+- deals.py: rename query param status -> deal_status (alias='status') to
+  prevent shadowing the imported fastapi.status module inside list_deals()
+- analytics.py: same fix for list_buyers() buyer_status param
+---
+ backend/database/models.py   |  4 ++--
+ backend/main.py              | 21 +++++++++------------
+ backend/routers/analytics.py |  2 +-
+ backend/routers/deals.py     |  2 +-
+ 4 files changed, 13 insertions(+), 16 deletions(-)
+
+diff --git a/backend/database/models.py b/backend/database/models.py
+index ce4a4db..e7fa91b 100644
+--- a/backend/database/models.py
++++ b/backend/database/models.py
+@@ -17,7 +17,7 @@ from sqlalchemy import Column, Integer, String, Boolean, DateTime, Enum, Text, F
+ from sqlalchemy.ext.declarative import declarative_base
+ from sqlalchemy.orm import relationship
+ from datetime import datetime
+-from backend.auth.user_service import UserRole
++from backend.auth.user_service import UserRole as UserRoleEnum
+ 
+ Base = declarative_base()
+ 
+@@ -30,7 +30,7 @@ class User(Base):
+     id = Column(Integer, primary_key=True, index=True)
+     email = Column(String(255), unique=True, index=True, nullable=False)
+     name = Column(String(255), nullable=True)
+-    role = Column(Enum(UserRole), default=UserRole.USER, nullable=False)
++    role = Column(Enum(UserRoleEnum), default=UserRoleEnum.USER, nullable=False)
+     active = Column(Boolean, default=True, nullable=False)
+     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+     last_login = Column(DateTime, default=datetime.utcnow, nullable=False)
+diff --git a/backend/main.py b/backend/main.py
+index 70475d2..b8f2c95 100644
+--- a/backend/main.py
++++ b/backend/main.py
+@@ -13,7 +13,7 @@ from datetime import datetime
+ 
+ import structlog
+ from fastapi import FastAPI, Depends, HTTPException, Request, status
+-from fastapi.responses import JSONResponse
++from fastapi.responses import JSONResponse, Response
+ from sqlalchemy import create_engine
+ from sqlalchemy.orm import sessionmaker, Session
+ import sqlalchemy.exc
+@@ -181,7 +181,7 @@ async def get_current_user(request: Request) -> dict:
+     
+     db: Session = SessionLocal()
+     try:
+-        user = user_service.get_or_create_user(db, email=user_email)
++        user = user_service.get_or_create_user(email=user_email, session=db)
+         
+         return {
+             "id": user.id,
+@@ -239,8 +239,8 @@ async def logout_all(request: Request) -> dict:
+     
+     db: Session = SessionLocal()
+     try:
+-        user = user_service.get_or_create_user(db, email=user_email)
+-        session_service.revoke_all_user_sessions(db, user.id)
++        user = user_service.get_or_create_user(email=user_email, session=db)
++        session_service.revoke_all_user_sessions(user.id, db)
+         
+         log.info("User logged out from all sessions", email=user_email, user_id=user.id)
+         
+@@ -277,8 +277,8 @@ async def get_active_sessions(request: Request) -> dict:
+     
+     db: Session = SessionLocal()
+     try:
+-        user = user_service.get_or_create_user(db, email=user_email)
+-        sessions = session_service.get_active_sessions(db, user.id)
++        user = user_service.get_or_create_user(email=user_email, session=db)
++        sessions = session_service.list_user_sessions(user.id, db)
+         
+         return {
+             "user_email": user_email,
+@@ -301,12 +301,9 @@ async def get_active_sessions(request: Request) -> dict:
+ @app.get("/metrics", tags=["Monitoring"])
+ async def metrics(request: Request) -> dict:
+     """Prometheus metrics endpoint."""
+-    from prometheus_client import generate_latest
+-    
+-    return JSONResponse(
+-        content=generate_latest().decode("utf-8"),
+-        media_type="text/plain",
+-    )
++    from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
++
++    return Response(content=generate_latest(), media_type=CONTENT_TYPE_LATEST)
+ 
+ 
+ @app.exception_handler(Exception)
+diff --git a/backend/routers/analytics.py b/backend/routers/analytics.py
+index a348681..c3a9b06 100644
+--- a/backend/routers/analytics.py
++++ b/backend/routers/analytics.py
+@@ -109,7 +109,7 @@ async def list_buyers(
+     request: Request,
+     skip: int = Query(0, ge=0),
+     limit: int = Query(50, ge=1, le=500),
+-    status: Optional[str] = Query(None),
++    buyer_status: Optional[str] = Query(None, alias="status"),
+     sort_by: Optional[str] = Query("name"),
+     order: str = Query("asc", regex="^(asc|desc)$"),
+ ) -> BuyerListResponse:
+diff --git a/backend/routers/deals.py b/backend/routers/deals.py
+index 08a03d8..dd6322f 100644
+--- a/backend/routers/deals.py
++++ b/backend/routers/deals.py
+@@ -112,7 +112,7 @@ async def list_deals(
+     request: Request,
+     skip: int = Query(0, ge=0),
+     limit: int = Query(50, ge=1, le=500),
+-    status: Optional[str] = Query(None),
++    deal_status: Optional[str] = Query(None, alias="status"),
+     make: Optional[str] = Query(None),
+     model: Optional[str] = Query(None),
+     min_score: Optional[float] = Query(None, ge=0, le=100),
+-- 
+2.53.0
+
