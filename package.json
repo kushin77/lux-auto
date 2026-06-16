@@ -1,0 +1,32 @@
+{
+  "name": "lux-auto",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Lux Auto — Exotic Dealer Command Center. CLI-native Google Apps Script project with Manheim integration.",
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "login": "clasp login",
+    "logout": "clasp logout",
+    "pull": "clasp pull",
+    "push": "clasp push",
+    "watch": "clasp push --watch",
+    "open": "clasp open",
+    "open:web": "clasp open --webapp",
+    "deploy": "clasp push --force && clasp deploy",
+    "deployments": "clasp deployments",
+    "logs": "clasp logs --watch",
+    "status": "clasp status",
+    "lint": "eslint \"*.gs\" \"tools/**/*.mjs\"",
+    "lint:fix": "eslint --fix \"*.gs\" \"tools/**/*.mjs\"",
+    "mh": "node --env-file=.env tools/manheim.mjs",
+    "verify": "npm run lint && node --check tools/manheim.mjs"
+  },
+  "devDependencies": {
+    "@google/clasp": "^2.4.2",
+    "eslint": "^8.57.0",
+    "eslint-plugin-googleappsscript": "^1.0.5"
+  }
+}

@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Lux Auto — Command Center</title>
+<style>
+  :root{ color-scheme: light;
+    --bg:#ffffff; --panel:#f8f9fa; --card:#ffffff; --line:#dadce0;
+    --txt:#202124; --muted:#5f6368; --blue:#1a73e8; --green:#1e8e3e;
+    --red:#d93025; --gold:#b8860b; --shadow:0 1px 3px rgba(60,64,67,.15); }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:"Google Sans",Roboto,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;
+       background:var(--bg);color:var(--txt);-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1040px;margin:0 auto;padding:24px 18px 44px}
+  .hero{background:linear-gradient(180deg,#fffdf7 0,#ffffff 100%);border:1px solid var(--line);
+        border-radius:16px;padding:26px 24px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+  .hero:before{content:"";position:absolute;right:-40px;top:-40px;width:170px;height:170px;border-radius:50%;
+        background:radial-gradient(circle,rgba(184,134,11,.14),transparent 70%)}
+  .mark{display:flex;align-items:center;gap:11px}
+  .chip{width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,#b8860b,#e8c766);
+        display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:16px}
+  h1{font-size:22px;margin:0}
+  .tag{color:var(--muted);font-size:13.5px;margin:8px 0 0}
+  .cta{display:inline-flex;align-items:center;gap:8px;margin-top:18px;background:var(--blue);color:#fff;
+       text-decoration:none;font-weight:600;font-size:14px;padding:10px 18px;border-radius:8px}
+  .cta:hover{background:#1765cc}
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:16px 0 4px}
+  .kpi{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:13px 15px}
+  .kpi .n{font-size:21px;font-weight:700}.kpi .l{color:var(--muted);font-size:12px;margin-top:2px}
+  .kpi.green .n{color:var(--green)}.kpi.blue .n{color:var(--blue)}.kpi.gold .n{color:var(--gold)}
+  .flow{display:flex;flex-wrap:wrap;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--line);
+        border-radius:12px;padding:13px 15px;margin:16px 0;color:var(--muted);font-size:13px}
+  .flow b{color:var(--txt);font-weight:600}.flow .arr{color:var(--blue)}
+  .section{margin:24px 0 11px;font-size:12px;letter-spacing:1.1px;text-transform:uppercase;color:var(--muted)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:13px}
+  a.card{display:block;text-decoration:none;color:inherit;background:var(--card);border:1px solid var(--line);
+         border-radius:12px;padding:16px;transition:.15s;box-shadow:var(--shadow)}
+  a.card:hover{border-color:var(--blue);box-shadow:0 4px 16px rgba(26,115,232,.12);transform:translateY(-1px)}
+  a.card .ic{font-size:19px}a.card .t{font-weight:600;font-size:14.5px;margin:7px 0 3px}
+  a.card .d{color:var(--muted);font-size:12px;line-height:1.45;margin:0}
+  a.card.primary{border-color:var(--gold)}a.card.primary .t{color:var(--gold)}
+  details{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:4px 15px;margin-top:14px}
+  summary{cursor:pointer;color:var(--muted);font-size:13px;padding:10px 0;font-weight:600}
+  .adminrow{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:11px;padding:6px 0 13px}
+  .adminrow a{color:var(--blue);text-decoration:none;font-size:12.5px;background:var(--card);border:1px solid var(--line);
+        border-radius:9px;padding:10px 12px;display:block}
+  footer{margin-top:26px;color:var(--muted);font-size:11.5px;border-top:1px solid var(--line);padding-top:14px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hero">
+    <div class="mark"><div class="chip">L</div><h1>Lux Auto — Command Center</h1></div>
+    <p class="tag">Exotic dealer operations, end to end — scan, score, acquire, and sell from one place.</p>
+    <a class="cta" target="_blank" rel="noopener"
+       href="https://app.gohighlevel.com/v2/location/bTLwmX2mz7dBOQheNed6/opportunities/list">Open Deal Pipeline →</a>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi blue"><div class="n">1</div><div class="l">Active deals</div></div>
+    <div class="kpi gold"><div class="n">82</div><div class="l">Top deal score</div></div>
+    <div class="kpi green"><div class="n">$235K</div><div class="l">Pipeline value</div></div>
+    <div class="kpi"><div class="n">8</div><div class="l">Pipeline stages</div></div>
+  </div>
+
+  <div class="flow">
+    <b>Scan</b> <span class="arr">›</span> <b>Score</b> <span class="arr">›</span> <b>Pipeline</b>
+    <span class="arr">›</span> <b>Match buyers</b> <span class="arr">›</span> <b>Acquire</b>
+    <span class="arr">›</span> <b>Recon</b> <span class="arr">›</span> <b>Sell</b> &nbsp;— one automated deal flow.
+  </div>
+
+  <div class="section">Operations</div>
+  <div class="grid">
+    <a class="card primary" target="_blank" rel="noopener"
+       href="https://app.gohighlevel.com/v2/location/bTLwmX2mz7dBOQheNed6/opportunities/list">
+      <div class="ic">🚗</div><div class="t">Deal Pipeline</div>
+      <p class="d">Every acquisition from Spotted to Sold, across 8 stages.</p></a>
+    <a class="card" target="_blank" rel="noopener"
+       href="https://app.gohighlevel.com/v2/location/bTLwmX2mz7dBOQheNed6/contacts/smart_list/All">
+      <div class="ic">👥</div><div class="t">Buyers</div>
+      <p class="d">Buyer network, preferences, and match history.</p></a>
+    <a class="card" target="_blank" rel="noopener"
+       href="https://app.gohighlevel.com/v2/location/bTLwmX2mz7dBOQheNed6/dashboard">
+      <div class="ic">📈</div><div class="t">Performance</div>
+      <p class="d">Pipeline value, win rate, tasks, and conversations.</p></a>
+    <a class="card" target="_blank" rel="noopener"
+       href="https://app.gohighlevel.com/v2/location/bTLwmX2mz7dBOQheNed6/automation/workflows">
+      <div class="ic">⚙️</div><div class="t">Automations</div>
+      <p class="d">Hot-deal alerts, buyer matching, SLA watchdog.</p></a>
+    <a class="card" target="_blank" rel="noopener"
+       href="https://drive.google.com/drive/folders/1uU1AH7ntnGvg53IXeRWkrlPGL2pPVq_7">
+      <div class="ic">📁</div><div class="t">Vehicle Vault</div>
+      <p class="d">Per-vehicle Google Drive: titles, condition reports, photos.</p></a>
+    <a class="card" target="_blank" rel="noopener" href="https://developer.manheim.com/">
+      <div class="ic">📊</div><div class="t">Market Data</div>
+      <p class="d">MMR, listings, and condition reports from auction data.</p></a>
+  </div>
+
+  <details>
+    <summary>Engine &amp; admin (technical)</summary>
+    <div class="adminrow">
+      <a href="https://github.com/kushin77/lux-auto" target="_blank" rel="noopener">Acquisition Engine — code repo</a>
+      <a href="https://github.com/kushin77/lux-auto/pull/103" target="_blank" rel="noopener">Backend release — PR #103</a>
+    </div>
+  </details>
+
+  <footer>Lux Auto · Exotic Dealer Operations. One command center for the whole deal lifecycle.</footer>
+</div>
+</body>
+</html>

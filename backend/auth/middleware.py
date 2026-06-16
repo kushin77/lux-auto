@@ -1,127 +1,60 @@
 """
-OAuth2 Middleware - Extracts authenticated user from oauth2-proxy headers.
+OAuth middleware.
 
-Pattern: oauth2-proxy verifies Google OAuth token and passes X-Auth-Request-Email header.
-This middleware synchronizes the user to the database on each request.
-
-Data Flow:
-  oauth2-proxy → X-Auth-Request-Email header → FastAPI middleware
-                                                    ↓
-                                          OAuthMiddleware.dispatch()
-                                                    ↓
-                                          UserService.get_or_create_user()
-                                                    ↓
-                                          request.state.user populated
+oauth2-proxy terminates Google SSO at the edge and forwards the verified
+identity in the ``X-Auth-Request-Email`` header. This middleware lifts that
+header onto ``request.state`` and binds it to the structured-logging context so
+every downstream log line is attributable. Endpoints remain responsible for
+their own authorization (via RBAC); this layer only establishes identity.
 """
 
-from fastapi import Request
-from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.responses import JSONResponse
-from backend.auth.user_service import UserService
-from backend.auth.audit import AuditLogger, AuditEventType, AuditStatus
-from backend.database import get_db
-from typing import Callable, Optional
-import logging
+from __future__ import annotations
 
-logger = logging.getLogger(__name__)
+import time
+
+import structlog
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request
+
+log = structlog.get_logger(__name__)
+
+# Paths that never require an identity (health checks, metrics, API docs).
+PUBLIC_PATHS = ("/health", "/metrics", "/docs", "/redoc", "/openapi.json")
+
+AUTH_HEADER = "X-Auth-Request-Email"
 
 
 class OAuthMiddleware(BaseHTTPMiddleware):
-    """
-    Extract authenticated user from oauth2-proxy headers.
-    Auto-sync user record on first login.
-    Logs authentication events for audit trail.
-    """
-
-    # Endpoints that don't require authentication
-    PUBLIC_PATHS = {"/health", "/ready", "/docs", "/openapi.json", "/redoc"}
-
-    def __init__(self, app, user_service: UserService, session_service=None, audit_logger: Optional[AuditLogger] = None):
-        """Initialize middleware with services.
-        
-        Args:
-            app: FastAPI application
-            user_service: UserService instance
-            session_service: SessionService instance (optional)
-            audit_logger: AuditLogger instance (optional)
-        """
+    def __init__(self, app, user_service=None, session_service=None, audit_logger=None):
         super().__init__(app)
         self.user_service = user_service
         self.session_service = session_service
         self.audit_logger = audit_logger
 
-    async def dispatch(self, request: Request, call_next: Callable):
-        """
-        Process request:
-        1. Skip auth for public endpoints
-        2. Extract X-Auth-Request-Email from oauth2-proxy
-        3. Get or create user in database
-        4. Populate request.state with user info
-        """
+    async def dispatch(self, request: Request, call_next):
+        email = request.headers.get(AUTH_HEADER)
+        request.state.user_email = email
+        request.state.user_id = None
 
-        # Skip authentication for public endpoints
-        if request.url.path in self.PUBLIC_PATHS:
-            return await call_next(request)
+        structlog.contextvars.bind_contextvars(
+            path=request.url.path,
+            method=request.method,
+            user_email=email or "anonymous",
+        )
 
-        # Extract email from oauth2-proxy header
-        email = request.headers.get("X-Auth-Request-Email")
-
-        if not email:
-            logger.warning(
-                f"[SECURITY] Missing X-Auth-Request-Email for {request.method} {request.url.path}"
-            )
-            # Log security event
-            if self.audit_logger:
-                self.audit_logger.log_event(
-                    event_type=AuditEventType.AUTH_FAILED,
-                    email="unknown",
-                    action="Missing authentication header",
-                    status=AuditStatus.BLOCKED,
-                    ip_address=request.client.host if request.client else None,
-                    user_agent=request.headers.get("User-Agent"),
-                    error_message="X-Auth-Request-Email header missing"
-                )
-            return JSONResponse(status_code=401, content={"detail": "Unauthorized"})
-
-        # Get or create user in database
-        db = next(get_db())
+        start = time.perf_counter()
         try:
-            user = UserService.get_or_create_user(email=email, session=db)
-
-            # Populate request state with user info
-            request.state.email = email
-            request.state.user = user
-            request.state.is_admin = UserService.is_admin(user)
-
-            logger.info(f"Authenticated: {email} (role={user.role})")
-            
-            # Log successful authentication
-            if self.audit_logger:
-                self.audit_logger.log_authentication(
-                    email=email,
-                    status=AuditStatus.SUCCESS,
-                    ip_address=request.client.host if request.client else None,
-                    user_agent=request.headers.get("User-Agent")
-                )
-
-        except Exception as e:
-            logger.error(f"Error syncing user {email}: {str(e)}", exc_info=True)
-            # Log authentication failure
-            if self.audit_logger:
-                self.audit_logger.log_event(
-                    event_type=AuditEventType.AUTH_FAILED,
-                    email=email,
-                    action="User sync failed",
-                    status=AuditStatus.FAILURE,
-                    ip_address=request.client.host if request.client else None,
-                    user_agent=request.headers.get("User-Agent"),
-                    error_message=str(e)
-                )
-            return JSONResponse(status_code=500, content={"detail": "Server error"})
-
+            response = await call_next(request)
         finally:
-            db.close()
+            structlog.contextvars.unbind_contextvars("path", "method", "user_email")
 
-        # Call next middleware/route handler
-        response = await call_next(request)
+        elapsed_ms = round((time.perf_counter() - start) * 1000, 1)
+        response.headers["X-Response-Time-ms"] = str(elapsed_ms)
+
+        if not request.url.path.startswith(PUBLIC_PATHS):
+            log.info(
+                "request.completed",
+                status_code=response.status_code,
+                elapsed_ms=elapsed_ms,
+            )
         return response

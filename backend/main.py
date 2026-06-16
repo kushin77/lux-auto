@@ -6,23 +6,20 @@ User extraction from X-Auth-Request-Email header.
 Comprehensive deal management API with RBAC and audit logging.
 """
 
-import logging
 import os
 from contextlib import asynccontextmanager
-from datetime import datetime
+from datetime import datetime, timezone
 
 import structlog
-from fastapi import FastAPI, Depends, HTTPException, Request, status
-from fastapi.responses import JSONResponse
-from sqlalchemy import create_engine
+from fastapi import FastAPI, HTTPException, Request, status
+from fastapi.responses import JSONResponse, Response
+from sqlalchemy import create_engine, inspect
 from sqlalchemy.orm import sessionmaker, Session
-import sqlalchemy.exc
 
 from backend.auth.middleware import OAuthMiddleware
 from backend.auth.user_service import UserService
 from backend.auth.session_service import SessionService
 from backend.auth.audit import AuditLogger, AuditEventType, AuditStatus
-from backend.auth.rbac_service import RBACService
 from backend.database.models import Base
 from backend.database import set_session_local
 from backend.routers import deals, analytics, audit, websocket
@@ -76,8 +73,6 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 set_session_local(SessionLocal)
 
 # Create tables - use raw SQL with IF NOT EXISTS to avoid race conditions
-from sqlalchemy import inspect, text
-
 print(f"DEBUG: Base.metadata tables registered: {list(Base.metadata.tables.keys())}", flush=True)
 
 # Check if tables already exist to avoid unnecessary recreation
@@ -158,7 +153,7 @@ async def health_check() -> dict:
     """Health check endpoint (no auth required)."""
     return {
         "status": "healthy",
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "environment": ENVIRONMENT,
         "service": "lux-auto-fastapi",
     }
@@ -181,7 +176,7 @@ async def get_current_user(request: Request) -> dict:
     
     db: Session = SessionLocal()
     try:
-        user = user_service.get_or_create_user(db, email=user_email)
+        user = user_service.get_or_create_user(email=user_email, session=db)
         
         return {
             "id": user.id,
@@ -239,8 +234,8 @@ async def logout_all(request: Request) -> dict:
     
     db: Session = SessionLocal()
     try:
-        user = user_service.get_or_create_user(db, email=user_email)
-        session_service.revoke_all_user_sessions(db, user.id)
+        user = user_service.get_or_create_user(email=user_email, session=db)
+        session_service.revoke_all_user_sessions(user.id, db)
         
         log.info("User logged out from all sessions", email=user_email, user_id=user.id)
         
@@ -277,8 +272,8 @@ async def get_active_sessions(request: Request) -> dict:
     
     db: Session = SessionLocal()
     try:
-        user = user_service.get_or_create_user(db, email=user_email)
-        sessions = session_service.get_active_sessions(db, user.id)
+        user = user_service.get_or_create_user(email=user_email, session=db)
+        sessions = session_service.list_user_sessions(user.id, db)
         
         return {
             "user_email": user_email,
@@ -301,12 +296,9 @@ async def get_active_sessions(request: Request) -> dict:
 @app.get("/metrics", tags=["Monitoring"])
 async def metrics(request: Request) -> dict:
     """Prometheus metrics endpoint."""
-    from prometheus_client import generate_latest
-    
-    return JSONResponse(
-        content=generate_latest().decode("utf-8"),
-        media_type="text/plain",
-    )
+    from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
+
+    return Response(content=generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
 
 @app.exception_handler(Exception)

@@ -1,0 +1,11 @@
+# Only push Apps Script source. Everything else stays out of the project.
+node_modules/**
+package.json
+package-lock.json
+deploy.sh
+README.md
+*.md
+.clasp.json
+.clasp.json.template
+.claspignore
+.gitignore

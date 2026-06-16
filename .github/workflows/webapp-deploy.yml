@@ -1,0 +1,76 @@
+name: Deploy Apps Script Web App
+
+# Pushes webapp/ to Google Apps Script and cuts a new versioned deployment.
+#
+# ONE-TIME SETUP (run bootstrap.sh in Cloud Shell first — it prints these values):
+#   Repo secret  CLASPRC_JSON   — contents of ~/.clasprc.json after clasp login
+#   Repo secret  SCRIPT_ID      — the Apps Script project ID (from bootstrap.sh output)
+#
+# After those two secrets are set, every push to main that touches webapp/ auto-deploys.
+
+on:
+  workflow_dispatch:          # manual trigger from GitHub UI
+  push:
+    branches: [main]
+    paths:
+      - "webapp/**"
+      - ".github/workflows/webapp-deploy.yml"
+
+concurrency:
+  group: webapp-deploy
+  cancel-in-progress: false   # never cancel a live clasp push
+
+jobs:
+  deploy:
+    name: clasp push + deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: webapp/package.json
+
+      - name: Install clasp
+        working-directory: webapp
+        run: npm ci
+
+      # Write the OAuth token clasp needs (comes from ~/.clasprc.json on your machine).
+      - name: Write clasp credentials
+        env:
+          CLASPRC_JSON: ${{ secrets.CLASPRC_JSON }}
+        run: |
+          echo "$CLASPRC_JSON" > ~/.clasprc.json
+          chmod 600 ~/.clasprc.json
+
+      # Inject the Script ID into .clasp.json (we keep a template in the repo).
+      - name: Inject Script ID
+        env:
+          SCRIPT_ID: ${{ secrets.SCRIPT_ID }}
+        working-directory: webapp
+        run: |
+          cat .clasp.json.template \
+            | sed "s/REPLACE_WITH_SCRIPT_ID/$SCRIPT_ID/" \
+            > .clasp.json
+
+      - name: Push source to Apps Script
+        working-directory: webapp
+        run: npx clasp push --force
+
+      - name: Create versioned deployment
+        working-directory: webapp
+        run: |
+          npx clasp deploy \
+            --description "CI deploy — ${{ github.sha }} — $(date -u '+%Y-%m-%dT%H:%M:%SZ')" \
+            || echo "⚠️  deploy step failed — source was pushed; create the deployment manually once."
+
+      - name: Print web-app URL
+        working-directory: webapp
+        run: |
+          echo "── Active deployments ──"
+          npx clasp deployments || true
