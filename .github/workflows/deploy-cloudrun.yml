@@ -82,22 +82,39 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Guard: skip entire deploy if GCP isn't bootstrapped yet.
+      # Run scripts/gcp-bootstrap.sh once to populate these secrets.
+      - name: Check GCP secrets configured
+        id: gcp_check
+        run: |
+          if [[ -z "$GCP_WIF_PROVIDER" ]]; then
+            echo "::warning::GCP_WIF_PROVIDER not set — deploy skipped. Run: bash scripts/gcp-bootstrap.sh"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+        env:
+          GCP_WIF_PROVIDER: ${{ secrets.GCP_WIF_PROVIDER }}
+
       - id: auth
         name: Authenticate to GCP (WIF — keyless)
+        if: steps.gcp_check.outputs.skip == 'false'
         uses: google-github-actions/auth@v2
         with:
           workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
           service_account: ${{ secrets.GCP_DEPLOY_SA }}
 
       - uses: google-github-actions/setup-gcloud@v2
+        if: steps.gcp_check.outputs.skip == 'false'
 
       # Dockerfile.backend lives at the repo root; gcloud --source needs it as "Dockerfile"
       - name: Stage Dockerfile
+        if: steps.gcp_check.outputs.skip == 'false'
         run: cp Dockerfile.backend Dockerfile
 
       # ── app-only: SQLite, public — fast feedback on every main push ───────────
       - name: Deploy (app-only / staging)
-        if: github.event_name == 'push' || inputs.mode == 'app-only'
+        if: steps.gcp_check.outputs.skip == 'false' && (github.event_name == 'push' || inputs.mode == 'app-only')
         run: |
           SECRET_KEY="$(openssl rand -base64 48)"
           ENVVARS="DATABASE_URL=sqlite:////tmp/lux.db,FASTAPI_SECRET_KEY=${SECRET_KEY},ADMIN_USER_EMAIL=akushnir@bioenergystrategies.com,ENVIRONMENT=staging,LOG_LEVEL=INFO"
@@ -112,7 +129,7 @@ jobs:
 
       # ── production: Cloud SQL + Secret Manager + private ─────────────────────
       - name: Deploy (production)
-        if: github.event_name == 'workflow_dispatch' && inputs.mode == 'production'
+        if: steps.gcp_check.outputs.skip == 'false' && github.event_name == 'workflow_dispatch' && inputs.mode == 'production'
         env:
           CLOUDSQL_CONN: ${{ secrets.CLOUDSQL_CONN }}
         run: |
@@ -131,6 +148,7 @@ jobs:
 
       # ── health check — verifies the deploy is actually serving ────────────────
       - name: Health check
+        if: steps.gcp_check.outputs.skip == 'false'
         run: |
           URL="$(gcloud run services describe "$SERVICE" \
             --project "$PROJECT_ID" --region "$REGION" \
