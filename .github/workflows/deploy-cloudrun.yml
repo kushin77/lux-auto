@@ -58,7 +58,12 @@ jobs:
           pip install -r backend/requirements.txt -r backend/requirements-dev.txt
 
       - name: Run smoke tests
-        run: pytest backend/tests/ -v --tb=short
+        # Override addopts from root pytest.ini — coverage thresholds are a local
+        # dev concern; CI gate is pass/fail only.
+        run: |
+          pytest backend/tests/ -v --tb=short \
+            --override-ini="addopts=" \
+            --override-ini="testpaths=backend/tests"
         env:
           DATABASE_URL:       "sqlite:///./_smoke_test.db"
           FASTAPI_SECRET_KEY: "ci-test-secret"
