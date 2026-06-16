@@ -1,207 +1,1254 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <base target="_top">
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lux Auto — Command Center</title>
 <style>
-  :root{
-    --bg:#f1f3f4; --panel:#fff; --card:#fff; --line:#dadce0;
-    --txt:#202124; --muted:#5f6368; --blue:#1a73e8; --blue-d:#1765cc;
-    --green:#1e8e3e; --amber:#e37400; --red:#d93025; --gold:#b8860b;
-    --shadow:0 1px 2px rgba(60,64,67,.18),0 1px 3px 1px rgba(60,64,67,.08);
-  }
-  *{box-sizing:border-box}
-  html,body{margin:0;height:100%}
-  body{font-family:"Google Sans",Roboto,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;
-       background:var(--bg);color:var(--txt);-webkit-font-smoothing:antialiased}
-  a{color:inherit}
-  /* Top bar */
-  .topbar{position:sticky;top:0;z-index:5;background:var(--panel);border-bottom:1px solid var(--line);
-          display:flex;align-items:center;gap:12px;padding:12px 20px}
-  .brand{display:flex;align-items:center;gap:10px;font-weight:600;font-size:16px}
-  .logo{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,#b8860b,#e8c766);
-        color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700}
-  .spacer{flex:1}
-  .badge{font-size:11px;padding:3px 9px;border-radius:999px;border:1px solid var(--line);color:var(--muted)}
-  .badge.demo{color:var(--amber);border-color:#f4c89a;background:#fff7ed}
-  .who{font-size:12px;color:var(--muted)}
-  .btn{border:1px solid var(--line);background:var(--panel);color:var(--blue);font-weight:600;font-size:13px;
-       padding:7px 14px;border-radius:8px;cursor:pointer}
-  .btn:hover{background:#f8f9fa}
-  .btn.primary{background:var(--blue);color:#fff;border-color:var(--blue)}
-  .btn.primary:hover{background:var(--blue-d)}
-  /* Layout */
-  .wrap{max-width:1280px;margin:0 auto;padding:18px 20px 48px}
-  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:16px}
-  .kpi{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px;box-shadow:var(--shadow)}
-  .kpi .n{font-size:26px;font-weight:700;line-height:1}
-  .kpi .l{color:var(--muted);font-size:12.5px;margin-top:6px}
-  .kpi.blue .n{color:var(--blue)} .kpi.gold .n{color:var(--gold)} .kpi.green .n{color:var(--green)}
-  .flow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:var(--panel);border:1px solid var(--line);
-        border-radius:12px;padding:12px 16px;margin-bottom:18px;color:var(--muted);font-size:13px;box-shadow:var(--shadow)}
-  .flow b{color:var(--txt)} .flow .arr{color:var(--blue)}
-  .banner{display:none;background:#fce8e6;border:1px solid #f5c6c0;color:#a50e0e;border-radius:10px;
-          padding:12px 16px;margin-bottom:16px;font-size:13.5px}
-  /* Board */
-  .board{display:flex;gap:14px;overflow-x:auto;padding-bottom:8px}
-  .col{flex:0 0 260px;background:var(--panel);border:1px solid var(--line);border-radius:12px;display:flex;flex-direction:column;max-height:72vh}
-  .col h3{margin:0;padding:12px 14px;font-size:13px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
-  .col h3 .cnt{color:var(--muted);font-weight:500;font-size:12px}
-  .col .body{padding:10px;overflow-y:auto;display:flex;flex-direction:column;gap:10px}
-  .deal{border:1px solid var(--line);border-radius:10px;padding:12px;background:#fff;transition:.12s}
-  .deal:hover{border-color:var(--blue);box-shadow:var(--shadow)}
-  .deal .dt{font-weight:600;font-size:13.5px;margin-bottom:6px}
-  .deal .meta{font-size:11.5px;color:var(--muted);line-height:1.5}
-  .deal .row{display:flex;justify-content:space-between;align-items:center;margin-top:8px}
-  .val{font-weight:700;font-size:13px}
-  .score{font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;color:#fff}
-  .s-hi{background:var(--green)} .s-mid{background:var(--gold)} .s-lo{background:#9aa0a6}
-  .vin{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10.5px;color:var(--muted)}
-  .move{margin-top:8px;width:100%;font-size:11.5px;padding:5px;border:1px solid var(--line);border-radius:7px;color:var(--muted)}
-  .empty{color:var(--muted);font-size:12px;text-align:center;padding:18px 8px}
-  /* Buyers */
-  .section{margin:26px 0 12px;font-size:12px;letter-spacing:1.1px;text-transform:uppercase;color:var(--muted)}
-  .buyers{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
-  .buyer{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;box-shadow:var(--shadow)}
-  .buyer .bn{font-weight:600;font-size:14px}
-  .buyer .bm{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.5}
-  footer{margin-top:28px;color:var(--muted);font-size:12px;border-top:1px solid var(--line);padding-top:16px}
-  .loading{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:14px;padding:40px 0;justify-content:center}
-  .spin{width:18px;height:18px;border:3px solid #dadce0;border-top-color:var(--blue);border-radius:50%;animation:r 1s linear infinite}
-  @keyframes r{to{transform:rotate(360deg)}}
-  @media(max-width:640px){.kpis{grid-template-columns:repeat(2,1fr)}}
+/* ── Design tokens ─────────────────────────────────────────────────────────── */
+:root {
+  --bg:      #f1f3f4;
+  --panel:   #fff;
+  --line:    #dadce0;
+  --txt:     #202124;
+  --muted:   #5f6368;
+  --blue:    #1a73e8;
+  --blue-d:  #1765cc;
+  --blue-l:  #e8f0fe;
+  --green:   #1e8e3e;
+  --green-l: #e6f4ea;
+  --amber:   #e37400;
+  --amber-l: #fef7e0;
+  --red:     #d93025;
+  --red-l:   #fce8e6;
+  --gold:    #b8860b;
+  --shadow:  0 1px 2px rgba(60,64,67,.18),0 1px 3px 1px rgba(60,64,67,.08);
+  --shadow-m:0 2px 6px rgba(60,64,67,.2), 0 1px 12px rgba(60,64,67,.1);
+  --r:       10px;
+  --font:    "Google Sans",Roboto,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;
+}
+
+/* ── Base ──────────────────────────────────────────────────────────────────── */
+*  { box-sizing:border-box;margin:0;padding:0 }
+html,body { height:100%;font-family:var(--font);background:var(--bg);color:var(--txt);
+            -webkit-font-smoothing:antialiased;font-size:14px }
+a  { color:var(--blue);text-decoration:none }
+input,select,textarea { font-family:inherit;font-size:13px }
+
+/* ── Top bar ───────────────────────────────────────────────────────────────── */
+.topbar {
+  position:sticky;top:0;z-index:10;
+  background:var(--panel);border-bottom:1px solid var(--line);
+  display:flex;align-items:center;gap:8px;padding:0 20px;height:56px;
+}
+.brand { display:flex;align-items:center;gap:10px;font-weight:600;font-size:15px;
+         white-space:nowrap;margin-right:4px }
+.logo  { width:32px;height:32px;border-radius:8px;flex-shrink:0;
+         background:linear-gradient(135deg,#b8860b 0%,#e8c766 100%);
+         color:#fff;display:flex;align-items:center;justify-content:center;
+         font-weight:700;font-size:15px }
+
+/* Tab navigation */
+.tabs  { display:flex;gap:2px;flex:1 }
+.tab   { padding:0 14px;height:56px;display:flex;align-items:center;
+         font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;
+         border-bottom:3px solid transparent;transition:.15s;white-space:nowrap;
+         background:none;border-top:none;border-left:none;border-right:none;
+         font-family:inherit }
+.tab:hover   { color:var(--txt);background:var(--bg) }
+.tab.active  { color:var(--blue);border-bottom-color:var(--blue) }
+
+.topbar-right { display:flex;align-items:center;gap:10px;margin-left:auto }
+.badge { font-size:11px;padding:3px 9px;border-radius:999px;border:1px solid var(--line);
+         color:var(--muted);white-space:nowrap }
+.badge.demo { color:var(--amber);border-color:#f4c89a;background:var(--amber-l) }
+.who   { font-size:12px;color:var(--muted);white-space:nowrap }
+.btn   { border:1px solid var(--line);background:var(--panel);color:var(--blue);
+         font-weight:600;font-size:13px;padding:7px 14px;border-radius:8px;cursor:pointer;
+         display:inline-flex;align-items:center;gap:6px;transition:.12s;font-family:inherit;
+         white-space:nowrap }
+.btn:hover           { background:var(--bg) }
+.btn.primary         { background:var(--blue);color:#fff;border-color:var(--blue) }
+.btn.primary:hover   { background:var(--blue-d) }
+.btn.danger          { background:var(--red);color:#fff;border-color:var(--red) }
+.btn.success-ghost   { color:var(--green);border-color:var(--green) }
+.btn:disabled        { opacity:.5;cursor:default }
+.btn .spin           { width:14px;height:14px;border:2px solid rgba(255,255,255,.4);
+                       border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite }
+.btn .spin.dark      { border-color:rgba(26,115,232,.3);border-top-color:var(--blue) }
+
+/* ── Layout ────────────────────────────────────────────────────────────────── */
+.wrap { max-width:1320px;margin:0 auto;padding:20px 20px 60px }
+.view { display:none }
+.view.active { display:block }
+
+/* ── Banners ───────────────────────────────────────────────────────────────── */
+.banner { border-radius:var(--r);padding:12px 16px;margin-bottom:18px;
+          font-size:13px;display:none;line-height:1.5 }
+.banner.error   { background:var(--red-l);border:1px solid #f5c6c0;color:#a50e0e }
+.banner.success { background:var(--green-l);border:1px solid #b7dfbf;color:#137333 }
+.banner.warning { background:var(--amber-l);border:1px solid #f4c89a;color:#b06000 }
+
+/* ── Loading spinner ───────────────────────────────────────────────────────── */
+.loader { display:flex;align-items:center;gap:10px;color:var(--muted);
+          padding:48px 0;justify-content:center;font-size:14px }
+.spin   { width:18px;height:18px;border:2.5px solid var(--line);
+          border-top-color:var(--blue);border-radius:50%;animation:spin .9s linear infinite;
+          flex-shrink:0 }
+@keyframes spin { to { transform:rotate(360deg) } }
+
+/* ── KPIs ──────────────────────────────────────────────────────────────────── */
+.kpis { display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px }
+.kpi  { background:var(--panel);border:1px solid var(--line);border-radius:12px;
+        padding:18px;box-shadow:var(--shadow) }
+.kpi .n { font-size:28px;font-weight:700;line-height:1 }
+.kpi .l { color:var(--muted);font-size:12px;margin-top:6px }
+.kpi.blue  .n { color:var(--blue) }
+.kpi.gold  .n { color:var(--gold) }
+.kpi.green .n { color:var(--green) }
+
+/* ── Flow ribbon ───────────────────────────────────────────────────────────── */
+.flow { display:flex;flex-wrap:wrap;gap:6px;align-items:center;
+        background:var(--panel);border:1px solid var(--line);border-radius:12px;
+        padding:12px 18px;margin-bottom:18px;color:var(--muted);font-size:13px;
+        box-shadow:var(--shadow) }
+.flow b   { color:var(--txt) }
+.flow .arr{ color:var(--blue);font-size:11px }
+
+/* ── Dashboard two-col grid ────────────────────────────────────────────────── */
+.dash-grid { display:grid;grid-template-columns:1fr 320px;gap:16px }
+.panel     { background:var(--panel);border:1px solid var(--line);border-radius:12px;
+             box-shadow:var(--shadow) }
+.panel-hdr { padding:14px 18px;border-bottom:1px solid var(--line);
+             font-weight:600;font-size:13px;display:flex;justify-content:space-between;
+             align-items:center }
+.panel-body{ padding:14px 18px }
+
+/* Activity log */
+.log-list  { list-style:none;display:flex;flex-direction:column;gap:12px }
+.log-item  { display:grid;grid-template-columns:auto 1fr;gap:8px;align-items:start;
+             font-size:12.5px }
+.log-dot   { width:8px;height:8px;border-radius:50%;background:var(--blue);
+             margin-top:3px;flex-shrink:0 }
+.log-action{ font-weight:600;color:var(--txt);text-transform:lowercase }
+.log-detail{ color:var(--muted);margin-top:2px;font-size:11.5px }
+.log-time  { color:var(--muted);font-size:11px;margin-top:3px }
+
+/* Quick actions */
+.qa-grid   { display:grid;grid-template-columns:1fr 1fr;gap:8px }
+.qa-btn    { background:var(--bg);border:1px solid var(--line);border-radius:8px;
+             padding:14px;cursor:pointer;text-align:left;font-family:inherit;
+             transition:.12s;display:flex;flex-direction:column;gap:4px }
+.qa-btn:hover { border-color:var(--blue);background:var(--blue-l) }
+.qa-btn .icon { font-size:20px }
+.qa-btn .label{ font-size:12.5px;font-weight:600;color:var(--txt) }
+.qa-btn .sub  { font-size:11px;color:var(--muted) }
+
+/* ── Pipeline kanban ───────────────────────────────────────────────────────── */
+.board    { display:flex;gap:14px;overflow-x:auto;padding-bottom:8px }
+.col      { flex:0 0 260px;background:var(--panel);border:1px solid var(--line);
+            border-radius:12px;display:flex;flex-direction:column;max-height:72vh;
+            box-shadow:var(--shadow) }
+.col-hdr  { padding:12px 14px;border-bottom:1px solid var(--line);display:flex;
+            justify-content:space-between;align-items:center }
+.col-hdr .stage-name { font-size:12.5px;font-weight:600 }
+.col-hdr .stage-meta { font-size:11px;color:var(--muted);text-align:right;line-height:1.4 }
+.col-body { padding:10px;overflow-y:auto;display:flex;flex-direction:column;gap:10px }
+.deal     { border:1px solid var(--line);border-radius:10px;padding:12px;
+            background:#fff;transition:.15s;cursor:default }
+.deal:hover { border-color:var(--blue);box-shadow:var(--shadow) }
+.deal-title { font-weight:600;font-size:13px;margin-bottom:5px;line-height:1.3 }
+.deal-meta  { font-size:11.5px;color:var(--muted);line-height:1.5 }
+.deal-row   { display:flex;justify-content:space-between;align-items:center;margin-top:8px }
+.val        { font-weight:700;font-size:13px }
+.score      { font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;color:#fff;
+              flex-shrink:0 }
+.s-hi  { background:var(--green) }
+.s-mid { background:var(--gold)  }
+.s-lo  { background:#9aa0a6      }
+.vin   { font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;color:var(--muted) }
+.move  { margin-top:8px;width:100%;font-size:11.5px;padding:5px 6px;border:1px solid var(--line);
+         border-radius:7px;color:var(--muted);cursor:pointer;background:var(--bg);
+         font-family:inherit }
+.empty { color:var(--muted);font-size:12px;text-align:center;padding:22px 10px }
+
+/* ── Two-column form layouts ───────────────────────────────────────────────── */
+.two-col { display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start }
+.form-card{ background:var(--panel);border:1px solid var(--line);border-radius:12px;
+            box-shadow:var(--shadow);overflow:hidden }
+.form-hdr { background:linear-gradient(135deg,#1a1a2e 0%,#16213e 100%);
+            padding:18px 20px;color:#e0e0e0 }
+.form-hdr h2 { font-size:15px;font-weight:600;margin-bottom:3px;color:#fff }
+.form-hdr p  { font-size:12px;color:#9ba3b3 }
+.form-body{ padding:20px }
+
+/* Form elements */
+.field   { margin-bottom:16px }
+.field label { display:block;font-size:12px;font-weight:600;color:var(--muted);
+               margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px }
+.field input, .field select, .field textarea {
+  width:100%;border:1px solid var(--line);border-radius:8px;
+  padding:9px 12px;outline:none;background:var(--panel);
+  color:var(--txt);transition:.15s;
+}
+.field input:focus, .field select:focus, .field textarea:focus {
+  border-color:var(--blue);box-shadow:0 0 0 3px rgba(26,115,232,.12)
+}
+.field textarea { resize:vertical;min-height:80px }
+.field .hint { font-size:11px;color:var(--muted);margin-top:4px }
+.field .err  { font-size:11px;color:var(--red);margin-top:4px;display:none }
+.field.invalid input,.field.invalid select,.field.invalid textarea { border-color:var(--red) }
+.field.invalid .err { display:block }
+
+/* VIN decode row */
+.vin-row { display:flex;gap:8px }
+.vin-row input { flex:1;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+                 font-size:12px;text-transform:uppercase;letter-spacing:.5px }
+
+/* MMR card */
+.mmr-card { border:1px solid var(--line);border-radius:10px;padding:16px;
+            margin-bottom:16px;background:var(--bg);display:none }
+.mmr-card.show { display:block }
+.mmr-card .mmr-head { display:flex;justify-content:space-between;align-items:center;
+                      margin-bottom:12px }
+.mmr-card .mmr-label { font-size:11px;font-weight:600;color:var(--muted);
+                       text-transform:uppercase;letter-spacing:.5px }
+.mmr-card .mmr-vin   { font-size:11px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+                       color:var(--muted) }
+.mmr-card .mmr-title { font-size:14px;font-weight:700;color:var(--txt);margin-bottom:8px }
+.mmr-card .mmr-vals  { display:grid;grid-template-columns:1fr 1fr;gap:10px }
+.mmr-card .mmr-val   { text-align:center;background:var(--panel);border:1px solid var(--line);
+                       border-radius:8px;padding:10px }
+.mmr-card .mmr-val .n{ font-size:18px;font-weight:700;color:var(--blue) }
+.mmr-card .mmr-val .l{ font-size:11px;color:var(--muted);margin-top:3px }
+.mmr-card .no-mmr    { font-size:12.5px;color:var(--muted);text-align:center;padding:8px }
+
+/* ── Field row (inline 2-up) ───────────────────────────────────────────────── */
+.field-row { display:grid;grid-template-columns:1fr 1fr;gap:12px }
+.field-row3{ display:grid;grid-template-columns:1fr 1fr 80px;gap:12px }
+
+/* Divider with label */
+.divider   { display:flex;align-items:center;gap:10px;margin:18px 0 14px;color:var(--muted);
+             font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.6px }
+.divider::before,.divider::after { content:'';flex:1;height:1px;background:var(--line) }
+
+/* ── Leads / buyer lists ───────────────────────────────────────────────────── */
+.leads-list { display:flex;flex-direction:column;gap:12px }
+.lead-card  { background:var(--panel);border:1px solid var(--line);border-radius:10px;
+              padding:14px;box-shadow:var(--shadow);transition:.15s }
+.lead-card:hover { border-color:var(--blue) }
+.lead-title  { font-weight:600;font-size:13px;margin-bottom:5px }
+.lead-meta   { font-size:12px;color:var(--muted);line-height:1.5 }
+.lead-row    { display:flex;justify-content:space-between;align-items:center;margin-top:8px }
+
+.buyer-grid  { display:grid;grid-template-columns:1fr;gap:12px }
+.buyer-card  { background:var(--panel);border:1px solid var(--line);border-radius:10px;
+               padding:14px;box-shadow:var(--shadow) }
+.buyer-name  { font-weight:600;font-size:13px;margin-bottom:6px }
+.buyer-meta  { font-size:12px;color:var(--muted);line-height:1.6 }
+.buyer-tag   { display:inline-block;font-size:11px;padding:2px 8px;background:var(--blue-l);
+               color:var(--blue);border-radius:999px;margin:2px 2px 0 0;font-weight:500 }
+
+/* ── Market / Manheim ──────────────────────────────────────────────────────── */
+.mkt-header { display:flex;align-items:center;gap:12px;margin-bottom:18px;flex-wrap:wrap }
+.mkt-header h2 { font-size:16px;font-weight:700 }
+.pill  { font-size:12px;font-weight:600;padding:4px 12px;border-radius:999px;border:1px solid }
+.pill.blue  { background:var(--blue-l);color:var(--blue);border-color:#c5d9f7 }
+.pill.green { background:var(--green-l);color:var(--green);border-color:#b2d9bb }
+.pill.gold  { background:var(--amber-l);color:var(--amber);border-color:#f4c89a }
+
+.tbl-wrap  { overflow-x:auto;border:1px solid var(--line);border-radius:12px;
+             box-shadow:var(--shadow);background:var(--panel) }
+.tbl       { width:100%;border-collapse:collapse;font-size:12.5px }
+.tbl thead tr { background:#1a1a2e;color:#e0e0e0 }
+.tbl thead th { padding:11px 14px;text-align:left;font-weight:600;font-size:11px;
+                letter-spacing:.4px;text-transform:uppercase;white-space:nowrap }
+.tbl tbody tr:nth-child(even) { background:#f8f9fa }
+.tbl tbody tr:hover { background:var(--blue-l) }
+.tbl tbody td { padding:10px 14px;color:var(--txt);vertical-align:middle;border-bottom:1px solid var(--line) }
+.tbl tbody tr:last-child td { border-bottom:none }
+.tbl .vin-cell { font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10.5px;color:var(--muted) }
+.tbl .num      { text-align:right;font-variant-numeric:tabular-nums }
+.tbl .score-cell{ text-align:center }
+
+/* ── Toast / snack ─────────────────────────────────────────────────────────── */
+.toast { position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);
+         background:#202124;color:#fff;border-radius:8px;padding:12px 20px;font-size:13.5px;
+         box-shadow:var(--shadow-m);transition:.3s;z-index:100;white-space:nowrap;
+         pointer-events:none }
+.toast.show { transform:translateX(-50%) translateY(0) }
+.toast.error{ background:var(--red) }
+.toast.ok   { background:var(--green) }
+
+/* ── Responsive ─────────────────────────────────────────────────────────────── */
+@media(max-width:900px){
+  .kpis { grid-template-columns:repeat(2,1fr) }
+  .two-col { grid-template-columns:1fr }
+  .dash-grid { grid-template-columns:1fr }
+  .tabs .tab { padding:0 10px }
+}
+@media(max-width:640px){
+  .tabs .tab { font-size:12px;padding:0 8px }
+  .brand span { display:none }
+  .who { display:none }
+}
+
+/* Section heading */
+.section-hdr { font-size:12px;letter-spacing:1px;text-transform:uppercase;
+               color:var(--muted);margin:24px 0 12px;font-weight:600 }
 </style>
 </head>
 <body>
-  <div class="topbar">
-    <div class="brand"><span class="logo">L</span> Lux Auto — Command Center</div>
-    <span id="demoBadge" class="badge demo" style="display:none">Preview data</span>
-    <div class="spacer"></div>
-    <span id="who" class="who"></span>
-    <button class="btn primary" onclick="load(true)">↻ Refresh</button>
+
+<!-- ── Top bar ──────────────────────────────────────────────────────────────── -->
+<div class="topbar">
+  <div class="brand">
+    <span class="logo">L</span>
+    <span>Lux Auto</span>
   </div>
 
-  <div class="wrap">
-    <div id="banner" class="banner"></div>
+  <nav class="tabs">
+    <button class="tab active" onclick="switchTab('dashboard')">Dashboard</button>
+    <button class="tab"        onclick="switchTab('pipeline')">Pipeline</button>
+    <button class="tab"        onclick="switchTab('sellers')">Sellers</button>
+    <button class="tab"        onclick="switchTab('buyers')">Buyers</button>
+    <button class="tab"        onclick="switchTab('market')">Market</button>
+  </nav>
 
+  <div class="topbar-right">
+    <span id="demoBadge" class="badge demo" style="display:none">Preview data</span>
+    <span id="who" class="who"></span>
+    <button class="btn" id="refreshBtn" onclick="refresh()">↻ Refresh</button>
+  </div>
+</div>
+
+<!-- ── Banner ───────────────────────────────────────────────────────────────── -->
+<div class="wrap">
+  <div id="banner" class="banner error"></div>
+
+  <!-- ── View: Dashboard ──────────────────────────────────────────────────── -->
+  <div id="v-dashboard" class="view active">
     <div class="kpis">
       <div class="kpi blue"><div class="n" id="k_active">—</div><div class="l">Active deals</div></div>
-      <div class="kpi gold"><div class="n" id="k_hot">—</div><div class="l">Hot deals (score ≥ 70)</div></div>
+      <div class="kpi gold"><div class="n" id="k_hot">—</div><div class="l">Hot deals (≥70)</div></div>
       <div class="kpi green"><div class="n" id="k_value">—</div><div class="l">Pipeline value</div></div>
-      <div class="kpi"><div class="n" id="k_top">—</div><div class="l">Top deal score</div></div>
+      <div class="kpi"><div class="n" id="k_top">—</div><div class="l">Top score</div></div>
     </div>
 
     <div class="flow">
-      <b>Scan</b><span class="arr">›</span><b>Score</b><span class="arr">›</span><b>Pipeline</b>
-      <span class="arr">›</span><b>Match buyers</b><span class="arr">›</span><b>Acquire</b>
-      <span class="arr">›</span><b>Recon</b><span class="arr">›</span><b>Sell</b>&nbsp;— one automated deal flow.
+      <b>Scan</b><span class="arr">›</span>
+      <b>Score</b><span class="arr">›</span>
+      <b>Pipeline</b><span class="arr">›</span>
+      <b>Match buyers</b><span class="arr">›</span>
+      <b>Acquire</b><span class="arr">›</span>
+      <b>Recon</b><span class="arr">›</span>
+      <b>Sell</b>
+      &nbsp;— one automated deal flow.
     </div>
 
-    <div id="loading" class="loading"><span class="spin"></span> Loading deals…</div>
-    <div id="board" class="board" style="display:none"></div>
+    <div id="dash-loading" class="loader"><span class="spin"></span> Loading…</div>
 
-    <div class="section">Buyers</div>
-    <div id="buyers" class="buyers"></div>
+    <div id="dash-content" style="display:none">
+      <div class="dash-grid">
+        <!-- Activity feed -->
+        <div class="panel">
+          <div class="panel-hdr">
+            Activity Feed
+            <span style="font-size:11px;font-weight:400;color:var(--muted)">last 10 events</span>
+          </div>
+          <div class="panel-body">
+            <ul id="activityFeed" class="log-list">
+              <li class="empty">No activity yet.</li>
+            </ul>
+          </div>
+        </div>
 
-    <footer>Lux Auto · Exotic Dealer Operations · <span id="ts"></span></footer>
+        <!-- Quick actions -->
+        <div class="panel">
+          <div class="panel-hdr">Quick Actions</div>
+          <div class="panel-body">
+            <div class="qa-grid">
+              <button class="qa-btn" onclick="switchTab('sellers')">
+                <span class="icon">📋</span>
+                <span class="label">Seller Intake</span>
+                <span class="sub">Log a new vehicle</span>
+              </button>
+              <button class="qa-btn" onclick="switchTab('buyers')">
+                <span class="icon">👤</span>
+                <span class="label">Add Buyer</span>
+                <span class="sub">Register in network</span>
+              </button>
+              <button class="qa-btn" onclick="switchTab('pipeline')">
+                <span class="icon">🗂</span>
+                <span class="label">Pipeline</span>
+                <span class="sub">Deal board</span>
+              </button>
+              <button class="qa-btn" onclick="switchTab('market')">
+                <span class="icon">📡</span>
+                <span class="label">Market Scan</span>
+                <span class="sub">Manheim alerts</span>
+              </button>
+            </div>
+            <div style="margin-top:16px;display:flex;flex-direction:column;gap:8px" id="adminActions" style="display:none">
+              <button class="btn" style="width:100%;justify-content:center" onclick="syncNow()">↻ Sync CRM → Sheets</button>
+              <button class="btn" style="width:100%;justify-content:center" onclick="runScan()">📡 Run Manheim Scan</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
+  <!-- ── View: Pipeline ───────────────────────────────────────────────────── -->
+  <div id="v-pipeline" class="view">
+    <div id="pipe-loading" class="loader"><span class="spin"></span> Loading pipeline…</div>
+    <div id="pipe-content" style="display:none">
+      <div id="board" class="board"></div>
+    </div>
+  </div>
+
+  <!-- ── View: Sellers ────────────────────────────────────────────────────── -->
+  <div id="v-sellers" class="view">
+    <div class="two-col">
+
+      <!-- Left: Intake form -->
+      <div>
+        <div class="form-card">
+          <div class="form-hdr">
+            <h2>Vehicle Intake Form</h2>
+            <p>Decode VIN to auto-fill details and pull MMR value</p>
+          </div>
+          <div class="form-body">
+
+            <!-- VIN + decode -->
+            <div class="field" id="vin-field">
+              <label>VIN <span style="color:var(--red)">*</span></label>
+              <div class="vin-row">
+                <input type="text" id="s_vin" maxlength="17" placeholder="e.g. ZFF79ALA4J0231234"
+                       oninput="this.value=this.value.toUpperCase()" autocomplete="off"
+                       onkeydown="if(event.key==='Enter')decodeVIN()">
+                <button class="btn" id="decodeBtn" onclick="decodeVIN()">Decode</button>
+              </div>
+              <div class="err" id="vin-err">Please enter a VIN to continue.</div>
+            </div>
+
+            <!-- MMR preview card -->
+            <div class="mmr-card" id="mmrCard">
+              <div class="mmr-head">
+                <span class="mmr-label">VIN Details</span>
+                <span class="mmr-vin" id="mmrVin"></span>
+              </div>
+              <div class="mmr-title" id="mmrTitle"></div>
+              <div id="mmrVals"></div>
+            </div>
+
+            <div class="field-row">
+              <div class="field">
+                <label>Year</label>
+                <input type="number" id="s_year" placeholder="2021" min="1990" max="2030">
+              </div>
+              <div class="field">
+                <label>Make</label>
+                <input type="text" id="s_make" placeholder="Ferrari">
+              </div>
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label>Model</label>
+                <input type="text" id="s_model" placeholder="488 GTB">
+              </div>
+              <div class="field">
+                <label>Trim / Series</label>
+                <input type="text" id="s_trim" placeholder="GTS">
+              </div>
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label>Mileage <span style="color:var(--red)">*</span></label>
+                <input type="number" id="s_mileage" placeholder="12500" min="0">
+                <div class="err" id="mileage-err">Mileage is required.</div>
+              </div>
+              <div class="field">
+                <label>Condition</label>
+                <select id="s_condition">
+                  <option value="">— Select —</option>
+                  <option value="Excellent">Excellent (5.0)</option>
+                  <option value="Very Good">Very Good (4.0–4.9)</option>
+                  <option value="Good">Good (3.0–3.9)</option>
+                  <option value="Fair">Fair (2.0–2.9)</option>
+                  <option value="As-Is">As-Is / Unknown</option>
+                </select>
+              </div>
+            </div>
+            <div class="field">
+              <label>Seller Asking Price ($)</label>
+              <input type="number" id="s_askingPrice" placeholder="225000" min="0">
+              <div class="hint">Leave blank if price not disclosed</div>
+            </div>
+
+            <div class="divider">Seller Contact</div>
+
+            <div class="field">
+              <label>Seller Name</label>
+              <input type="text" id="s_sellerName" placeholder="John Smith">
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label>Email</label>
+                <input type="email" id="s_sellerEmail" placeholder="seller@email.com">
+              </div>
+              <div class="field">
+                <label>Phone</label>
+                <input type="tel" id="s_sellerPhone" placeholder="+1 (305) 555-0100">
+              </div>
+            </div>
+            <div class="field">
+              <label>Notes</label>
+              <textarea id="s_notes" placeholder="Condition details, accident history, service records, urgency…"></textarea>
+            </div>
+
+            <button class="btn primary" id="sellerSubmitBtn" onclick="submitSeller()" style="width:100%;justify-content:center">
+              Log Vehicle Intake
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Recent leads -->
+      <div>
+        <div class="section-hdr">Recent Seller Leads</div>
+        <div id="seller-leads-loading" class="loader"><span class="spin"></span> Loading…</div>
+        <div id="seller-leads" class="leads-list" style="display:none"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── View: Buyers ─────────────────────────────────────────────────────── -->
+  <div id="v-buyers" class="view">
+    <div class="two-col">
+
+      <!-- Left: Registration form -->
+      <div>
+        <div class="form-card">
+          <div class="form-hdr">
+            <h2>Buyer Registration</h2>
+            <p>Add a buyer to the network — matched deals will be routed to them automatically</p>
+          </div>
+          <div class="form-body">
+            <div class="field" id="buyer-name-field">
+              <label>Full Name <span style="color:var(--red)">*</span></label>
+              <input type="text" id="b_name" placeholder="Jane Collector">
+              <div class="err" id="buyer-name-err">Name is required.</div>
+            </div>
+            <div class="field-row">
+              <div class="field" id="buyer-contact-field">
+                <label>Email</label>
+                <input type="email" id="b_email" placeholder="jane@buyer.com">
+              </div>
+              <div class="field">
+                <label>Phone</label>
+                <input type="tel" id="b_phone" placeholder="+1 (305) 555-0100">
+              </div>
+            </div>
+            <div class="field">
+              <label>Makes Interested In</label>
+              <input type="text" id="b_makes" placeholder="Ferrari, Lamborghini, Porsche">
+              <div class="hint">Comma-separated — used for automatic deal matching</div>
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label>Max Budget ($)</label>
+                <input type="number" id="b_maxPrice" placeholder="350000" min="0">
+              </div>
+              <div class="field">
+                <label>Min Deal Score</label>
+                <input type="number" id="b_minScore" placeholder="60" min="0" max="100">
+                <div class="hint">0–100; 70 = hot deal</div>
+              </div>
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label>City</label>
+                <input type="text" id="b_city" placeholder="Miami">
+              </div>
+              <div class="field">
+                <label>State</label>
+                <input type="text" id="b_state" placeholder="FL" maxlength="2"
+                       oninput="this.value=this.value.toUpperCase()">
+              </div>
+            </div>
+            <div class="field">
+              <label>Notes</label>
+              <textarea id="b_notes" placeholder="Preferences, financing pre-approved, cash buyer, preferred pickup location…"></textarea>
+            </div>
+
+            <button class="btn primary" id="buyerSubmitBtn" onclick="submitBuyer()" style="width:100%;justify-content:center">
+              Register Buyer
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Buyer network -->
+      <div>
+        <div class="section-hdr">Buyer Network</div>
+        <div id="buyer-list-loading" class="loader"><span class="spin"></span> Loading…</div>
+        <div id="buyer-list" class="buyer-grid" style="display:none"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── View: Market ──────────────────────────────────────────────────────── -->
+  <div id="v-market" class="view">
+    <div class="mkt-header">
+      <h2>Market Intelligence</h2>
+      <span class="pill blue" id="mkt-count">0 alerts</span>
+      <span class="pill green" id="mkt-avg-score"></span>
+      <span class="pill gold" id="mkt-total-profit"></span>
+      <div style="margin-left:auto;display:flex;gap:8px">
+        <button class="btn" onclick="loadMarket(true)">↻ Refresh</button>
+        <button class="btn primary" id="scanBtn" onclick="runScan()" style="display:none">📡 Run Scan</button>
+      </div>
+    </div>
+
+    <div id="market-loading" class="loader"><span class="spin"></span> Loading alerts…</div>
+    <div id="market-content" style="display:none">
+      <div id="market-empty" class="empty" style="display:none;padding:48px 0">
+        No Manheim alerts yet. Run a scan or configure Manheim credentials in Script Properties.
+      </div>
+      <div class="tbl-wrap" id="market-tbl-wrap">
+        <table class="tbl" id="market-tbl">
+          <thead>
+            <tr>
+              <th>Scanned</th>
+              <th>VIN</th>
+              <th>Year</th>
+              <th>Make / Model</th>
+              <th>Mileage</th>
+              <th>Cond.</th>
+              <th>Location</th>
+              <th>Sale Date</th>
+              <th class="num">List $</th>
+              <th class="num">MMR $</th>
+              <th class="num">Discount</th>
+              <th class="score-cell">Score</th>
+              <th class="num">Est. Profit</th>
+              <th>Reason</th>
+            </tr>
+          </thead>
+          <tbody id="market-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div><!-- .wrap -->
+
+<!-- Toast -->
+<div id="toast" class="toast"></div>
+
 <script>
-  var STATE = { user:{isAdmin:false}, stages:[] };
+/* ── State ──────────────────────────────────────────────────────────────────── */
+var S = {
+  user:   { email: '', isAdmin: false },
+  stages: [],
+  deals:  [],
+  buyers: [],
+  demo:   false,
+  loaded: {}    // view -> bool
+};
 
-  function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){
-    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
-  function money(n){ n=Number(n||0); return n>=1000 ? '$'+(n/1000).toFixed(n%1000?1:0)+'K' : '$'+n.toLocaleString(); }
-  function scoreClass(s){ return s>=80?'s-hi':(s>=70?'s-mid':'s-lo'); }
+/* ── Utilities ──────────────────────────────────────────────────────────────── */
+function esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, function(c) {
+    return { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c];
+  });
+}
+function money(n) {
+  n = Number(n || 0);
+  if (n === 0) return '—';
+  if (n >= 1000000) return '$' + (n / 1000000).toFixed(1) + 'M';
+  if (n >= 1000)    return '$' + (n / 1000).toFixed(n % 1000 ? 1 : 0) + 'K';
+  return '$' + n.toLocaleString();
+}
+function scoreClass(s) { return s >= 80 ? 's-hi' : s >= 50 ? 's-mid' : 's-lo'; }
+function noop() {}
+function isGAS() { return typeof google !== 'undefined' && google.script && google.script.run; }
 
-  function load(force){
-    document.getElementById('loading').style.display='flex';
-    document.getElementById('board').style.display='none';
-    if(typeof google==='undefined' || !google.script || !google.script.run){
-      // Not running inside Apps Script (e.g. local preview) — show a hint.
-      return fail({message:'Open this through the deployed web app URL.'});
+/* ── GAS runner ─────────────────────────────────────────────────────────────── */
+function gsr(fn, onOk, onErr) {
+  if (!isGAS()) { onErr && onErr({ message: 'Open via the deployed Apps Script web-app URL.' }); return null; }
+  return google.script.run
+    .withSuccessHandler(onOk  || noop)
+    .withFailureHandler(onErr || function(e) { toast(e.message || 'Error', true); });
+}
+
+/* ── Toast ──────────────────────────────────────────────────────────────────── */
+var _toastTimer;
+function toast(msg, isErr, isOk) {
+  var el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className   = 'toast show' + (isErr ? ' error' : isOk ? ' ok' : '');
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(function() { el.className = 'toast'; }, 3000);
+}
+
+/* ── Banner ─────────────────────────────────────────────────────────────────── */
+function showBanner(msg, type) {
+  var el = document.getElementById('banner');
+  el.textContent = '⚠ ' + msg;
+  el.className   = 'banner ' + (type || 'error');
+  el.style.display = 'block';
+}
+function hideBanner() { document.getElementById('banner').style.display = 'none'; }
+
+/* ── Navigation ──────────────────────────────────────────────────────────────── */
+var TABS = ['dashboard','pipeline','sellers','buyers','market'];
+var currentTab = 'dashboard';
+
+function switchTab(id) {
+  if (!TABS.includes(id)) return;
+  TABS.forEach(function(t) {
+    document.getElementById('v-' + t).classList.toggle('active', t === id);
+  });
+  document.querySelectorAll('.tab').forEach(function(el, i) {
+    el.classList.toggle('active', TABS[i] === id);
+  });
+  currentTab = id;
+  hideBanner();
+  if (!S.loaded[id]) {
+    S.loaded[id] = true;
+    var loaders = {
+      dashboard: function() { loadDashboard(false); },
+      pipeline:  function() { loadPipeline(); },
+      sellers:   function() { loadSellerLeads(); },
+      buyers:    function() { loadBuyers(); },
+      market:    function() { loadMarket(false); }
+    };
+    loaders[id] && loaders[id]();
+  }
+}
+
+/* ── Dashboard ───────────────────────────────────────────────────────────────── */
+function loadDashboard(force) {
+  show('dash-loading');
+  hide('dash-content');
+  var runner = gsr('getDashboardData', function(data) {
+    hide('dash-loading');
+    show('dash-content');
+    applySnapshot(data);
+    renderActivityFeed();
+  }, function(e) {
+    hide('dash-loading');
+    var msg = e.message || 'Could not load data.';
+    if (/ACCESS_DENIED/.test(msg)) msg = 'You don't have access. Ask an admin to add your email.';
+    showBanner(msg);
+  });
+  if (runner) runner.getDashboardData(!!force);
+}
+
+function applySnapshot(data) {
+  S.user   = data.user   || { email: '', isAdmin: false };
+  S.stages = data.stages || [];
+  S.deals  = data.deals  || [];
+  S.buyers = data.buyers || [];
+  S.demo   = !!data.demo;
+
+  // Top-bar info
+  var who = S.user.email + (S.user.isAdmin ? ' · admin' : '');
+  document.getElementById('who').textContent = who;
+  document.getElementById('demoBadge').style.display = S.demo ? 'inline-block' : 'none';
+
+  // Admin-gated actions
+  var adminEl = document.getElementById('adminActions');
+  if (adminEl) adminEl.style.display = S.user.isAdmin ? 'flex' : 'none';
+  var scanBtn = document.getElementById('scanBtn');
+  if (scanBtn) scanBtn.style.display = S.user.isAdmin ? 'inline-flex' : 'none';
+
+  // KPIs
+  var m = data.metrics || {};
+  document.getElementById('k_active').textContent = m.activeDeals || 0;
+  document.getElementById('k_hot').textContent    = m.hotDeals    || 0;
+  document.getElementById('k_value').textContent  = money(m.pipelineValue || 0);
+  document.getElementById('k_top').textContent    = m.topScore    || 0;
+
+  if (data.error) showBanner('Could not reach the data source — showing cached data. (' + esc(data.error) + ')', 'warning');
+}
+
+function renderActivityFeed() {
+  var feed = document.getElementById('activityFeed');
+  if (!isGAS()) {
+    feed.innerHTML = '<li class="empty">Connect the web app to see live activity.</li>';
+    return;
+  }
+  var runner = gsr('getActivityLog', function(rows) {
+    if (!rows || !rows.length) {
+      feed.innerHTML = '<li class="empty">No activity recorded yet.</li>';
+      return;
     }
-    google.script.run.withSuccessHandler(render).withFailureHandler(fail).getDashboardData(!!force);
-  }
-
-  function fail(err){
-    document.getElementById('loading').style.display='none';
-    var b=document.getElementById('banner');
-    var m=(err&&err.message)||'Something went wrong.';
-    if(/ACCESS_DENIED/.test(m)) m='You don’t have access to this tool. Ask an admin to add your email.';
-    b.textContent='⚠ '+m; b.style.display='block';
-  }
-
-  function render(data){
-    document.getElementById('loading').style.display='none';
-    STATE.user=data.user||{isAdmin:false}; STATE.stages=data.stages||[];
-    document.getElementById('who').textContent=(data.user&&data.user.email)?(data.user.email+(data.user.isAdmin?' · admin':'')):'';
-    document.getElementById('demoBadge').style.display=data.demo?'inline-block':'none';
-    var b=document.getElementById('banner');
-    if(data.error){ b.textContent='⚠ Couldn’t reach the data source — showing what we have. ('+esc(data.error)+')'; b.style.display='block'; }
-    else b.style.display='none';
-
-    var m=data.metrics||{};
-    document.getElementById('k_active').textContent=m.activeDeals||0;
-    document.getElementById('k_hot').textContent=m.hotDeals||0;
-    document.getElementById('k_value').textContent=money(m.pipelineValue||0);
-    document.getElementById('k_top').textContent=m.topScore||0;
-    document.getElementById('ts').textContent='Updated '+new Date(data.generatedAt||Date.now()).toLocaleString();
-
-    renderBoard(data.deals||[], data.stages||[]);
-    renderBuyers(data.buyers||[]);
-  }
-
-  function renderBoard(deals, stages){
-    var byStage={}; stages.forEach(function(s){ byStage[s]=[]; });
-    deals.forEach(function(d){ (byStage[d.stage]=byStage[d.stage]||[]).push(d); });
-    var html=stages.map(function(stage){
-      var items=byStage[stage]||[];
-      var cards=items.length?items.map(function(d){ return dealCard(d); }).join('')
-                            :'<div class="empty">No deals</div>';
-      return '<div class="col"><h3>'+esc(stage)+'<span class="cnt">'+items.length+'</span></h3>'
-           + '<div class="body">'+cards+'</div></div>';
+    feed.innerHTML = rows.slice(0, 10).map(function(r) {
+      var a = (r.action || '').replace(/_/g, ' ');
+      return '<li class="log-item">'
+        + '<span class="log-dot"></span>'
+        + '<div><div class="log-action">' + esc(a) + '</div>'
+        + '<div class="log-detail">' + esc(r.details || '') + '</div>'
+        + '<div class="log-time">' + esc(r.timestamp || '') + (r.user ? ' · ' + esc(r.user) : '') + '</div>'
+        + '</div></li>';
     }).join('');
-    var board=document.getElementById('board');
-    board.innerHTML=html; board.style.display='flex';
-  }
+  });
+  if (runner) runner.getActivityLog(10);
+}
 
-  function dealCard(d){
-    var mover='';
-    if(STATE.user.isAdmin && !/^demo-/.test(d.id)){
-      mover='<select class="move" onchange="moveDeal(\''+esc(d.id)+'\',this.value)">'
+/* ── Pipeline ─────────────────────────────────────────────────────────────── */
+function loadPipeline() {
+  // Reuse snapshot if already loaded; otherwise fetch
+  if (S.deals.length || S.stages.length) {
+    renderPipeline();
+    return;
+  }
+  show('pipe-loading');
+  hide('pipe-content');
+  var runner = gsr('getDashboardData', function(data) {
+    hide('pipe-loading');
+    show('pipe-content');
+    applySnapshot(data);
+    renderPipeline();
+  });
+  if (runner) runner.getDashboardData(false);
+}
+
+function renderPipeline() {
+  hide('pipe-loading');
+  show('pipe-content');
+  var board     = document.getElementById('board');
+  var byStage   = {};
+  var valByStage = {};
+  S.stages.forEach(function(s) { byStage[s] = []; valByStage[s] = 0; });
+  S.deals.forEach(function(d) {
+    (byStage[d.stage] = byStage[d.stage] || []).push(d);
+    valByStage[d.stage] = (valByStage[d.stage] || 0) + (d.value || 0);
+  });
+
+  board.innerHTML = S.stages.map(function(stage) {
+    var items = byStage[stage] || [];
+    var cards = items.length
+      ? items.map(function(d) { return dealCard(d); }).join('')
+      : '<div class="empty">No deals</div>';
+    return '<div class="col">'
+      + '<div class="col-hdr">'
+      +   '<span class="stage-name">' + esc(stage) + '</span>'
+      +   '<span class="stage-meta">' + items.length + ' deal' + (items.length === 1 ? '' : 's')
+      +     (valByStage[stage] ? '<br>' + money(valByStage[stage]) : '') + '</span>'
+      + '</div>'
+      + '<div class="col-body">' + cards + '</div></div>';
+  }).join('');
+}
+
+function dealCard(d) {
+  var mover = '';
+  if (S.user.isAdmin && !/^demo-/.test(d.id)) {
+    mover = '<select class="move" onchange="moveDealUI(\'' + esc(d.id) + '\',this.value)">'
           + '<option value="">Move to…</option>'
-          + STATE.stages.map(function(s){ return '<option'+(s===d.stage?' disabled':'')+'>'+esc(s)+'</option>'; }).join('')
-          + '</select>';
+          + S.stages.map(function(s) {
+              return '<option' + (s === d.stage ? ' disabled' : '') + '>' + esc(s) + '</option>';
+            }).join('') + '</select>';
+  }
+  var sub = [d.year || '', d.make || ''].filter(Boolean).join(' ');
+  return '<div class="deal">'
+    + '<div class="deal-title">' + esc(d.title || d.fullName || 'Deal') + '</div>'
+    + '<div class="deal-meta">' + esc(sub)
+    + (d.vin ? '<br><span class="vin">VIN ' + esc(d.vin) + '</span>' : '') + '</div>'
+    + '<div class="deal-row">'
+    +   '<span class="val">' + money(d.value) + '</span>'
+    +   '<span class="score ' + scoreClass(d.score || 0) + '">' + (d.score || 0) + '</span>'
+    + '</div>' + mover + '</div>';
+}
+
+function moveDealUI(id, stage) {
+  if (!stage) return;
+  var runner = gsr('moveDeal', function() {
+    toast('Moved to ' + stage, false, true);
+    S.loaded['pipeline'] = false;
+    S.deals = [];
+    loadPipeline();
+  }, function(e) { toast(e.message || 'Move failed.', true); });
+  if (runner) runner.moveDeal(id, stage);
+}
+
+/* ── Sellers ──────────────────────────────────────────────────────────────── */
+var vinData = null;   // result from last decodeVIN
+
+function decodeVIN() {
+  var vin = (document.getElementById('s_vin').value || '').toUpperCase().trim();
+  if (!vin || vin.length < 11) {
+    toast('Enter a VIN (11–17 characters)', true); return;
+  }
+  var btn = document.getElementById('decodeBtn');
+  btn.innerHTML = '<span class="spin dark"></span> Decoding…';
+  btn.disabled  = true;
+
+  var runner = gsr('decodeVIN', function(data) {
+    btn.innerHTML = 'Decode';
+    btn.disabled  = false;
+    if (data.error) { toast(data.error, true); return; }
+    vinData = data;
+    renderMMRCard(data);
+    // Auto-fill form fields
+    setVal('s_year',  data.year   || '');
+    setVal('s_make',  data.make   || '');
+    setVal('s_model', data.model  || '');
+    setVal('s_trim',  [data.trim, data.series].filter(Boolean).join(' / ') || '');
+    toast([(data.year || ''), (data.make || ''), (data.model || '')].filter(Boolean).join(' ') + ' — decoded!', false, true);
+  }, function(e) {
+    btn.innerHTML = 'Decode';
+    btn.disabled  = false;
+    toast(e.message || 'Decode failed.', true);
+  });
+  if (runner) runner.decodeVIN(vin);
+}
+
+function renderMMRCard(data) {
+  var card = document.getElementById('mmrCard');
+  card.className = 'mmr-card show';
+  document.getElementById('mmrVin').textContent   = data.vin || '';
+  document.getElementById('mmrTitle').textContent = [data.year, data.make, data.model, data.trim].filter(Boolean).join(' ');
+  var vals = document.getElementById('mmrVals');
+  if (data.mmr) {
+    vals.innerHTML = '<div class="mmr-vals">'
+      + '<div class="mmr-val"><div class="n">' + money(data.mmr) + '</div><div class="l">MMR Value</div></div>'
+      + '<div class="mmr-val"><div class="n">' + money(data.adjustedMmr || data.mmr) + '</div><div class="l">Adjusted MMR</div></div>'
+      + (data.grade ? '<div class="mmr-val"><div class="n">' + data.grade + '</div><div class="l">Condition Grade</div></div>' : '')
+      + '</div>';
+  } else {
+    vals.innerHTML = '<div class="no-mmr">MMR not available — Manheim credentials not configured or VIN not in database</div>';
+  }
+}
+
+function submitSeller() {
+  var vin     = (document.getElementById('s_vin').value     || '').trim().toUpperCase();
+  var mileage = (document.getElementById('s_mileage').value || '').trim();
+  var valid   = true;
+
+  if (!vin) {
+    document.getElementById('vin-field').classList.add('invalid');
+    document.getElementById('vin-err').style.display = 'block';
+    valid = false;
+  } else {
+    document.getElementById('vin-field').classList.remove('invalid');
+    document.getElementById('vin-err').style.display = 'none';
+  }
+  if (!mileage) {
+    document.getElementById('s_mileage').closest('.field').classList.add('invalid');
+    document.getElementById('mileage-err').style.display = 'block';
+    valid = false;
+  } else {
+    document.getElementById('s_mileage').closest('.field').classList.remove('invalid');
+    document.getElementById('mileage-err').style.display = 'none';
+  }
+  if (!valid) return;
+
+  var form = {
+    vin:         vin,
+    year:        getVal('s_year'),
+    make:        getVal('s_make'),
+    model:       getVal('s_model'),
+    trim:        getVal('s_trim'),
+    mileage:     getVal('s_mileage'),
+    condition:   getVal('s_condition'),
+    askingPrice: getVal('s_askingPrice'),
+    sellerName:  getVal('s_sellerName'),
+    sellerEmail: getVal('s_sellerEmail'),
+    sellerPhone: getVal('s_sellerPhone'),
+    notes:       getVal('s_notes')
+  };
+
+  var btn = document.getElementById('sellerSubmitBtn');
+  btn.innerHTML = '<span class="spin"></span> Submitting…';
+  btn.disabled  = true;
+
+  var runner = gsr('submitSellerLead', function(res) {
+    btn.innerHTML = 'Log Vehicle Intake';
+    btn.disabled  = false;
+    toast('✓ ' + (res.title || 'Vehicle') + ' added to pipeline!', false, true);
+    clearSellerForm();
+    document.getElementById('mmrCard').className = 'mmr-card';
+    vinData = null;
+    // Reload leads
+    S.loaded['sellers'] = false;
+    setTimeout(loadSellerLeads, 500);
+  }, function(e) {
+    btn.innerHTML = 'Log Vehicle Intake';
+    btn.disabled  = false;
+    toast(e.message || 'Submission failed.', true);
+  });
+  if (runner) runner.submitSellerLead(form);
+}
+
+function loadSellerLeads() {
+  show('seller-leads-loading');
+  hide('seller-leads');
+  var runner = gsr('getSellerLeads', function(leads) {
+    hide('seller-leads-loading');
+    show('seller-leads');
+    var el = document.getElementById('seller-leads');
+    if (!leads || !leads.length) {
+      el.innerHTML = '<div class="empty">No seller leads yet.</div>';
+      return;
     }
-    var sub=[d.year||'', d.make||''].filter(Boolean).join(' ');
-    return '<div class="deal">'
-      + '<div class="dt">'+esc(d.title||d.fullName||'Deal')+'</div>'
-      + '<div class="meta">'+esc(sub)+(d.vin?'<br><span class="vin">VIN '+esc(d.vin)+'</span>':'')+'</div>'
-      + '<div class="row"><span class="val">'+money(d.value)+'</span>'
-      + '<span class="score '+scoreClass(d.score)+'">'+ (d.score||0) +'</span></div>'
-      + mover + '</div>';
-  }
-
-  function renderBuyers(buyers){
-    var el=document.getElementById('buyers');
-    if(!buyers.length){ el.innerHTML='<div class="empty">No buyers yet.</div>'; return; }
-    el.innerHTML=buyers.map(function(b){
-      var loc=[b.city,b.state].filter(Boolean).join(', ');
-      return '<div class="buyer"><div class="bn">'+esc(b.name)+'</div>'
-        + '<div class="bm">'+(b.makes?('Wants: '+esc(b.makes)+'<br>'):'')
-        + (b.maxPrice?('Budget: '+money(b.maxPrice)+'<br>'):'')
-        + (loc?esc(loc)+'<br>':'') + esc(b.email||'') + '</div></div>';
+    el.innerHTML = leads.map(function(d) {
+      var sub = [d.year || '', d.make || ''].filter(Boolean).join(' ');
+      return '<div class="lead-card">'
+        + '<div class="lead-title">' + esc(d.title || 'Deal') + '</div>'
+        + '<div class="lead-meta">'
+        + esc(sub) + (d.vin ? '<br><span class="vin">VIN ' + esc(d.vin) + '</span>' : '')
+        + '<br>Stage: ' + esc(d.stage || '') + ' · Source: ' + esc(d.source || '') + '</div>'
+        + '<div class="lead-row">'
+        +   '<span class="val">' + money(d.value) + '</span>'
+        +   '<span style="font-size:11px;color:var(--muted)">' + esc(fmtDate(d.updated)) + '</span>'
+        + '</div></div>';
     }).join('');
+  }, function() {
+    hide('seller-leads-loading');
+    show('seller-leads');
+    document.getElementById('seller-leads').innerHTML = '<div class="empty">Error loading leads.</div>';
+  });
+  if (runner) runner.getSellerLeads(20);
+}
+
+function clearSellerForm() {
+  ['s_vin','s_year','s_make','s_model','s_trim','s_mileage','s_condition',
+   's_askingPrice','s_sellerName','s_sellerEmail','s_sellerPhone','s_notes']
+  .forEach(function(id) { setVal(id, ''); });
+}
+
+/* ── Buyers ───────────────────────────────────────────────────────────────── */
+function submitBuyer() {
+  var name  = getVal('b_name');
+  var email = getVal('b_email');
+  var phone = getVal('b_phone');
+  var valid = true;
+
+  if (!name) {
+    document.getElementById('buyer-name-field').classList.add('invalid');
+    document.getElementById('buyer-name-err').style.display = 'block';
+    valid = false;
+  } else {
+    document.getElementById('buyer-name-field').classList.remove('invalid');
+    document.getElementById('buyer-name-err').style.display = 'none';
+  }
+  if (!email && !phone) {
+    document.getElementById('buyer-contact-field').classList.add('invalid');
+    valid = false;
+    toast('Email or phone is required.', true);
+  } else {
+    document.getElementById('buyer-contact-field').classList.remove('invalid');
+  }
+  if (!valid) return;
+
+  var form = {
+    name:     name,
+    email:    email,
+    phone:    phone,
+    makes:    getVal('b_makes'),
+    maxPrice: getVal('b_maxPrice'),
+    minScore: getVal('b_minScore'),
+    city:     getVal('b_city'),
+    state:    getVal('b_state'),
+    notes:    getVal('b_notes')
+  };
+
+  var btn = document.getElementById('buyerSubmitBtn');
+  btn.innerHTML = '<span class="spin"></span> Registering…';
+  btn.disabled  = true;
+
+  var runner = gsr('registerBuyer', function(res) {
+    btn.innerHTML = 'Register Buyer';
+    btn.disabled  = false;
+    toast('✓ ' + esc(res.name || 'Buyer') + ' registered!', false, true);
+    clearBuyerForm();
+    S.loaded['buyers'] = false;
+    S.buyers = [];
+    setTimeout(loadBuyers, 500);
+  }, function(e) {
+    btn.innerHTML = 'Register Buyer';
+    btn.disabled  = false;
+    toast(e.message || 'Registration failed.', true);
+  });
+  if (runner) runner.registerBuyer(form);
+}
+
+function loadBuyers() {
+  if (S.buyers && S.buyers.length) {
+    hide('buyer-list-loading');
+    show('buyer-list');
+    renderBuyerList(S.buyers);
+    return;
+  }
+  show('buyer-list-loading');
+  hide('buyer-list');
+  var runner = gsr('getDashboardData', function(data) {
+    hide('buyer-list-loading');
+    show('buyer-list');
+    applySnapshot(data);
+    renderBuyerList(S.buyers);
+  });
+  if (runner) runner.getDashboardData(false);
+}
+
+function renderBuyerList(buyers) {
+  var el = document.getElementById('buyer-list');
+  if (!buyers || !buyers.length) {
+    el.innerHTML = '<div class="empty">No buyers yet — register the first one!</div>';
+    return;
+  }
+  el.innerHTML = buyers.map(function(b) {
+    var loc = [b.city, b.state].filter(Boolean).join(', ');
+    var tags = (b.makes || '').split(',').map(function(m) { return m.trim(); }).filter(Boolean);
+    return '<div class="buyer-card">'
+      + '<div class="buyer-name">' + esc(b.name) + '</div>'
+      + '<div class="buyer-meta">'
+      + (b.email ? esc(b.email) + '<br>' : '')
+      + (b.phone ? esc(b.phone) + '<br>' : '')
+      + (b.maxPrice ? 'Budget: ' + money(b.maxPrice) + '<br>' : '')
+      + (loc ? esc(loc) : '') + '</div>'
+      + (tags.length ? '<div style="margin-top:8px">' + tags.map(function(t) { return '<span class="buyer-tag">' + esc(t) + '</span>'; }).join('') + '</div>' : '')
+      + '</div>';
+  }).join('');
+}
+
+function clearBuyerForm() {
+  ['b_name','b_email','b_phone','b_makes','b_maxPrice','b_minScore','b_city','b_state','b_notes']
+  .forEach(function(id) { setVal(id, ''); });
+}
+
+/* ── Market ────────────────────────────────────────────────────────────────── */
+function loadMarket(force) {
+  if (!force && S.loaded['market_data']) return;
+  show('market-loading');
+  hide('market-content');
+  var runner = gsr('getManheimAlerts', function(alerts) {
+    S.loaded['market_data'] = true;
+    hide('market-loading');
+    show('market-content');
+    renderAlerts(alerts || []);
+  }, function() {
+    hide('market-loading');
+    show('market-content');
+    document.getElementById('market-empty').style.display = 'block';
+    document.getElementById('market-tbl-wrap').style.display = 'none';
+  });
+  if (runner) runner.getManheimAlerts(100);
+}
+
+function renderAlerts(alerts) {
+  // Stats
+  document.getElementById('mkt-count').textContent = alerts.length + ' alert' + (alerts.length === 1 ? '' : 's');
+  if (alerts.length) {
+    var avgScore = Math.round(alerts.reduce(function(a, r) { return a + (r.dealScore || 0); }, 0) / alerts.length);
+    var totProfit = alerts.reduce(function(a, r) { return a + (r.estProfit || 0); }, 0);
+    document.getElementById('mkt-avg-score').textContent   = 'Avg score: ' + avgScore;
+    document.getElementById('mkt-total-profit').textContent = 'Est. profit: ' + money(totProfit);
   }
 
-  function moveDeal(id, stage){
-    if(!stage) return;
-    google.script.run.withSuccessHandler(function(){ load(true); })
-      .withFailureHandler(fail).moveDeal(id, stage);
+  if (!alerts.length) {
+    document.getElementById('market-empty').style.display = 'block';
+    document.getElementById('market-tbl-wrap').style.display = 'none';
+    return;
   }
+  document.getElementById('market-empty').style.display = 'none';
+  document.getElementById('market-tbl-wrap').style.display = 'block';
 
-  load(false);
+  document.getElementById('market-tbody').innerHTML = alerts.map(function(r) {
+    var sc  = Number(r.dealScore || 0);
+    return '<tr>'
+      + '<td style="white-space:nowrap;font-size:11px;color:var(--muted)">' + esc(r.scannedAt || '') + '</td>'
+      + '<td class="vin-cell">' + esc(r.vin || '') + '</td>'
+      + '<td>' + esc(r.year || '') + '</td>'
+      + '<td>' + esc(r.make || '') + (r.model ? ' ' + esc(r.model) : '') + '</td>'
+      + '<td class="num">' + (r.mileage ? Number(r.mileage).toLocaleString() : '—') + '</td>'
+      + '<td class="num">' + esc(r.condition || '—') + '</td>'
+      + '<td style="font-size:12px">' + esc(r.location || '') + '</td>'
+      + '<td style="font-size:12px;white-space:nowrap">' + esc(r.saleDate || '') + '</td>'
+      + '<td class="num">' + money(r.listingPrice) + '</td>'
+      + '<td class="num">' + money(r.mmrValue) + '</td>'
+      + '<td class="num" style="color:var(--green);font-weight:600">' + esc(r.discountPct || '—') + '</td>'
+      + '<td class="score-cell"><span class="score ' + scoreClass(sc) + '">' + sc + '</span></td>'
+      + '<td class="num" style="color:var(--green)">' + money(r.estProfit) + '</td>'
+      + '<td style="font-size:11.5px;color:var(--muted)">' + esc(r.reason || '') + '</td>'
+      + '</tr>';
+  }).join('');
+}
+
+function runScan() {
+  var btn = document.getElementById('scanBtn');
+  if (btn) { btn.innerHTML = '<span class="spin"></span> Scanning…'; btn.disabled = true; }
+  var runner = gsr('adminManheimScanNow', function(res) {
+    if (btn) { btn.innerHTML = '📡 Run Scan'; btn.disabled = false; }
+    toast('Scan complete — ' + (res.alerts || 0) + ' alert(s) from ' + (res.scanned || 0) + ' listings.', false, true);
+    S.loaded['market_data'] = false;
+    loadMarket(true);
+  }, function(e) {
+    if (btn) { btn.innerHTML = '📡 Run Scan'; btn.disabled = false; }
+    toast(e.message || 'Scan failed.', true);
+  });
+  if (runner) runner.adminManheimScanNow();
+}
+
+/* ── Admin actions ─────────────────────────────────────────────────────────── */
+function syncNow() {
+  toast('Syncing CRM → Sheets…');
+  var runner = gsr('adminSyncNow', function() {
+    toast('Sync complete!', false, true);
+    refresh();
+  });
+  if (runner) runner.adminSyncNow();
+}
+
+/* ── Global refresh ─────────────────────────────────────────────────────────── */
+function refresh() {
+  S.loaded   = {};
+  S.deals    = [];
+  S.buyers   = [];
+  S.loaded[currentTab] = true;
+  hideBanner();
+  var refreshers = {
+    dashboard: function() { loadDashboard(true); },
+    pipeline:  function() { loadPipeline(); },
+    sellers:   function() { loadSellerLeads(); },
+    buyers:    function() {
+      show('buyer-list-loading'); hide('buyer-list');
+      var r = gsr('getDashboardData', function(data) {
+        hide('buyer-list-loading'); show('buyer-list');
+        applySnapshot(data); renderBuyerList(S.buyers);
+      });
+      if (r) r.getDashboardData(true);
+    },
+    market: function() { loadMarket(true); }
+  };
+  refreshers[currentTab] && refreshers[currentTab]();
+}
+
+/* ── DOM helpers ─────────────────────────────────────────────────────────────── */
+function show(id) { var el = document.getElementById(id); if (el) el.style.display = ''; }
+function hide(id) { var el = document.getElementById(id); if (el) el.style.display = 'none'; }
+function getVal(id) { var el = document.getElementById(id); return el ? (el.value || '').trim() : ''; }
+function setVal(id, v) { var el = document.getElementById(id); if (el) el.value = v; }
+function fmtDate(s) {
+  if (!s) return '';
+  var d = new Date(s);
+  return isNaN(d.getTime()) ? String(s) : d.toLocaleDateString();
+}
+
+/* ── Boot ────────────────────────────────────────────────────────────────────── */
+(function() {
+  S.loaded['dashboard'] = true;
+  loadDashboard(false);
+  if (!isGAS()) {
+    document.getElementById('demoBadge').style.display = 'inline-block';
+    showBanner('Open through the deployed Apps Script web-app URL to connect live data.', 'warning');
+  }
+})();
 </script>
 </body>
 </html>
