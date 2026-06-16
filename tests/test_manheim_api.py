@@ -12,7 +12,9 @@ from backend.integrations.manheim_api import ManheimAPIClient, VehicleData, Auct
 @pytest.fixture
 def manheim_client():
     """Manheim API client instance"""
-    return ManheimAPIClient(api_key="test-api-key", base_url="https://api.manheim-test.com")
+    return ManheimAPIClient(
+        api_key="test-api-key", base_url="https://api.manheim-test.com"
+    )
 
 
 @pytest.fixture
@@ -23,12 +25,12 @@ def mock_aiohttp_session():
 
 class TestManheimAPIClient:
     """Test suite for Manheim API client"""
-    
+
     def test_client_initialization(self, manheim_client):
         """Client should initialize with API key and base URL"""
         assert manheim_client.api_key == "test-api-key"
         assert manheim_client.base_url == "https://api-manheim-test.com"
-    
+
     @pytest.mark.asyncio
     async def test_get_auction_data_success(self, manheim_client):
         """Should retrieve auction data successfully"""
@@ -40,29 +42,30 @@ class TestManheimAPIClient:
             "totalVehicles": 250,
             "averagePrice": 15000,
         }
-        
-        with patch.object(manheim_client, '_request', new_callable=AsyncMock) as mock_req:
+
+        with patch.object(
+            manheim_client, "_request", new_callable=AsyncMock
+        ) as mock_req:
             mock_req.return_value = mock_response
-            
+
             result = await manheim_client.get_auction_data(auction_id)
-            
+
             assert result == mock_response
-            mock_req.assert_called_once_with(
-                "GET",
-                f"/auctions/{auction_id}"
-            )
-    
+            mock_req.assert_called_once_with("GET", f"/auctions/{auction_id}")
+
     @pytest.mark.asyncio
     async def test_get_auction_data_not_found(self, manheim_client):
         """Should handle auction not found error"""
-        with patch.object(manheim_client, '_request', new_callable=AsyncMock) as mock_req:
+        with patch.object(
+            manheim_client, "_request", new_callable=AsyncMock
+        ) as mock_req:
             mock_req.side_effect = Exception("404: Auction not found")
-            
+
             with pytest.raises(Exception) as exc_info:
                 await manheim_client.get_auction_data("invalid-id")
-            
+
             assert "404" in str(exc_info.value)
-    
+
     @pytest.mark.asyncio
     async def test_search_vehicles_by_vin(self, manheim_client):
         """Should search for vehicles by VIN"""
@@ -80,15 +83,17 @@ class TestManheimAPIClient:
                 }
             ]
         }
-        
-        with patch.object(manheim_client, '_request', new_callable=AsyncMock) as mock_req:
+
+        with patch.object(
+            manheim_client, "_request", new_callable=AsyncMock
+        ) as mock_req:
             mock_req.return_value = mock_response
-            
+
             result = await manheim_client.search_vehicles(vin=vin)
-            
+
             assert len(result["results"]) == 1
             assert result["results"][0]["vin"] == vin
-    
+
     @pytest.mark.asyncio
     async def test_search_vehicles_by_make_model(self, manheim_client):
         """Should search for vehicles by make and model"""
@@ -104,14 +109,16 @@ class TestManheimAPIClient:
                 }
             ]
         }
-        
-        with patch.object(manheim_client, '_request', new_callable=AsyncMock) as mock_req:
+
+        with patch.object(
+            manheim_client, "_request", new_callable=AsyncMock
+        ) as mock_req:
             mock_req.return_value = mock_response
-            
+
             result = await manheim_client.search_vehicles(make="Honda", model="Accord")
-            
+
             assert result["results"][0]["make"] == "Honda"
-    
+
     @pytest.mark.asyncio
     async def test_get_vehicle_details(self, manheim_client):
         """Should retrieve detailed vehicle information"""
@@ -134,16 +141,18 @@ class TestManheimAPIClient:
                 "service_records": 12,
             },
         }
-        
-        with patch.object(manheim_client, '_request', new_callable=AsyncMock) as mock_req:
+
+        with patch.object(
+            manheim_client, "_request", new_callable=AsyncMock
+        ) as mock_req:
             mock_req.return_value = mock_response
-            
+
             result = await manheim_client.get_vehicle_details(vehicle_id)
-            
+
             assert result["id"] == vehicle_id
             assert result["vin"] == "JTHBP5C28A5034448"
             assert result["history"]["accidents"] == 0
-    
+
     @pytest.mark.asyncio
     async def test_get_pricing_data(self, manheim_client):
         """Should retrieve pricing data for vehicle"""
@@ -158,15 +167,17 @@ class TestManheimAPIClient:
             },
             "similar_vehicles_count": 42,
         }
-        
-        with patch.object(manheim_client, '_request', new_callable=AsyncMock) as mock_req:
+
+        with patch.object(
+            manheim_client, "_request", new_callable=AsyncMock
+        ) as mock_req:
             mock_req.return_value = mock_response
-            
+
             result = await manheim_client.get_pricing_data(vin)
-            
+
             assert result["pricing"]["average"] == 9500
             assert result["market_trend"] == "stable"
-    
+
     @pytest.mark.asyncio
     async def test_get_auction_inventory(self, manheim_client):
         """Should retrieve vehicles from specific auction"""
@@ -193,17 +204,19 @@ class TestManheimAPIClient:
                     "year": 2012,
                     "estimatedValue": 7500,
                 },
-            ]
+            ],
         }
-        
-        with patch.object(manheim_client, '_request', new_callable=AsyncMock) as mock_req:
+
+        with patch.object(
+            manheim_client, "_request", new_callable=AsyncMock
+        ) as mock_req:
             mock_req.return_value = mock_response
-            
+
             result = await manheim_client.get_auction_inventory(auction_id)
-            
+
             assert result["vehicleCount"] == 3
             assert len(result["vehicles"]) == 3
-    
+
     @pytest.mark.asyncio
     async def test_get_market_trends(self, manheim_client):
         """Should retrieve market trend data"""
@@ -221,42 +234,48 @@ class TestManheimAPIClient:
                 {"month": "2024-02", "average_price": 12800},
             ],
         }
-        
-        with patch.object(manheim_client, '_request', new_callable=AsyncMock) as mock_req:
+
+        with patch.object(
+            manheim_client, "_request", new_callable=AsyncMock
+        ) as mock_req:
             mock_req.return_value = mock_response
-            
+
             result = await manheim_client.get_market_trends(make)
-            
+
             assert result["make"] == make
             assert result["trends"]["price_trend"] == "increasing"
-    
+
     @pytest.mark.asyncio
     async def test_api_authentication_required(self, manheim_client):
         """API requests should include authorization header"""
-        with patch.object(manheim_client, '_request', new_callable=AsyncMock) as mock_req:
+        with patch.object(
+            manheim_client, "_request", new_callable=AsyncMock
+        ) as mock_req:
             mock_req.return_value = {"status": "ok"}
-            
+
             await manheim_client.get_auction_data("12345")
-            
+
             # Verify authorization was included in request
             call_args = mock_req.call_args
             assert "headers" in call_args[1] or "Authorization" in str(call_args)
-    
+
     @pytest.mark.asyncio
     async def test_rate_limiting_handling(self, manheim_client):
         """Client should handle rate limiting gracefully"""
-        with patch.object(manheim_client, '_request', new_callable=AsyncMock) as mock_req:
+        with patch.object(
+            manheim_client, "_request", new_callable=AsyncMock
+        ) as mock_req:
             mock_req.side_effect = Exception("429: Rate limit exceeded")
-            
+
             with pytest.raises(Exception) as exc_info:
                 await manheim_client.get_auction_data("12345")
-            
+
             assert "429" in str(exc_info.value)
 
 
 class TestVehicleData:
     """Test VehicleData model"""
-    
+
     def test_vehicle_data_creation(self):
         """Should create vehicle data object"""
         vehicle = VehicleData(
@@ -267,12 +286,12 @@ class TestVehicleData:
             mileage=145000,
             price=9500,
         )
-        
+
         assert vehicle.vin == "JTHBP5C28A5034448"
         assert vehicle.make == "Toyota"
         assert vehicle.model == "Camry"
         assert vehicle.year == 2010
-    
+
     def test_vehicle_data_price_formatting(self):
         """Should format price correctly"""
         vehicle = VehicleData(
@@ -283,9 +302,9 @@ class TestVehicleData:
             mileage=145000,
             price=9500.99,
         )
-        
+
         assert vehicle.price == 9500.99
-    
+
     def test_vehicle_data_optional_fields(self):
         """Should support optional fields"""
         vehicle = VehicleData(
@@ -297,14 +316,14 @@ class TestVehicleData:
             price=9500,
             condition="Good",  # Optional
         )
-        
+
         assert vehicle.mileage is None
         assert vehicle.condition == "Good"
 
 
 class TestAuctionData:
     """Test AuctionData model"""
-    
+
     def test_auction_data_creation(self):
         """Should create auction data object"""
         auction = AuctionData(
@@ -314,11 +333,11 @@ class TestAuctionData:
             total_vehicles=250,
             average_price=15000,
         )
-        
+
         assert auction.auction_id == "12345"
         assert auction.location == "Atlanta"
         assert auction.total_vehicles == 250
-    
+
     def test_auction_data_date_format(self):
         """Should handle date formatting"""
         auction = AuctionData(
@@ -328,25 +347,27 @@ class TestAuctionData:
             total_vehicles=250,
             average_price=15000,
         )
-        
+
         assert auction.date == "2024-01-15"
 
 
 class TestManheimAPIIntegration:
     """Integration tests with mock API responses"""
-    
+
     @pytest.mark.asyncio
     async def test_full_vehicle_lookup_workflow(self, manheim_client):
         """Test complete workflow: search -> details -> pricing"""
         vin = "JTHBP5C28A5034448"
-        
-        with patch.object(manheim_client, '_request', new_callable=AsyncMock) as mock_req:
+
+        with patch.object(
+            manheim_client, "_request", new_callable=AsyncMock
+        ) as mock_req:
             # First call: search
             mock_req.return_value = {
                 "results": [{"vin": vin, "make": "Toyota", "model": "Camry"}]
             }
             search_result = await manheim_client.search_vehicles(vin=vin)
-            
+
             # Second call: details
             mock_req.return_value = {
                 "vin": vin,
@@ -354,13 +375,11 @@ class TestManheimAPIIntegration:
                 "mileage": 145000,
             }
             details = await manheim_client.get_vehicle_details(vin)
-            
+
             # Third call: pricing
-            mock_req.return_value = {
-                "pricing": {"average": 9500}
-            }
+            mock_req.return_value = {"pricing": {"average": 9500}}
             pricing = await manheim_client.get_pricing_data(vin)
-            
+
             assert search_result["results"][0]["vin"] == vin
             assert details["year"] == 2010
             assert pricing["pricing"]["average"] == 9500

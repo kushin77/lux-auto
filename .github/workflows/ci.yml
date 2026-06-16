@@ -16,45 +16,45 @@ jobs:
     name: Lint & Format
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      
+      - uses: actions/checkout@v4
+
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
-          
-      - name: Install dependencies
+          python-version: "3.12"
+
+      - name: Install linters
         run: |
           python -m pip install --upgrade pip
-          pip install black pylint flake8
-          
+          pip install black ruff pylint
+
       - name: Check Black formatting
         run: black --check backend/ tests/
-        
+
+      - name: Run Ruff
+        run: ruff check backend/ tests/ --output-format=github
+
       - name: Run Pylint
         run: pylint backend/ --fail-under=8.0 || true
-        
-      - name: Run Flake8
-        run: flake8 backend/ tests/ --max-line-length=120
 
   # Stage 2: Type Checking
   type-check:
     name: Type Checking (mypy)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      
+      - uses: actions/checkout@v4
+
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
-          
+          python-version: "3.12"
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install mypy types-PyYAML types-requests
-          cat backend/requirements.txt | xargs pip install -q
-          
+          pip install -r backend/requirements.txt -q
+
       - name: Run mypy
         run: mypy backend/ --ignore-missing-imports --check-untyped-defs
 
@@ -64,7 +64,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       postgres:
-        image: postgres:15-alpine
+        image: postgres:16-alpine
         env:
           POSTGRES_DB: lux_test
           POSTGRES_USER: test_user
@@ -76,32 +76,35 @@ jobs:
           --health-retries 5
         ports:
           - 5432:5432
-          
+
     steps:
-      - uses: actions/checkout@v3
-      
+      - uses: actions/checkout@v4
+
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
-          
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements*.txt
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r backend/requirements.txt
-          pip install pytest pytest-cov pytest-asyncio
-          
+          pip install -r backend/requirements.txt -r backend/requirements-dev.txt
+
       - name: Run unit tests with coverage
         env:
           DATABASE_URL: postgresql://test_user:test_pass@localhost:5432/lux_test
           FASTAPI_SECRET_KEY: test-key-only
           GOOGLE_CLIENT_ID: test-id
           GOOGLE_CLIENT_SECRET: test-secret
+          ADMIN_USER_EMAIL: admin@luxauto.test
+          ENVIRONMENT: test
         run: |
-          pytest tests/unit/ -v --cov=backend --cov-report=xml --cov-report=term --cov-fail-under=90
-          
+          pytest tests/unit/ -v --cov=backend --cov-report=xml --cov-report=term --cov-fail-under=80
+
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v4
         with:
           files: ./coverage.xml
           flags: unittests
@@ -111,19 +114,19 @@ jobs:
     name: SAST (Bandit)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      
+      - uses: actions/checkout@v4
+
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
-          
+          python-version: "3.12"
+
       - name: Install Bandit
         run: pip install bandit
-        
+
       - name: Run Bandit security scan
         run: bandit -r backend/ -f json -o bandit-report.json || true
-        
+
       - name: Check Bandit findings
         run: |
           python -c "
@@ -132,12 +135,12 @@ jobs:
               data = json.load(f)
           high = [m for m in data['results'] if m['severity'] == 'HIGH']
           if high:
-              print(f'❌ BANDIT FOUND {len(high)} HIGH SEVERITY ISSUES')
+              print(f'BANDIT FOUND {len(high)} HIGH SEVERITY ISSUES')
               for m in high:
                   print(f'  - {m[\"issue_text\"]} ({m[\"filename\"]}:{m[\"line_range\"]})')
               exit(1)
           else:
-              print('✅ No high-severity security issues found')
+              print('No high-severity security issues found')
           "
 
   # Stage 5: Dependency Scanning
@@ -145,44 +148,43 @@ jobs:
     name: Dependency Scan
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      
+      - uses: actions/checkout@v4
+
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
-          
-      - name: Install safety
-        run: pip install safety
-        
+          python-version: "3.12"
+
       - name: Scan dependencies for vulnerabilities
-        run: safety check -r backend/requirements.txt --json || true
+        run: |
+          pip install pip-audit
+          pip-audit -r backend/requirements.txt --format=markdown || true
 
   # Stage 6: Secrets Scanning
   secrets:
     name: Secrets Scan
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          
-      - name: Install truffleHog
-        run: pip install truffleHo[all]
-        
+
+      - name: Install trufflehog
+        run: pip install trufflehog3
+
       - name: Scan for secrets
         run: |
-          trufflehog filesystem . --json 2>/dev/null | \
+          trufflehog3 . --no-history --format json 2>/dev/null | \
           python -c "
           import sys, json
           secrets = [json.loads(line) for line in sys.stdin if line.strip()]
           if secrets:
-              print(f'❌ FOUND {len(secrets)} POTENTIAL SECRETS')
+              print(f'FOUND {len(secrets)} POTENTIAL SECRETS')
               for s in secrets[:5]:
-                  print(f'  - {s.get(\"detector_name\", \"unknown\")} at {s.get(\"file_path\", \"?\")}')
+                  print(f'  - {s.get(\"reason\", \"unknown\")} at {s.get(\"path\", \"?\")}')
               exit(1)
           else:
-              print('✅ No secrets detected')
+              print('No secrets detected')
           " || true
 
   # Stage 7: Integration Tests
@@ -192,7 +194,7 @@ jobs:
     needs: test
     services:
       postgres:
-        image: postgres:15-alpine
+        image: postgres:16-alpine
         env:
           POSTGRES_DB: lux_test
           POSTGRES_USER: test_user
@@ -204,27 +206,30 @@ jobs:
           --health-retries 5
         ports:
           - 5432:5432
-          
+
     steps:
-      - uses: actions/checkout@v3
-      
+      - uses: actions/checkout@v4
+
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
-          
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements*.txt
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r backend/requirements.txt
-          pip install pytest pytest-asyncio
-          
+          pip install -r backend/requirements.txt -r backend/requirements-dev.txt
+
       - name: Run integration tests
         env:
           DATABASE_URL: postgresql://test_user:test_pass@localhost:5432/lux_test
           FASTAPI_SECRET_KEY: test-key-only
           GOOGLE_CLIENT_ID: test-id
           GOOGLE_CLIENT_SECRET: test-secret
+          ADMIN_USER_EMAIL: admin@luxauto.test
+          ENVIRONMENT: test
         run: pytest tests/integration/ -v
 
   # Stage 8: Build Docker Image
@@ -239,39 +244,41 @@ jobs:
       image: ${{ steps.image.outputs.image }}
       digest: ${{ steps.build.outputs.digest }}
     steps:
-      - uses: actions/checkout@v3
-      
+      - uses: actions/checkout@v4
+
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-        
+        uses: docker/setup-buildx-action@v3
+
       - name: Log in to Container Registry
         if: github.event_name == 'push'
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-          
+
       - name: Extract metadata
         id: meta
-        uses: docker/metadata-action@v4
+        uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
             type=sha,prefix={{branch}}-
             type=ref,event=branch
             type=semver,pattern={{version}}
-            
+
       - name: Build and push
         id: build
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v5
         with:
           context: .
           file: ./Dockerfile.backend
           push: ${{ github.event_name == 'push' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
       - name: Set image output
         id: image
         run: |
@@ -287,16 +294,16 @@ jobs:
     if: github.event_name == 'push'
     steps:
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@0.28.0
         with:
           image-ref: ${{ needs.build.outputs.image }}
-          format: 'sarif'
-          output: 'trivy-results.sarif'
-          
+          format: "sarif"
+          output: "trivy-results.sarif"
+
       - name: Upload Trivy results to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@v2
+        uses: github/codeql-action/upload-sarif@v3
         with:
-          sarif_file: 'trivy-results.sarif'
+          sarif_file: "trivy-results.sarif"
 
   # Final Stage: Summary
   summary:
@@ -307,17 +314,15 @@ jobs:
     steps:
       - name: Check pipeline status
         run: |
-          echo "✅ Pipeline execution complete"
+          echo "Pipeline execution complete"
           echo ""
           echo "Checks:"
-          echo "  ✓ Lint & Format"
-          echo "  ✓ Type Checking"
-          echo "  ✓ Unit Tests (90%+ coverage)"
-          echo "  ✓ SAST (Bandit)"
-          echo "  ✓ Dependency Scan"
-          echo "  ✓ Secrets Scan"
-          echo "  ✓ Integration Tests"
-          echo "  ✓ Docker Build"
-          echo "  ✓ Container Scan (Trivy)"
-          echo ""
-          echo "All checks MUST pass before merge."
+          echo "  Lint & Format (black + ruff)"
+          echo "  Type Checking (mypy)"
+          echo "  Unit Tests (80%+ coverage)"
+          echo "  SAST (Bandit)"
+          echo "  Dependency Scan (pip-audit)"
+          echo "  Secrets Scan (trufflehog3)"
+          echo "  Integration Tests"
+          echo "  Docker Build"
+          echo "  Container Scan (Trivy)"

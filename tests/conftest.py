@@ -4,9 +4,9 @@ import pytest
 import asyncio
 import os
 from typing import Generator
-from unittest.mock import Mock, AsyncMock, patch
+from unittest.mock import Mock, AsyncMock
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.orm import sessionmaker
 from fastapi.testclient import TestClient
 
 from backend.database.models import Base
@@ -43,13 +43,13 @@ def test_db_session(test_db_engine):
         bind=test_db_engine,
     )
     session = TestingSessionLocal()
-    
+
     # Cleanup before session
     Base.metadata.drop_all(bind=test_db_engine)
     Base.metadata.create_all(bind=test_db_engine)
-    
+
     yield session
-    
+
     # Cleanup after session
     session.close()
     Base.metadata.drop_all(bind=test_db_engine)
@@ -88,9 +88,7 @@ def mock_oauth_headers() -> dict:
 @pytest.fixture
 def mock_oauth_minimal_headers() -> dict:
     """Fixture providing minimal OAuth headers (just email)."""
-    return {
-        "X-Auth-Request-Email": "minimal@bioenergystrategies.com"
-    }
+    return {"X-Auth-Request-Email": "minimal@bioenergystrategies.com"}
 
 
 @pytest.fixture
@@ -138,7 +136,7 @@ def mock_manheim_response() -> dict:
                 "exterior": "Black",
                 "interior": "Black Leather",
             },
-        ]
+        ],
     }
 
 
@@ -180,7 +178,7 @@ def mock_manheim_vehicle_details() -> dict:
             "marketAverage": 9750.00,
             "low": 8500.00,
             "high": 11000.00,
-        }
+        },
     }
 
 
@@ -202,7 +200,7 @@ def mock_manheim_pricing() -> dict:
             "count": 42,
             "avgPrice": 9750.00,
             "source": "marketTrack",
-        }
+        },
     }
 
 
@@ -273,30 +271,12 @@ def configure_test_environment():
 # Pytest hooks
 def pytest_configure(config):
     """Configure pytest with custom markers."""
-    config.addinivalue_line(
-        "markers",
-        "asyncio: mark test as async"
-    )
-    config.addinivalue_line(
-        "markers",
-        "unit: mark test as unit test"
-    )
-    config.addinivalue_line(
-        "markers",
-        "integration: mark test as integration test"
-    )
-    config.addinivalue_line(
-        "markers",
-        "slow: mark test as slow running"
-    )
-    config.addinivalue_line(
-        "markers",
-        "oauth: mark test as oauth related"
-    )
-    config.addinivalue_line(
-        "markers",
-        "manheim: mark test as manheim API related"
-    )
+    config.addinivalue_line("markers", "asyncio: mark test as async")
+    config.addinivalue_line("markers", "unit: mark test as unit test")
+    config.addinivalue_line("markers", "integration: mark test as integration test")
+    config.addinivalue_line("markers", "slow: mark test as slow running")
+    config.addinivalue_line("markers", "oauth: mark test as oauth related")
+    config.addinivalue_line("markers", "manheim: mark test as manheim API related")
 
 
 def pytest_collection_modifyitems(config, items):
@@ -308,6 +288,6 @@ def pytest_collection_modifyitems(config, items):
 
 def pytest_sessionstart(session):
     """Called after the Session object has been created."""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("Starting Lux Auto Test Suite")
-    print("="*70 + "\n")
+    print("=" * 70 + "\n")

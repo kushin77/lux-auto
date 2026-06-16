@@ -6,11 +6,11 @@ Comprehensive REST API for deal management.
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Query, status
 from sqlalchemy.orm import Session
-from typing import List, Optional
+from typing import Optional
 from datetime import datetime
 
 from backend.database import get_db
-from backend.database.models import Deal, AuditLog
+from backend.database.models import Deal
 from backend.auth.audit import AuditLogger, AuditEventType, AuditStatus
 from backend.api.rbac import Permission, check_permission
 
@@ -23,6 +23,7 @@ router = APIRouter(
 
 class DealResponse:
     """Deal response schema."""
+
     @staticmethod
     def from_model(deal: Deal) -> dict:
         return {
@@ -41,7 +42,9 @@ class DealResponse:
             "engine": deal.engine,
             "photo_urls": deal.photo_urls,
             "mmr_value": float(deal.mmr_value) if deal.mmr_value else None,
-            "estimated_margin": float(deal.estimated_margin) if deal.estimated_margin else None,
+            "estimated_margin": (
+                float(deal.estimated_margin) if deal.estimated_margin else None
+            ),
             "score": float(deal.score) if deal.score else None,
             "score_breakdown": deal.score_breakdown,
             "status": deal.status,
@@ -69,60 +72,59 @@ async def list_deals(
     audit_logger: AuditLogger = Depends(lambda: None),
 ):
     """List deals with pagination, filtering, and sorting.
-    
+
     Permissions: read:deals
     """
     if not hasattr(request.state, "user"):
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Not authenticated"
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated"
         )
-    
+
     user = request.state.user
     if not check_permission(db, user.id, Permission.READ_DEALS):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail=f"Permission '{Permission.READ_DEALS}' required"
+            detail=f"Permission '{Permission.READ_DEALS}' required",
         )
-    
+
     # Build query
     query = db.query(Deal)
-    
+
     # Apply filters
     if status_filter:
-        valid_statuses = ['scanning', 'scored', 'bidding', 'won', 'routed', 'closed']
+        valid_statuses = ["scanning", "scored", "bidding", "won", "routed", "closed"]
         if status_filter not in valid_statuses:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail=f"Invalid status. Must be one of: {', '.join(valid_statuses)}"
+                detail=f"Invalid status. Must be one of: {', '.join(valid_statuses)}",
             )
         query = query.filter(Deal.status == status_filter)
-    
+
     if make:
         query = query.filter(Deal.make.ilike(f"%{make}%"))
-    
+
     if model:
         query = query.filter(Deal.model.ilike(f"%{model}%"))
-    
+
     if min_score:
         query = query.filter(Deal.score >= min_score)
-    
+
     if max_price:
         query = query.filter(Deal.mmr_value <= max_price)
-    
+
     # Sorting
     sort_column = getattr(Deal, sort_by, Deal.created_at)
     if order.lower() == "desc":
         query = query.order_by(sort_column.desc())
     else:
         query = query.order_by(sort_column.asc())
-    
+
     # Get total count
     total = query.count()
-    
+
     # Apply pagination
     items = query.offset(skip).limit(limit).all()
-    
+
     return {
         "items": [DealResponse.from_model(item) for item in items],
         "total": total,
@@ -139,29 +141,27 @@ async def get_deal(
     db: Session = Depends(get_db),
 ):
     """Get single deal details.
-    
+
     Permissions: read:deals
     """
     if not hasattr(request.state, "user"):
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Not authenticated"
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated"
         )
-    
+
     user = request.state.user
     if not check_permission(db, user.id, Permission.READ_DEALS):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail=f"Permission '{Permission.READ_DEALS}' required"
+            detail=f"Permission '{Permission.READ_DEALS}' required",
         )
-    
+
     deal = db.query(Deal).filter(Deal.id == deal_id).first()
     if not deal:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Deal {deal_id} not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail=f"Deal {deal_id} not found"
         )
-    
+
     return DealResponse.from_model(deal)
 
 
@@ -173,38 +173,37 @@ async def create_deal(
     audit_logger: AuditLogger = Depends(lambda: None),
 ):
     """Create new deal.
-    
+
     Permissions: write:deals
     """
     if not hasattr(request.state, "user"):
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Not authenticated"
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated"
         )
-    
+
     user = request.state.user
     if not check_permission(db, user.id, Permission.WRITE_DEALS):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail=f"Permission '{Permission.WRITE_DEALS}' required"
+            detail=f"Permission '{Permission.WRITE_DEALS}' required",
         )
-    
+
     # Validate required fields
     required_fields = ["id", "vin", "year", "make", "model"]
     for field in required_fields:
         if field not in deal_data:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail=f"Missing required field: {field}"
+                detail=f"Missing required field: {field}",
             )
-    
+
     # Create deal
     try:
         deal = Deal(**deal_data)
         db.add(deal)
         db.commit()
         db.refresh(deal)
-        
+
         # Log the action
         if audit_logger:
             audit_logger.log_event(
@@ -219,14 +218,14 @@ async def create_deal(
                 ip_address=request.client.host if request.client else None,
                 user_agent=request.headers.get("User-Agent"),
             )
-        
+
         return DealResponse.from_model(deal)
-    
+
     except Exception as e:
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Failed to create deal: {str(e)}"
+            detail=f"Failed to create deal: {str(e)}",
         )
 
 
@@ -239,42 +238,42 @@ async def update_deal(
     audit_logger: AuditLogger = Depends(lambda: None),
 ):
     """Update deal.
-    
+
     Permissions: write:deals
     """
     if not hasattr(request.state, "user"):
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Not authenticated"
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated"
         )
-    
+
     user = request.state.user
     if not check_permission(db, user.id, Permission.WRITE_DEALS):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail=f"Permission '{Permission.WRITE_DEALS}' required"
+            detail=f"Permission '{Permission.WRITE_DEALS}' required",
         )
-    
+
     deal = db.query(Deal).filter(Deal.id == deal_id).first()
     if not deal:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Deal {deal_id} not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail=f"Deal {deal_id} not found"
         )
-    
+
     try:
         # Store old values for audit
-        old_values = {col.name: getattr(deal, col.name) for col in deal.__table__.columns}
-        
+        old_values = {
+            col.name: getattr(deal, col.name) for col in deal.__table__.columns
+        }
+
         # Update fields
         for key, value in update_data.items():
             if hasattr(deal, key):
                 setattr(deal, key, value)
-        
+
         deal.updated_at = datetime.utcnow()
         db.commit()
         db.refresh(deal)
-        
+
         # Log the action
         if audit_logger:
             audit_logger.log_event(
@@ -290,14 +289,14 @@ async def update_deal(
                 ip_address=request.client.host if request.client else None,
                 user_agent=request.headers.get("User-Agent"),
             )
-        
+
         return DealResponse.from_model(deal)
-    
+
     except Exception as e:
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Failed to update deal: {str(e)}"
+            detail=f"Failed to update deal: {str(e)}",
         )
 
 
@@ -309,33 +308,31 @@ async def delete_deal(
     audit_logger: AuditLogger = Depends(lambda: None),
 ):
     """Delete deal (admin only).
-    
+
     Permissions: delete:deals
     """
     if not hasattr(request.state, "user"):
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Not authenticated"
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated"
         )
-    
+
     user = request.state.user
     if not check_permission(db, user.id, Permission.DELETE_DEALS):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail=f"Permission '{Permission.DELETE_DEALS}' required"
+            detail=f"Permission '{Permission.DELETE_DEALS}' required",
         )
-    
+
     deal = db.query(Deal).filter(Deal.id == deal_id).first()
     if not deal:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Deal {deal_id} not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail=f"Deal {deal_id} not found"
         )
-    
+
     try:
         db.delete(deal)
         db.commit()
-        
+
         # Log the action
         if audit_logger:
             audit_logger.log_event(
@@ -349,10 +346,10 @@ async def delete_deal(
                 ip_address=request.client.host if request.client else None,
                 user_agent=request.headers.get("User-Agent"),
             )
-    
+
     except Exception as e:
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to delete deal: {str(e)}"
+            detail=f"Failed to delete deal: {str(e)}",
         )

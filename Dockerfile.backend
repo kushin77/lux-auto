@@ -1,64 +1,44 @@
-# Multi-stage build for Lux-Auto FastAPI backend
-# Stage 1: Builder
-FROM python:3.11-alpine AS builder
+# Lux-Auto FastAPI backend — Cloud Run / GHCR image
+# Build from repo root:
+#   docker build -f Dockerfile.backend -t lux-auto-api .
+#
+# Cloud Run injects PORT env var; gunicorn binds to it at runtime.
 
-WORKDIR /tmp
+FROM python:3.12-slim
 
-# Install build dependencies
-RUN apk add --no-cache \
-    gcc \
-    musl-dev \
-    libpq-dev \
-    git
-
-# Copy requirements
-COPY backend/requirements.txt .
-RUN pip install --user --no-cache-dir -r requirements.txt
-
-# Stage 2: Runtime
-FROM python:3.11-alpine
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PORT=8080
 
 WORKDIR /app
 
-# Install runtime dependencies only
-RUN apk add --no-cache \
-    libpq \
-    curl \
-    bash
+# System deps: psycopg2 runtime + healthcheck curl
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl libpq5 \
+    && rm -rf /var/lib/apt/lists/*
 
-# Create non-root user for security (before copying files)
-RUN addgroup -g 1000 appuser && \
-    adduser -D -u 1000 -G appuser appuser && \
-    mkdir -p /home/appuser/.local/bin /home/appuser/.local/lib && \
-    chown -R appuser:appuser /home/appuser/.local
+# Install Python deps first for layer caching
+COPY backend/requirements.txt ./backend/requirements.txt
+RUN pip install --upgrade pip && pip install -r backend/requirements.txt
 
-# Copy Python dependencies from builder to appuser home
-COPY --from=builder --chown=appuser:appuser /root/.local /home/appuser/.local
+# App code
+COPY backend ./backend
 
-# Copy application code
-COPY --chown=appuser:appuser backend/ ./backend/
-COPY --chown=appuser:appuser tests/ ./tests/
-COPY --chown=appuser:appuser .env.example ./
-COPY --chown=appuser:appuser scripts/fetch-gsm-secrets.sh ./scripts/
-
-# Setup PATH for Python packages under appuser home
-ENV PATH=/home/appuser/.local/bin:$PATH \
-    PYTHONUSERBASE=/home/appuser/.local \
-    PYTHONUNBUFFERED=1 \
-    PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONPATH=/app
-
-# Switch to non-root user
+# Non-root user
+RUN useradd --create-home --uid 10001 appuser
 USER appuser
 
-# Health check
-HEALTHCHECK --interval=10s --timeout=5s --retries=5 --start-period=40s \
-    CMD curl -f http://localhost:8000/health || exit 1
+EXPOSE 8080
 
-# Default command
-CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000"]
+HEALTHCHECK --interval=15s --timeout=5s --retries=3 --start-period=30s \
+    CMD curl -fsS "http://localhost:${PORT}/health" || exit 1
 
-# Metadata
-LABEL maintainer="kushin77" \
-      description="Lux-Auto FastAPI Backend with OAuth2 SSO" \
-      version="1.0.0"
+# Cloud Run sets $PORT. gunicorn + uvicorn workers for production concurrency.
+CMD exec gunicorn backend.main:app \
+    --worker-class uvicorn.workers.UvicornWorker \
+    --workers 2 \
+    --bind "0.0.0.0:${PORT}" \
+    --timeout 120 \
+    --access-logfile - \
+    --error-logfile -

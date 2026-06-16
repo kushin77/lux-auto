@@ -4,12 +4,11 @@ Buyers API v2 endpoints
 REST API for buyer management and matching.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Query
 from sqlalchemy.orm import Session
-from typing import Optional
 
 from backend.database import get_db
-from backend.database.models import Buyer, AuditLog
+from backend.database.models import Buyer
 from backend.auth.audit import AuditLogger, AuditEventType, AuditStatus
 from backend.api.rbac import Permission, check_permission
 
@@ -31,22 +30,24 @@ async def list_buyers(
     """List buyers with pagination."""
     if not hasattr(request.state, "user"):
         raise HTTPException(status_code=401, detail="Not authenticated")
-    
+
     user = request.state.user
     if not check_permission(db, user.id, Permission.READ_BUYERS):
-        raise HTTPException(status_code=403, detail=f"Permission '{Permission.READ_BUYERS}' required")
-    
+        raise HTTPException(
+            status_code=403, detail=f"Permission '{Permission.READ_BUYERS}' required"
+        )
+
     query = db.query(Buyer)
     total = query.count()
-    
+
     sort_column = getattr(Buyer, sort_by, Buyer.created_at)
     if order.lower() == "desc":
         query = query.order_by(sort_column.desc())
     else:
         query = query.order_by(sort_column.asc())
-    
+
     items = query.offset(skip).limit(limit).all()
-    
+
     return {
         "items": [b.to_dict() for b in items],
         "total": total,
@@ -65,15 +66,17 @@ async def get_buyer(
     """Get buyer details."""
     if not hasattr(request.state, "user"):
         raise HTTPException(status_code=401, detail="Not authenticated")
-    
+
     user = request.state.user
     if not check_permission(db, user.id, Permission.READ_BUYERS):
-        raise HTTPException(status_code=403, detail=f"Permission '{Permission.READ_BUYERS}' required")
-    
+        raise HTTPException(
+            status_code=403, detail=f"Permission '{Permission.READ_BUYERS}' required"
+        )
+
     buyer = db.query(Buyer).filter(Buyer.id == buyer_id).first()
     if not buyer:
         raise HTTPException(status_code=404, detail=f"Buyer {buyer_id} not found")
-    
+
     return buyer.to_dict()
 
 
@@ -87,17 +90,19 @@ async def create_buyer(
     """Create buyer."""
     if not hasattr(request.state, "user"):
         raise HTTPException(status_code=401, detail="Not authenticated")
-    
+
     user = request.state.user
     if not check_permission(db, user.id, Permission.WRITE_BUYERS):
-        raise HTTPException(status_code=403, detail=f"Permission '{Permission.WRITE_BUYERS}' required")
-    
+        raise HTTPException(
+            status_code=403, detail=f"Permission '{Permission.WRITE_BUYERS}' required"
+        )
+
     try:
         buyer = Buyer(**buyer_data)
         db.add(buyer)
         db.commit()
         db.refresh(buyer)
-        
+
         if audit_logger:
             audit_logger.log_event(
                 event_type=AuditEventType.DATA_MODIFICATION,
@@ -110,7 +115,7 @@ async def create_buyer(
                 status=AuditStatus.SUCCESS,
                 ip_address=request.client.host if request.client else None,
             )
-        
+
         return buyer.to_dict()
     except Exception as e:
         db.rollback()
@@ -128,23 +133,25 @@ async def update_buyer(
     """Update buyer."""
     if not hasattr(request.state, "user"):
         raise HTTPException(status_code=401, detail="Not authenticated")
-    
+
     user = request.state.user
     if not check_permission(db, user.id, Permission.WRITE_BUYERS):
-        raise HTTPException(status_code=403, detail=f"Permission '{Permission.WRITE_BUYERS}' required")
-    
+        raise HTTPException(
+            status_code=403, detail=f"Permission '{Permission.WRITE_BUYERS}' required"
+        )
+
     buyer = db.query(Buyer).filter(Buyer.id == buyer_id).first()
     if not buyer:
         raise HTTPException(status_code=404, detail=f"Buyer {buyer_id} not found")
-    
+
     try:
         for key, value in update_data.items():
             if hasattr(buyer, key):
                 setattr(buyer, key, value)
-        
+
         db.commit()
         db.refresh(buyer)
-        
+
         if audit_logger:
             audit_logger.log_event(
                 event_type=AuditEventType.DATA_MODIFICATION,
@@ -157,7 +164,7 @@ async def update_buyer(
                 status=AuditStatus.SUCCESS,
                 ip_address=request.client.host if request.client else None,
             )
-        
+
         return buyer.to_dict()
     except Exception as e:
         db.rollback()
@@ -174,19 +181,21 @@ async def delete_buyer(
     """Delete buyer."""
     if not hasattr(request.state, "user"):
         raise HTTPException(status_code=401, detail="Not authenticated")
-    
+
     user = request.state.user
     if not check_permission(db, user.id, Permission.DELETE_BUYERS):
-        raise HTTPException(status_code=403, detail=f"Permission '{Permission.DELETE_BUYERS}' required")
-    
+        raise HTTPException(
+            status_code=403, detail=f"Permission '{Permission.DELETE_BUYERS}' required"
+        )
+
     buyer = db.query(Buyer).filter(Buyer.id == buyer_id).first()
     if not buyer:
         raise HTTPException(status_code=404, detail=f"Buyer {buyer_id} not found")
-    
+
     try:
         db.delete(buyer)
         db.commit()
-        
+
         if audit_logger:
             audit_logger.log_event(
                 event_type=AuditEventType.DATA_MODIFICATION,

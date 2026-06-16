@@ -13,7 +13,19 @@ Models:
 - SystemConfig: System configuration key-value store
 """
 
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, Enum, Text, ForeignKey, Index, DECIMAL, JSON
+from sqlalchemy import (
+    Column,
+    Integer,
+    String,
+    Boolean,
+    DateTime,
+    Enum,
+    Text,
+    ForeignKey,
+    Index,
+    DECIMAL,
+    JSON,
+)
 from sqlalchemy.orm import declarative_base
 from sqlalchemy.orm import relationship
 
@@ -39,10 +51,24 @@ class User(Base):
     email_verified = Column(Boolean, default=True, nullable=False)
 
     # Relationships
-    sessions = relationship("UserSession", back_populates="user", cascade="all, delete-orphan")
-    user_roles = relationship("UserRole", back_populates="user", cascade="all, delete-orphan", foreign_keys="[UserRole.user_id]")
-    api_keys = relationship("APIKey", back_populates="user", cascade="all, delete-orphan")
-    preferences = relationship("PortalUserPreferences", back_populates="user", cascade="all, delete-orphan", uselist=False)
+    sessions = relationship(
+        "UserSession", back_populates="user", cascade="all, delete-orphan"
+    )
+    user_roles = relationship(
+        "UserRole",
+        back_populates="user",
+        cascade="all, delete-orphan",
+        foreign_keys="[UserRole.user_id]",
+    )
+    api_keys = relationship(
+        "APIKey", back_populates="user", cascade="all, delete-orphan"
+    )
+    preferences = relationship(
+        "PortalUserPreferences",
+        back_populates="user",
+        cascade="all, delete-orphan",
+        uselist=False,
+    )
 
     def __repr__(self) -> str:
         return f"<User(id={self.id}, email='{self.email}', role={self.role})>"
@@ -95,7 +121,9 @@ class UserSession(Base):
         self.revoked_at = utcnow()
 
     def __repr__(self) -> str:
-        return f"<UserSession(id={self.id}, user_id={self.user_id}, active={self.active})>"
+        return (
+            f"<UserSession(id={self.id}, user_id={self.user_id}, active={self.active})>"
+        )
 
     def to_dict(self) -> dict:
         """Convert to dictionary for JSON serialization."""
@@ -163,7 +191,9 @@ class UserRole(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
-    role = Column(String(50), nullable=False, index=True)  # VIEWER, ANALYST, ADMIN, SUPER_ADMIN
+    role = Column(
+        String(50), nullable=False, index=True
+    )  # VIEWER, ANALYST, ADMIN, SUPER_ADMIN
     assigned_at = Column(DateTime, default=utcnow, nullable=False)
     assigned_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     expires_at = Column(DateTime, nullable=True, index=True)
@@ -172,9 +202,7 @@ class UserRole(Base):
     # Relationships
     user = relationship("User", back_populates="user_roles", foreign_keys=[user_id])
 
-    __table_args__ = (
-        Index("ix_user_roles_user_role", "user_id", "role"),
-    )
+    __table_args__ = (Index("ix_user_roles_user_role", "user_id", "role"),)
 
     def __repr__(self) -> str:
         return f"<UserRole(user_id={self.user_id}, role='{self.role}')>"
@@ -202,7 +230,7 @@ class APIKey(Base):
     description = Column(Text, nullable=True)
     last_used_at = Column(DateTime, nullable=True)
     expires_at = Column(DateTime, nullable=True)
-    scopes = Column(StringArray, default=['read:deals', 'read:analytics'])
+    scopes = Column(StringArray, default=["read:deals", "read:analytics"])
     is_active = Column(Boolean, default=True, index=True)
     created_at = Column(DateTime, default=utcnow, nullable=False)
     rotated_at = Column(DateTime, nullable=True)
@@ -232,7 +260,7 @@ class PortalUserPreferences(Base):
     __tablename__ = "portal_user_preferences"
 
     user_id = Column(Integer, ForeignKey("users.id"), primary_key=True)
-    theme = Column(String(20), default='light')  # light, dark, auto
+    theme = Column(String(20), default="light")  # light, dark, auto
     dashboard_layout = Column(JSON, default={})
     saved_filters = Column(JSON, default={})
     saved_reports = Column(JSON, default={})
@@ -240,8 +268,8 @@ class PortalUserPreferences(Base):
     email_notifications = Column(Boolean, default=False)
     auto_refresh_interval = Column(Integer, default=30)  # seconds
     items_per_page = Column(Integer, default=50)
-    timezone = Column(String(50), default='UTC')
-    language = Column(String(10), default='en')
+    timezone = Column(String(50), default="UTC")
+    language = Column(String(10), default="en")
     updated_at = Column(DateTime, default=utcnow, nullable=False)
 
     # Relationships
@@ -285,7 +313,9 @@ class Deal(Base):
     estimated_margin = Column(DECIMAL(10, 2), nullable=True)
     score = Column(DECIMAL(5, 2), nullable=True)
     score_breakdown = Column(JSON, default={})
-    status = Column(String(50), default='scanning', index=True)  # scanning, scored, bidding, won, routed, closed
+    status = Column(
+        String(50), default="scanning", index=True
+    )  # scanning, scored, bidding, won, routed, closed
     bid_count = Column(Integer, default=0)
     highest_bid = Column(DECIMAL(10, 2), nullable=True)
     condition_report = Column(JSON, default={})
@@ -311,7 +341,9 @@ class Deal(Base):
             "body_style": self.body_style,
             "mileage": self.mileage,
             "mmr_value": float(self.mmr_value) if self.mmr_value else None,
-            "estimated_margin": float(self.estimated_margin) if self.estimated_margin else None,
+            "estimated_margin": (
+                float(self.estimated_margin) if self.estimated_margin else None
+            ),
             "score": float(self.score) if self.score else None,
             "status": self.status,
             "bid_count": self.bid_count,

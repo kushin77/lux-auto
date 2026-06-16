@@ -4,34 +4,35 @@ RBAC (Role-Based Access Control) utilities for Lux-Auto
 Provides permission checking and authorization decorators.
 """
 
-from fastapi import HTTPException, Request, status
+from fastapi import HTTPException, status
 from functools import wraps
 from sqlalchemy.orm import Session
 from typing import List, Callable, Any
 
-from backend.database.models import User, UserRole as UserRoleModel
+from backend.database.models import UserRole as UserRoleModel
 
 
 class Permission:
     """Permission constants for API endpoints."""
+
     # Deal permissions
     READ_DEALS = "read:deals"
     WRITE_DEALS = "write:deals"
     APPROVE_DEALS = "approve:deals"
     DELETE_DEALS = "delete:deals"
-    
+
     # Buyer permissions
     READ_BUYERS = "read:buyers"
     WRITE_BUYERS = "write:buyers"
     DELETE_BUYERS = "delete:buyers"
-    
+
     # Analytics permissions
     READ_ANALYTICS = "read:analytics"
     EXPORT_ANALYTICS = "export:analytics"
-    
+
     # Audit permissions
     READ_AUDIT = "read:audit"
-    
+
     # Admin permissions
     MANAGE_USERS = "manage:users"
     MANAGE_ROLES = "manage:roles"
@@ -40,7 +41,7 @@ class Permission:
 
 class RolePermissionMatrix:
     """Define what permissions each role has."""
-    
+
     ROLES = {
         "VIEWER": [
             Permission.READ_DEALS,
@@ -113,13 +114,11 @@ class RolePermissionMatrix:
 
 def get_user_role(db: Session, user_id: int) -> str:
     """Get the highest role assigned to a user."""
-    user_roles = db.query(UserRoleModel).filter(
-        UserRoleModel.user_id == user_id
-    ).all()
-    
+    user_roles = db.query(UserRoleModel).filter(UserRoleModel.user_id == user_id).all()
+
     if not user_roles:
         return "VIEWER"  # Default role
-    
+
     role_names = [ur.role for ur in user_roles]
     return RolePermissionMatrix.get_highest_role(role_names)
 
@@ -132,68 +131,76 @@ def check_permission(db: Session, user_id: int, permission: str) -> bool:
 
 def require_permission(permission: str):
     """Decorator to require a specific permission on an endpoint."""
+
     def decorator(func: Callable) -> Callable:
         @wraps(func)
         async def wrapper(*args, **kwargs) -> Any:
             # Get request and db from args/kwargs
             request = kwargs.get("request") or (args[0] if args else None)
-            db = kwargs.get("db") or next((arg for arg in args if isinstance(arg, Session)), None)
-            
+            db = kwargs.get("db") or next(
+                (arg for arg in args if isinstance(arg, Session)), None
+            )
+
             if not request or not db:
                 raise HTTPException(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail="Invalid request context"
+                    detail="Invalid request context",
                 )
-            
+
             # Get user from request state (set by middleware)
             user = getattr(request.state, "user", None)
             if not user:
                 raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Not authenticated"
+                    status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated"
                 )
-            
+
             # Check permission
             if not check_permission(db, user.id, permission):
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
-                    detail=f"Permission '{permission}' required"
+                    detail=f"Permission '{permission}' required",
                 )
-            
+
             return await func(*args, **kwargs)
+
         return wrapper
+
     return decorator
 
 
 def require_any_permission(*permissions: str):
     """Decorator to require at least one of the specified permissions."""
+
     def decorator(func: Callable) -> Callable:
         @wraps(func)
         async def wrapper(*args, **kwargs) -> Any:
             request = kwargs.get("request") or (args[0] if args else None)
-            db = kwargs.get("db") or next((arg for arg in args if isinstance(arg, Session)), None)
-            
+            db = kwargs.get("db") or next(
+                (arg for arg in args if isinstance(arg, Session)), None
+            )
+
             if not request or not db:
                 raise HTTPException(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail="Invalid request context"
+                    detail="Invalid request context",
                 )
-            
+
             user = getattr(request.state, "user", None)
             if not user:
                 raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Not authenticated"
+                    status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated"
                 )
-            
+
             # Check if user has any of the required permissions
             has_any = any(check_permission(db, user.id, perm) for perm in permissions)
             if not has_any:
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
-                    detail=f"One of these permissions required: {', '.join(permissions)}"
+                    detail=f"One of these permissions required: {', '.join(permissions)}",
                 )
-            
+
             return await func(*args, **kwargs)
+
         return wrapper
+
     return decorator

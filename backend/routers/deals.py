@@ -24,7 +24,14 @@ from backend.database import get_db
 router = APIRouter(prefix="/api/v2/deals", tags=["Deals"])
 
 # Sort columns we allow (prevents arbitrary attribute injection).
-_SORTABLE = {"created_at", "updated_at", "score", "mmr_value", "estimated_margin", "year"}
+_SORTABLE = {
+    "created_at",
+    "updated_at",
+    "score",
+    "mmr_value",
+    "estimated_margin",
+    "year",
+}
 
 
 def _f(value) -> float:
@@ -33,6 +40,7 @@ def _f(value) -> float:
 
 
 # ===== Pydantic Models =====
+
 
 class DealCard(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -111,6 +119,7 @@ class DealRejectResponse(BaseModel):
 
 # ===== Helpers =====
 
+
 def _card(d) -> DealCard:
     photos = d.photo_urls or []
     return DealCard(
@@ -139,6 +148,7 @@ def _get_or_404(db: Session, deal_id: str):
 
 
 # ===== Endpoints =====
+
 
 @router.get("", response_model=DealListResponse)
 async def list_deals(

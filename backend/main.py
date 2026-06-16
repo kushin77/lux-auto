@@ -73,7 +73,10 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 set_session_local(SessionLocal)
 
 # Create tables - use raw SQL with IF NOT EXISTS to avoid race conditions
-print(f"DEBUG: Base.metadata tables registered: {list(Base.metadata.tables.keys())}", flush=True)
+print(
+    f"DEBUG: Base.metadata tables registered: {list(Base.metadata.tables.keys())}",
+    flush=True,
+)
 
 # Check if tables already exist to avoid unnecessary recreation
 inspector = inspect(engine)
@@ -100,7 +103,10 @@ if missing_tables:
             print(f"✗ Final schema creation failed: {str(e2)[:200]}", flush=True)
             print("⚠ Continuing with partial/existing schema", flush=True)
 else:
-    print(f"✓ All required tables already exist ({len(existing_tables)} tables)", flush=True)
+    print(
+        f"✓ All required tables already exist ({len(existing_tables)} tables)",
+        flush=True,
+    )
 
 # Verify tables exist now
 inspector = inspect(engine)
@@ -137,7 +143,12 @@ app = FastAPI(
 )
 
 # Add OAuth middleware
-app.add_middleware(OAuthMiddleware, user_service=user_service, session_service=session_service, audit_logger=audit_logger)
+app.add_middleware(
+    OAuthMiddleware,
+    user_service=user_service,
+    session_service=session_service,
+    audit_logger=audit_logger,
+)
 
 # Include API v2 routes
 app.include_router(deals.router)
@@ -162,22 +173,22 @@ async def health_check() -> dict:
 @app.get("/api/me", tags=["User"])
 async def get_current_user(request: Request) -> dict:
     """Get current authenticated user profile.
-    
+
     Requires: X-Auth-Request-Email header (set by oauth2-proxy)
     """
     user_email = request.headers.get("X-Auth-Request-Email")
-    
+
     if not user_email:
         log.warning("Missing authentication header", path=request.url.path)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Missing authentication headers. Please login first.",
         )
-    
+
     db: Session = SessionLocal()
     try:
         user = user_service.get_or_create_user(email=user_email, session=db)
-        
+
         return {
             "id": user.id,
             "email": user.email,
@@ -195,15 +206,15 @@ async def get_current_user(request: Request) -> dict:
 async def logout(request: Request) -> dict:
     """Logout user (revoke current session)."""
     user_email = request.headers.get("X-Auth-Request-Email")
-    
+
     if not user_email:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Not authenticated",
         )
-    
+
     log.info("User logout requested", email=user_email)
-    
+
     # Log logout event
     audit_logger.log_event(
         event_type=AuditEventType.USER_LOGOUT,
@@ -211,9 +222,9 @@ async def logout(request: Request) -> dict:
         action="User logout via API",
         status=AuditStatus.SUCCESS,
         ip_address=request.client.host if request.client else None,
-        user_agent=request.headers.get("User-Agent")
+        user_agent=request.headers.get("User-Agent"),
     )
-    
+
     # In production, oauth2-proxy handles logout via /oauth2/sign_out
     return {
         "status": "success",
@@ -225,20 +236,20 @@ async def logout(request: Request) -> dict:
 async def logout_all(request: Request) -> dict:
     """Logout user from all sessions (revoke all sessions for this user)."""
     user_email = request.headers.get("X-Auth-Request-Email")
-    
+
     if not user_email:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Not authenticated",
         )
-    
+
     db: Session = SessionLocal()
     try:
         user = user_service.get_or_create_user(email=user_email, session=db)
         session_service.revoke_all_user_sessions(user.id, db)
-        
+
         log.info("User logged out from all sessions", email=user_email, user_id=user.id)
-        
+
         # Log logout event
         audit_logger.log_event(
             event_type=AuditEventType.SESSION_REVOKED,
@@ -248,9 +259,9 @@ async def logout_all(request: Request) -> dict:
             resource_type="session",
             status=AuditStatus.SUCCESS,
             ip_address=request.client.host if request.client else None,
-            user_agent=request.headers.get("User-Agent")
+            user_agent=request.headers.get("User-Agent"),
         )
-        
+
         return {
             "status": "success",
             "message": "All sessions revoked",
@@ -263,18 +274,18 @@ async def logout_all(request: Request) -> dict:
 async def get_active_sessions(request: Request) -> dict:
     """Get all active sessions for current user."""
     user_email = request.headers.get("X-Auth-Request-Email")
-    
+
     if not user_email:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Not authenticated",
         )
-    
+
     db: Session = SessionLocal()
     try:
         user = user_service.get_or_create_user(email=user_email, session=db)
         sessions = session_service.list_user_sessions(user.id, db)
-        
+
         return {
             "user_email": user_email,
             "active_sessions": len(sessions),
@@ -311,7 +322,7 @@ async def global_exception_handler(request: Request, exc: Exception):
         error_type=type(exc).__name__,
         error_message=str(exc),
     )
-    
+
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         content={
@@ -323,7 +334,7 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 if __name__ == "__main__":
     import uvicorn
-    
+
     uvicorn.run(
         app,
         host="0.0.0.0",

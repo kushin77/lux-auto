@@ -34,7 +34,7 @@ def _seed():
     db = SessionLocal()
     try:
         svc = UserService()
-        svc.get_or_create_user("admin@luxauto.com", db)          # ADMIN (matches env + first)
+        svc.get_or_create_user("admin@luxauto.com", db)  # ADMIN (matches env + first)
         svc.get_or_create_user("viewer@luxauto.com", db)
         svc.set_role("viewer@luxauto.com", UserRole.VIEWER, db)
         svc.get_or_create_user("analyst@luxauto.com", db)
@@ -42,19 +42,66 @@ def _seed():
 
         now = datetime.now()
         deals = [
-            Deal(id="d1", vin="VINFERRARI0001", year=2019, make="Ferrari", model="488",
-                 mmr_value=235000, estimated_margin=28000, score=82, status="won", created_at=now),
-            Deal(id="d2", vin="VINLAMBO000002", year=2020, make="Lamborghini", model="Huracan",
-                 mmr_value=255000, estimated_margin=32000, score=88, status="closed", created_at=now),
-            Deal(id="d3", vin="VINFERRARI0003", year=2018, make="Ferrari", model="GTC4",
-                 mmr_value=180000, estimated_margin=15000, score=70, status="routed", created_at=now),
-            Deal(id="d4", vin="VINPORSCHE0004", year=2021, make="Porsche", model="911",
-                 mmr_value=120000, estimated_margin=9000, score=64, status="scored", created_at=now),
+            Deal(
+                id="d1",
+                vin="VINFERRARI0001",
+                year=2019,
+                make="Ferrari",
+                model="488",
+                mmr_value=235000,
+                estimated_margin=28000,
+                score=82,
+                status="won",
+                created_at=now,
+            ),
+            Deal(
+                id="d2",
+                vin="VINLAMBO000002",
+                year=2020,
+                make="Lamborghini",
+                model="Huracan",
+                mmr_value=255000,
+                estimated_margin=32000,
+                score=88,
+                status="closed",
+                created_at=now,
+            ),
+            Deal(
+                id="d3",
+                vin="VINFERRARI0003",
+                year=2018,
+                make="Ferrari",
+                model="GTC4",
+                mmr_value=180000,
+                estimated_margin=15000,
+                score=70,
+                status="routed",
+                created_at=now,
+            ),
+            Deal(
+                id="d4",
+                vin="VINPORSCHE0004",
+                year=2021,
+                make="Porsche",
+                model="911",
+                mmr_value=120000,
+                estimated_margin=9000,
+                score=64,
+                status="scored",
+                created_at=now,
+            ),
         ]
         for d in deals:
             db.merge(d)
-        db.merge(Buyer(id="b1", name="Existing Buyer", email="existing@buyer.com",
-                       success_count=2, contact_count=4))
+        db.merge(
+            Buyer(
+                id="b1",
+                name="Existing Buyer",
+                email="existing@buyer.com",
+                success_count=2,
+                contact_count=4,
+            )
+        )
         db.commit()
     finally:
         db.close()
@@ -68,6 +115,7 @@ def client():
 
 
 # ── Deals + RBAC ────────────────────────────────────────────────────────────
+
 
 def test_admin_lists_all_deals(client):
     r = client.get("/api/v2/deals", headers=ADMIN)
@@ -96,12 +144,16 @@ def test_unauthenticated_is_401(client):
 
 
 def test_admin_approves_and_rejects(client):
-    a = client.post("/api/v2/deals/d4/approve", json={"reason": "Strong margin"}, headers=ADMIN)
+    a = client.post(
+        "/api/v2/deals/d4/approve", json={"reason": "Strong margin"}, headers=ADMIN
+    )
     assert a.status_code == 200
     assert a.json()["status"] == "approved"
     assert a.json()["approved_by"] == "admin@luxauto.com"
 
-    rj = client.post("/api/v2/deals/d3/reject", json={"reason": "Damaged frame"}, headers=ADMIN)
+    rj = client.post(
+        "/api/v2/deals/d3/reject", json={"reason": "Damaged frame"}, headers=ADMIN
+    )
     assert rj.status_code == 200
     assert rj.json()["status"] == "rejected"
 
@@ -111,10 +163,14 @@ def test_admin_approves_and_rejects(client):
 
 
 def test_approve_missing_deal_404(client):
-    assert client.post("/api/v2/deals/nope/approve", json={}, headers=ADMIN).status_code == 404
+    assert (
+        client.post("/api/v2/deals/nope/approve", json={}, headers=ADMIN).status_code
+        == 404
+    )
 
 
 # ── Analytics ───────────────────────────────────────────────────────────────
+
 
 def test_dashboard_math(client):
     # NOTE: runs after approve/reject above changed d3→rejected, d4→approved.
@@ -125,13 +181,15 @@ def test_dashboard_math(client):
     assert m["deals_scanned"] == 4
     assert m["deals_won"] == 2
     assert m["win_rate"] == 50.0
-    assert m["total_volume"] == 490000.0          # 235000 + 255000
-    assert m["total_margin"] == 60000.0           # 28000 + 32000
+    assert m["total_volume"] == 490000.0  # 235000 + 255000
+    assert m["total_margin"] == 60000.0  # 28000 + 32000
     assert m["avg_margin_per_deal"] == 30000.0
 
 
 def test_deal_analytics_grouping(client):
-    r = client.get("/api/v2/analytics/deals?metric=margin&group_by=make", headers=ANALYST)
+    r = client.get(
+        "/api/v2/analytics/deals?metric=margin&group_by=make", headers=ANALYST
+    )
     assert r.status_code == 200
     body = r.json()
     assert body["group_by"] == "make"
@@ -140,11 +198,12 @@ def test_deal_analytics_grouping(client):
 
 # ── Buyers + CSV import ─────────────────────────────────────────────────────
 
+
 def test_buyer_csv_import_and_list(client):
     csv_data = (
         "name,email,phone,max_price,preferred_makes,location\n"
-        "Jane Collector,jane@buyer.com,555-1000,300000,\"Ferrari,Lamborghini\",\"Miami, FL\"\n"
-        "Existing Buyer,existing@buyer.com,555-2000,275000,Porsche,\"Austin, TX\"\n"
+        'Jane Collector,jane@buyer.com,555-1000,300000,"Ferrari,Lamborghini","Miami, FL"\n'
+        'Existing Buyer,existing@buyer.com,555-2000,275000,Porsche,"Austin, TX"\n'
     )
     r = client.post(
         "/api/v2/buyers/import",
@@ -153,8 +212,8 @@ def test_buyer_csv_import_and_list(client):
     )
     assert r.status_code == 200
     summary = r.json()
-    assert summary["imported"] == 1   # jane is new
-    assert summary["updated"] == 1    # existing@buyer.com updated
+    assert summary["imported"] == 1  # jane is new
+    assert summary["updated"] == 1  # existing@buyer.com updated
     assert summary["failed"] == 0
 
     lst = client.get("/api/v2/buyers", headers=ANALYST)
@@ -173,6 +232,7 @@ def test_viewer_cannot_import_buyers(client):
 
 
 # ── Audit trail ─────────────────────────────────────────────────────────────
+
 
 def test_audit_trail_captured_mutations(client):
     r = client.get("/api/v2/audit", headers=ADMIN)

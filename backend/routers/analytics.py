@@ -16,7 +16,16 @@ from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, UploadFile, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    File,
+    HTTPException,
+    Query,
+    Request,
+    UploadFile,
+    status,
+)
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy.orm import Session
 
@@ -47,6 +56,7 @@ def _range_start(date_range: str, now: datetime) -> Optional[datetime]:
 
 
 # ===== Pydantic Models =====
+
 
 class BuyerProfile(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -120,6 +130,7 @@ class DealAnalyticsResponse(BaseModel):
 
 # ===== Buyer helpers =====
 
+
 def _buyer_profile(b) -> BuyerProfile:
     loc = ", ".join(p for p in [b.location_city, b.location_state] if p)
     rate = (b.success_count / b.contact_count * 100) if b.contact_count else 0.0
@@ -138,6 +149,7 @@ def _buyer_profile(b) -> BuyerProfile:
 
 
 # ===== Buyer Endpoints =====
+
 
 @router.get("/buyers", response_model=BuyerListResponse)
 async def list_buyers(
@@ -216,7 +228,11 @@ async def import_buyers(
             if not email or not name:
                 raise ValueError("name and email are required")
 
-            makes = [m.strip() for m in (row.get("preferred_makes") or "").split(",") if m.strip()]
+            makes = [
+                m.strip()
+                for m in (row.get("preferred_makes") or "").split(",")
+                if m.strip()
+            ]
             max_price = float(row["max_price"]) if row.get("max_price") else None
             location = (row.get("location") or "").strip()
             city, _, state = location.partition(",")
@@ -225,22 +241,26 @@ async def import_buyers(
             if existing:
                 existing.name = name
                 existing.phone = (row.get("phone") or "").strip() or existing.phone
-                existing.max_price = max_price if max_price is not None else existing.max_price
+                existing.max_price = (
+                    max_price if max_price is not None else existing.max_price
+                )
                 existing.make_preferences = makes or existing.make_preferences
                 existing.location_city = city.strip() or existing.location_city
-                existing.location_state = (state.strip()[:2] or existing.location_state)
+                existing.location_state = state.strip()[:2] or existing.location_state
                 updated += 1
             else:
-                db.add(Buyer(
-                    id=uuid.uuid4().hex,
-                    name=name,
-                    email=email,
-                    phone=(row.get("phone") or "").strip() or None,
-                    max_price=max_price,
-                    make_preferences=makes,
-                    location_city=city.strip() or None,
-                    location_state=(state.strip()[:2] or None),
-                ))
+                db.add(
+                    Buyer(
+                        id=uuid.uuid4().hex,
+                        name=name,
+                        email=email,
+                        phone=(row.get("phone") or "").strip() or None,
+                        max_price=max_price,
+                        make_preferences=makes,
+                        location_city=city.strip() or None,
+                        location_state=(state.strip()[:2] or None),
+                    )
+                )
                 imported += 1
         except Exception as exc:
             failed += 1
@@ -257,10 +277,13 @@ async def import_buyers(
         status=AuditStatus.SUCCESS if failed == 0 else AuditStatus.FAILURE,
         ip_address=client_ip(request),
     )
-    return BuyerImportResponse(imported=imported, updated=updated, failed=failed, errors=errors)
+    return BuyerImportResponse(
+        imported=imported, updated=updated, failed=failed, errors=errors
+    )
 
 
 # ===== Analytics Endpoints =====
+
 
 def _metrics_for(rows) -> DashboardMetrics:
     scanned = len(rows)
@@ -319,12 +342,19 @@ async def get_analytics_dashboard(
         if d.status in WON_STATUSES:
             by_make[d.make].append(_f(d.estimated_margin))
     top = sorted(
-        (TopMakeMetric(make=mk, deals_won=len(v), avg_margin=round(sum(v) / len(v), 2))
-         for mk, v in by_make.items()),
-        key=lambda t: t.deals_won, reverse=True,
+        (
+            TopMakeMetric(
+                make=mk, deals_won=len(v), avg_margin=round(sum(v) / len(v), 2)
+            )
+            for mk, v in by_make.items()
+        ),
+        key=lambda t: t.deals_won,
+        reverse=True,
     )[:5]
 
-    return DashboardResponse(period=date_range, metrics=metrics, trends=trends, top_makes=top)
+    return DashboardResponse(
+        period=date_range, metrics=metrics, trends=trends, top_makes=top
+    )
 
 
 @router.get("/analytics/deals", response_model=DealAnalyticsResponse)
@@ -366,13 +396,19 @@ async def get_deal_analytics(
         if metric == "win_rate":
             value = round(len(won) / total * 100, 1) if total else 0.0
         elif metric == "margin":
-            value = round(sum(_f(d.estimated_margin) for d in won) / len(won), 2) if won else 0.0
+            value = (
+                round(sum(_f(d.estimated_margin) for d in won) / len(won), 2)
+                if won
+                else 0.0
+            )
         elif metric == "velocity":
             spans = [(d.updated_at - d.created_at).days for d in won]
             value = round(sum(spans) / len(spans), 1) if spans else 0.0
         else:  # accuracy → average score as a proxy
             value = round(sum(_f(d.score) for d in items) / total, 1) if total else 0.0
-        data.append(DealMetricPoint(group=g, value=value, deals_total=total, deals_won=len(won)))
+        data.append(
+            DealMetricPoint(group=g, value=value, deals_total=total, deals_won=len(won))
+        )
 
     data.sort(key=lambda p: p.value, reverse=True)
     return DealAnalyticsResponse(metric=metric, group_by=dim, data=data)

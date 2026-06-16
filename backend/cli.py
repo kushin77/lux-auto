@@ -28,7 +28,9 @@ from sqlalchemy.orm import sessionmaker
 def _session_factory():
     url = os.getenv("DATABASE_URL")
     if not url:
-        sys.exit("✗ DATABASE_URL is not set. Export it or use --env-file via docker compose.")
+        sys.exit(
+            "✗ DATABASE_URL is not set. Export it or use --env-file via docker compose."
+        )
     engine = create_engine(url, pool_pre_ping=True)
     from backend.database import set_session_local
 
@@ -44,7 +46,9 @@ def cmd_healthcheck(_args) -> int:
 
         conn.execute(text("SELECT 1"))
     tables = inspect(engine).get_table_names()
-    print(f"✓ Database reachable. {len(tables)} table(s): {', '.join(tables) or '(none)'}")
+    print(
+        f"✓ Database reachable. {len(tables)} table(s): {', '.join(tables) or '(none)'}"
+    )
     return 0
 
 
@@ -95,7 +99,9 @@ def cmd_list_users(_args) -> int:
     db = SessionLocal()
     try:
         for u in db.query(User).order_by(User.created_at).all():
-            print(f"  {u.id:>4}  {u.email:<40} {str(u.role):<12} last_login={u.last_login}")
+            print(
+                f"  {u.id:>4}  {u.email:<40} {str(u.role):<12} last_login={u.last_login}"
+            )
     finally:
         db.close()
     return 0
@@ -111,7 +117,9 @@ def cmd_list_deals(args) -> int:
         if args.status:
             q = q.filter(Deal.status == args.status)
         for d in q.order_by(Deal.created_at.desc()).limit(args.limit).all():
-            print(f"  {d.id:<14} {d.year} {d.make} {d.model:<16} score={d.score} status={d.status}")
+            print(
+                f"  {d.id:<14} {d.year} {d.make} {d.model:<16} score={d.score} status={d.status}"
+            )
     finally:
         db.close()
     return 0
@@ -147,8 +155,12 @@ def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="backend.cli", description="Lux-Auto admin CLI")
     sub = p.add_subparsers(dest="command", required=True)
 
-    sub.add_parser("healthcheck", help="Verify DB connectivity").set_defaults(func=cmd_healthcheck)
-    sub.add_parser("init-db", help="Create tables from the ORM models").set_defaults(func=cmd_init_db)
+    sub.add_parser("healthcheck", help="Verify DB connectivity").set_defaults(
+        func=cmd_healthcheck
+    )
+    sub.add_parser("init-db", help="Create tables from the ORM models").set_defaults(
+        func=cmd_init_db
+    )
 
     cu = sub.add_parser("create-user", help="Create (or fetch) a user")
     cu.add_argument("--email", required=True)
@@ -160,7 +172,9 @@ def build_parser() -> argparse.ArgumentParser:
     sr.add_argument("--role", required=True)
     sr.set_defaults(func=cmd_set_role)
 
-    sub.add_parser("list-users", help="List all users").set_defaults(func=cmd_list_users)
+    sub.add_parser("list-users", help="List all users").set_defaults(
+        func=cmd_list_users
+    )
 
     ld = sub.add_parser("list-deals", help="List deals")
     ld.add_argument("--status", default=None)

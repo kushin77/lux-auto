@@ -71,7 +71,11 @@ class AuditLogger:
     ) -> None:
         from backend.database.models import AuditLog
 
-        et = event_type.value if isinstance(event_type, AuditEventType) else str(event_type)
+        et = (
+            event_type.value
+            if isinstance(event_type, AuditEventType)
+            else str(event_type)
+        )
         st = status.value if isinstance(status, AuditStatus) else str(status)
 
         session = self._session_factory()
