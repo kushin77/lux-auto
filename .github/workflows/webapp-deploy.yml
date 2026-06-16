@@ -2,11 +2,12 @@ name: Deploy Apps Script Web App
 
 # Pushes webapp/ to Google Apps Script and cuts a new versioned deployment.
 #
-# ONE-TIME SETUP (run bootstrap.sh in Cloud Shell first — it prints these values):
+# ONE-TIME SETUP (run webapp/bootstrap-cloudshell.sh in Google Cloud Shell first):
 #   Repo secret  CLASPRC_JSON   — contents of ~/.clasprc.json after clasp login
-#   Repo secret  SCRIPT_ID      — the Apps Script project ID (from bootstrap.sh output)
+#   Repo secret  SCRIPT_ID      — the Apps Script project ID
 #
 # After those two secrets are set, every push to main that touches webapp/ auto-deploys.
+# Until they are set, this workflow skips gracefully with a clear warning.
 
 on:
   workflow_dispatch:          # manual trigger from GitHub UI
@@ -40,29 +41,52 @@ jobs:
         working-directory: webapp
         run: npm ci
 
-      # Write the OAuth token clasp needs (comes from ~/.clasprc.json on your machine).
+      # Guard: skip deploy if secrets not yet populated.
+      # Run webapp/bootstrap-cloudshell.sh once to populate CLASPRC_JSON + SCRIPT_ID.
+      - name: Check webapp secrets configured
+        id: clasp_check
+        run: |
+          if [[ -z "$CLASPRC_JSON" ]] || [[ -z "$SCRIPT_ID" ]]; then
+            echo "::warning::CLASPRC_JSON or SCRIPT_ID not set — webapp deploy skipped. Run: cd webapp && bash bootstrap-cloudshell.sh"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+        env:
+          CLASPRC_JSON: ${{ secrets.CLASPRC_JSON }}
+          SCRIPT_ID:    ${{ secrets.SCRIPT_ID }}
+
+      # Write the OAuth token clasp needs. Use printf (not echo) to preserve JSON exactly.
       - name: Write clasp credentials
+        if: steps.clasp_check.outputs.skip == 'false'
         env:
           CLASPRC_JSON: ${{ secrets.CLASPRC_JSON }}
         run: |
-          echo "$CLASPRC_JSON" > ~/.clasprc.json
-          chmod 600 ~/.clasprc.json
+          CREDS="$HOME/.clasprc.json"
+          printf '%s' "$CLASPRC_JSON" > "$CREDS"
+          chmod 600 "$CREDS"
+          BYTES=$(wc -c < "$CREDS")
+          echo "Credentials written: ${BYTES} bytes"
+          test "$BYTES" -gt 10 || { echo "::error::CLASPRC_JSON is empty — re-run webapp/bootstrap-cloudshell.sh"; exit 1; }
+          python3 -c "import json; d=json.load(open('$CREDS')); t=d if 'access_token' in d else d.get('tokens',d); assert t.get('access_token') or t.get('refresh_token'), 'No token in CLASPRC_JSON — re-run bootstrap-cloudshell.sh'; print('credentials OK')"
 
-      # Inject the Script ID into .clasp.json (we keep a template in the repo).
+      # Inject the Script ID into .clasp.json (template kept in repo, never committed with real ID).
       - name: Inject Script ID
+        if: steps.clasp_check.outputs.skip == 'false'
         env:
           SCRIPT_ID: ${{ secrets.SCRIPT_ID }}
         working-directory: webapp
         run: |
-          cat .clasp.json.template \
-            | sed "s/REPLACE_WITH_SCRIPT_ID/$SCRIPT_ID/" \
-            > .clasp.json
+          sed "s/REPLACE_WITH_SCRIPT_ID/$SCRIPT_ID/" .clasp.json.template > .clasp.json
+          echo "Script ID injected: $SCRIPT_ID"
 
       - name: Push source to Apps Script
+        if: steps.clasp_check.outputs.skip == 'false'
         working-directory: webapp
         run: npx clasp push --force
 
       - name: Create versioned deployment
+        if: steps.clasp_check.outputs.skip == 'false'
         working-directory: webapp
         run: |
           npx clasp deploy \
@@ -70,6 +94,7 @@ jobs:
             || echo "⚠️  deploy step failed — source was pushed; create the deployment manually once."
 
       - name: Print web-app URL
+        if: steps.clasp_check.outputs.skip == 'false'
         working-directory: webapp
         run: |
           echo "── Active deployments ──"
