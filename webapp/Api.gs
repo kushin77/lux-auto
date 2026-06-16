@@ -4,12 +4,32 @@
  * The browser never talks to the CRM — it calls google.script.run, which runs
  * here. The token stays in Script Properties. All vendor-specific JSON is mapped
  * into clean Lux objects before anything is returned to the client.
+ *
+ * Engine→CRM sync (CLAUDE.md §3): opportunities are upserted BY VIN and the
+ * VIN→opportunityId map is kept in the "VIN Index" sheet so updates are O(1)
+ * and idempotent. Heavy logic stays here, not in CRM workflows.
  */
 
 var EXOTIC_MAKES = ['Ferrari','Lamborghini','Porsche','McLaren','Bentley','Rolls-Royce',
   'Maserati','Aston Martin','Bugatti','Mercedes-Benz','BMW','Audi','Lexus','Acura','Dodge'];
 
-// ── Low-level fetch ─────────────────────────────────────────────────────────
+// Opportunity (deal) custom-field schema — created via the v2 API (idempotent).
+var LUX_DEAL_FIELDS = [
+  { name: 'VIN',              fieldKey: 'lux_vin',          dataType: 'TEXT' },
+  { name: 'Year',            fieldKey: 'lux_year',         dataType: 'NUMERICAL' },
+  { name: 'Make',            fieldKey: 'lux_make',         dataType: 'TEXT' },
+  { name: 'Model',           fieldKey: 'lux_model',        dataType: 'TEXT' },
+  { name: 'Mileage',         fieldKey: 'lux_mileage',      dataType: 'NUMERICAL' },
+  { name: 'MMR Value',       fieldKey: 'lux_mmr',          dataType: 'MONETARY' },
+  { name: 'Deal Score',      fieldKey: 'lux_score',        dataType: 'NUMERICAL' },
+  { name: 'Max Bid',         fieldKey: 'lux_max_bid',      dataType: 'MONETARY' },
+  { name: 'Estimated Margin', fieldKey: 'lux_margin',      dataType: 'MONETARY' },
+  { name: 'Auction Date',    fieldKey: 'lux_auction_date', dataType: 'DATE' },
+  { name: 'Lane',            fieldKey: 'lux_lane',         dataType: 'TEXT' },
+  { name: 'Drive Vault URL', fieldKey: 'lux_vault_url',    dataType: 'TEXT' }
+];
+
+// ── Low-level fetch (429 / 5xx backoff) ──────────────────────────────────────
 function lcFetch_(method, path, query, payload) {
   var url = APP.API_BASE + path;
   var qs = Object.keys(query || {})
@@ -29,12 +49,21 @@ function lcFetch_(method, path, query, payload) {
   };
   if (payload) { opts.contentType = 'application/json'; opts.payload = JSON.stringify(payload); }
 
-  var resp = UrlFetchApp.fetch(url, opts);
-  var code = resp.getResponseCode();
-  if (code < 200 || code >= 300) {
-    throw new Error('Data source error (' + code + ')');
+  var maxAttempts = APP.MAX_FETCH_RETRIES || 4;
+  var attempt = 0;
+  while (true) {
+    attempt++;
+    var resp = UrlFetchApp.fetch(url, opts);
+    var code = resp.getResponseCode();
+    if ((code === 429 || code >= 500) && attempt < maxAttempts) {
+      Utilities.sleep(backoffMs_(attempt));
+      continue;
+    }
+    if (code < 200 || code >= 300) {
+      throw new Error('Data source error (' + code + ')');
+    }
+    return JSON.parse(resp.getContentText() || '{}');
   }
-  return JSON.parse(resp.getContentText() || '{}');
 }
 
 // ── Pipeline + stage mapping ────────────────────────────────────────────────
@@ -153,6 +182,140 @@ function moveDeal(id, toStage) {
   });
   CacheService.getScriptCache().remove('snapshot');
   return { ok: true, by: user.email, stage: toStage };
+}
+
+// ── Engine → GHL: custom-field schema (idempotent) ───────────────────────────
+
+/**
+ * Creates the Lux Deal custom-field schema via the v2 API. Idempotent — skips
+ * fields that already exist. Safe to run repeatedly. No-op in demo mode.
+ * @return {{ok:boolean, created:Array}}
+ */
+function setupGHLCustomFields_() {
+  if (isDemo_()) return { ok: false, demo: true };
+
+  var existing = {};
+  try {
+    var data = lcFetch_('get', '/locations/' + encodeURIComponent(locationId_()) + '/customFields', {});
+    (data.customFields || []).forEach(function (f) {
+      existing[(f.fieldKey || f.key || '').toLowerCase()] = true;
+    });
+  } catch (e) {
+    logError_('setupGHLCustomFields_ list', e);
+  }
+
+  var created = [];
+  LUX_DEAL_FIELDS.forEach(function (f) {
+    var k1 = f.fieldKey.toLowerCase();
+    var k2 = ('opportunity.' + f.fieldKey).toLowerCase();
+    if (existing[k1] || existing[k2]) return;
+    try {
+      lcFetch_('post', '/locations/' + encodeURIComponent(locationId_()) + '/customFields', null, {
+        name: f.name, dataType: f.dataType, fieldKey: f.fieldKey, model: 'opportunity'
+      });
+      created.push(f.fieldKey);
+    } catch (e) {
+      logError_('createField ' + f.fieldKey, e);
+    }
+  });
+
+  logActivity_('setup_ghl_fields', 'Created: ' + (created.join(', ') || 'none (all present)'));
+  return { ok: true, created: created };
+}
+
+// ── Engine → GHL: VIN index (VIN → opportunityId) ────────────────────────────
+
+function getVinIndex_() {
+  var ss = getSpreadsheet_();
+  var sheet = getOrCreateSheet_(ss, 'VIN Index', ['VIN', 'Opportunity ID', 'Updated']);
+  var map = {};
+  var last = sheet.getLastRow();
+  if (last > 1) {
+    var vals = sheet.getRange(2, 1, last - 1, 2).getValues();
+    for (var i = 0; i < vals.length; i++) {
+      var v = (vals[i][0] || '').toString();
+      if (v) map[v] = { row: i + 2, id: (vals[i][1] || '').toString() };
+    }
+  }
+  return { sheet: sheet, map: map };
+}
+
+function setVinIndex_(idx, vin, oppId) {
+  if (idx.map[vin] && idx.map[vin].row) {
+    idx.sheet.getRange(idx.map[vin].row, 2, 1, 2).setValues([[oppId, new Date().toLocaleString()]]);
+    idx.map[vin].id = oppId;
+  } else {
+    idx.sheet.appendRow([vin, oppId, new Date().toLocaleString()]);
+    idx.map[vin] = { row: idx.sheet.getLastRow(), id: oppId };
+  }
+}
+
+// ── Engine → GHL: upsert opportunities by VIN ────────────────────────────────
+
+/**
+ * Upserts scanned deal alerts into GHL as opportunities, keyed by VIN.
+ * New VINs are created in "Spotted"; known VINs are updated in place. Idempotent.
+ * No-op in demo mode. Each failure is logged and does not abort the batch.
+ *
+ * @param  {Array} alerts — deal alert objects from buildDealAlert_()
+ * @return {{ok:boolean, inserted:number, updated:number}}
+ */
+function upsertDealsToGHL_(alerts) {
+  if (isDemo_()) return { ok: false, demo: true };
+  if (!alerts || !alerts.length) return { ok: true, inserted: 0, updated: 0 };
+
+  var pipeline = getPipeline_();
+  var spottedStageId = pipeline.stageIdByName['Spotted'] || '';
+  var idx = getVinIndex_();
+  var inserted = 0, updated = 0;
+
+  alerts.forEach(function (a) {
+    var v = a.listing;
+    var vin = (v && v.vin) ? v.vin.toString() : '';
+    if (!vin) return;
+
+    var title = [v.year, v.make, v.model].filter(function (x) { return x; }).join(' ') +
+                ' — VIN ' + vin + ' — score ' + a.dealScore;
+    // Use `fieldValue` to match SellerPortal.gs / cf_() reader convention.
+    var customFields = [
+      { key: 'lux_vin',     fieldValue: vin },
+      { key: 'lux_year',    fieldValue: v.year || '' },
+      { key: 'lux_make',    fieldValue: v.make || '' },
+      { key: 'lux_model',   fieldValue: v.model || '' },
+      { key: 'lux_mileage', fieldValue: v.mileage || 0 },
+      { key: 'lux_mmr',     fieldValue: v.mmrValue || 0 },
+      { key: 'lux_score',   fieldValue: a.dealScore || 0 },
+      { key: 'lux_max_bid', fieldValue: a.maxBid || 0 },
+      { key: 'lux_margin',  fieldValue: a.estimatedProfitMargin || 0 },
+      { key: 'lux_lane',    fieldValue: v.lane || '' }
+    ];
+    var body = {
+      pipelineId: pipeline.pipelineId,
+      locationId: locationId_(),
+      name: title,
+      monetaryValue: v.mmrValue || 0,
+      customFields: customFields
+    };
+
+    try {
+      var existingId = idx.map[vin] && idx.map[vin].id;
+      if (existingId) {
+        lcFetch_('put', '/opportunities/' + encodeURIComponent(existingId), null, body);
+        updated++;
+      } else {
+        if (spottedStageId) body.pipelineStageId = spottedStageId;
+        var res = lcFetch_('post', '/opportunities/', null, body);
+        var newId = (res.opportunity && res.opportunity.id) || res.id || '';
+        if (newId) setVinIndex_(idx, vin, newId);
+        inserted++;
+      }
+    } catch (e) {
+      logError_('upsertDealsToGHL_ vin=' + vin, e);
+    }
+  });
+
+  logActivity_('push_ghl', 'GHL upsert — ' + inserted + ' new, ' + updated + ' updated');
+  return { ok: true, inserted: inserted, updated: updated };
 }
 
 // ── Demo data (used until LC_API_TOKEN / LC_LOCATION_ID are set) ─────────────

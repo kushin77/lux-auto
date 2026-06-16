@@ -11,7 +11,7 @@
  *   registerBuyer(form)     → {ok, id, name}
  *   getManheimAlerts(limit) → [{scannedAt, vin, year, make, model, mileage, condition,
  *                               location, saleDate, listingPrice, mmrValue, discountPct,
- *                               dealScore, estProfit, reason}]
+ *                               dealScore, estProfit, reason, maxBid}]
  *   getActivityLog(limit)   → [{timestamp, user, action, details}]
  */
 
@@ -312,12 +312,14 @@ function getManheimAlerts(limit) {
         year: 2019, make: 'Ferrari',     model: '488 GTB',  mileage: 8400,
         condition: 4.2, location: 'Atlanta, GA', saleDate: '2026-06-20',
         listingPrice: 195000, mmrValue: 235000, discountPct: '17.0%',
-        dealScore: 82, estProfit: 40000, reason: 'Hot deal — 17% below MMR' },
+        dealScore: 82, estProfit: 40000, reason: 'Hot deal — 17% below MMR',
+        maxBid: 216200 },
       { scannedAt: new Date().toLocaleString(), vin: 'ZHWUC2ZF0LLA12345',
         year: 2020, make: 'Lamborghini', model: 'Huracan',  mileage: 5100,
         condition: 4.5, location: 'Dallas, TX',  saleDate: '2026-06-21',
         listingPrice: 210000, mmrValue: 255000, discountPct: '17.6%',
-        dealScore: 88, estProfit: 45000, reason: 'Hot deal — 18% below MMR' }
+        dealScore: 88, estProfit: 45000, reason: 'Hot deal — 18% below MMR',
+        maxBid: 234600 }
     ];
   }
 
@@ -347,7 +349,8 @@ function getManheimAlerts(limit) {
         discountPct:  r[11] || '',
         dealScore:    Number(r[12]) || 0,
         estProfit:    Number(r[13]) || 0,
-        reason:       r[14] || ''
+        reason:       r[14] || '',
+        maxBid:       Number(r[15]) || 0
       };
     });
   } catch (e) {

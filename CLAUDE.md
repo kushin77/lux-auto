@@ -146,7 +146,8 @@ lux-auto/
 │   ├── Sheets.gs      ← sheet setup + batch read/write
 │   ├── Auth.gs        ← auth/session helpers
 │   ├── Config.gs      ← Script Properties / config
-│   ├── Triggers.gs    ← time-driven triggers (scan, daily digest)
+│   ├── Triggers.gs    ← time-driven triggers (scan, sync, daily digest)
+│   ├── Notify.gs      ← daily digest (Gmail + optional Google Chat)
 │   └── CommandCenter.html ← dashboard UI
 ├── appsscript.json                   ← GAS manifest (scopes, timezone, webapp access)
 ├── docs/
@@ -305,6 +306,9 @@ then, the answer is native.
 ---
 
 ## Changelog
+- **2026-06-16 (session 2)** — Engine hardening: added `webapp/Notify.gs` (daily digest); implemented
+  VIN-deduped batched alert upsert, exotic no-gate scoring + rarity/mileage curve + max-bid, per-VIN
+  MMR cache, 429/5xx backoff, `logError_`/System Log, and engine→GHL upsert-by-VIN. See `ROADMAP.md`.
 - **2026-06-16** — Created CLAUDE.md as the authoritative project instructions. Locked the Google + GHL
   native directive, engine/CRM split, brand rule, every-session roadmap protocol, and graduation
   criteria. Consolidated docs (see `docs/archive/ARCHIVE-INDEX.md`).

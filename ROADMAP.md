@@ -31,9 +31,10 @@ The project **went native** (commit `feat: go native — GAS + GHL + Sheets, rem
 - **2026-06-16 code audit:** advanced modules older docs claimed (Pipeline.gs, Analytics.gs,
   VehicleVault.gs, CalendarSync.gs, ChatNotify.gs, CustomerWaitlist.gs, MobileScanner.html) are **NOT
   in the repo** — ⚠️ items confirmed not-built here. Run `clasp pull` to check the live project.
-- **Top engine gaps (Phase 1):** ① VIN dedupe — Manheim alerts append-only, re-scans duplicate;
-  ② exotic no-discount-gate not implemented (exotics still need 15% discount to flag); ③ no per-VIN
-  MMR cache yet; ④ engine reads GHL but doesn't push deals to it (Phase 2).
+- **Top engine gaps — ✅ fixed 2026-06-16 (session 2):** ① VIN dedupe (now upsert-by-VIN in sheet +
+  CRM); ② exotic no-discount-gate + rarity/mileage curve + max-bid; ③ per-VIN MMR cache (~6h);
+  ④ engine→GHL push (`upsertDealsToGHL_`, activates when the token is set). Code structurally validated
+  (all `.gs` files); needs a live test run in the Apps Script editor.
 
 ---
 
@@ -62,13 +63,13 @@ audit of `webapp/*.gs`.*
 |---|---|---|---|
 | 1.1 | Manheim OAuth (client_credentials) + token refresh | ✅ | Token cached in `CacheService` (~55 min); 401 auto-retry once. |
 | 1.2 | ISWS listing search (`searchListings`) | ✅ | Works; response field mapping is generic — ⚠️ verify against the live ISWS schema. |
-| 1.3 | Per-VIN MMR cache (~6h) to cut Manheim calls ~80% | 🔄 | Token cache done; **per-VIN MMR cache not built** — `getMMR` hits the API every call. |
-| 1.4 | Exotic scoring (make detect · mileage curve · rarity · no-MMR-gate for exotics) | 🔄 | Generic 0–100 scorer exists; **exotic mileage curve, rarity multiplier, and the no-15%-gate for exotics are NOT implemented** — `runManheimScan` still skips exotics below the discount threshold. |
-| 1.5 | Batch Sheet writes (`setValues`) + chunk scans under 6-min limit | 🔄 | Deals/Buyers writes batched; **Manheim alerts append per-row**; no scan chunking/continuation. |
-| 1.6 | VIN dedupe / upsert across scans (no duplicate deals) | ⬜ | **Critical gap & #1 next fix** — `appendManheimAlert_` is append-only, so re-scans duplicate the same VIN. |
-| 1.7 | Time-driven triggers: scan + daily digest | 🔄 | Hourly GHL→Sheets sync + daily 6 AM ET scan installed (idempotent); **daily digest email/Chat not built**. |
-| 1.8 | Flag VINs with 0 MMR samples for §5 exotic comp sources | ⬜ | — |
-| 1.9 | System Log sheet + structured error handling on every external call | 🔄 | Activity Log + try/catch exist; **no dedicated error/System Log**; add **429 backoff** (only 401 retry today). |
+| 1.3 | Per-VIN MMR cache (~6h) to cut Manheim calls ~80% | ✅ | Done (session 2) — `getMMR(vin,mileage)` cached in `CacheService` for 6h (`APP.MMR_CACHE_SECONDS`). |
+| 1.4 | Exotic scoring (make detect · mileage curve · rarity · no-MMR-gate for exotics) | ✅ | Done (session 2) — exotic mileage bands + rarity multiplier (`SCORING`); `runManheimScan` no longer gates exotics on discount; max bid = MMR × 0.92. |
+| 1.5 | Batch Sheet writes (`setValues`) + chunk scans under 6-min limit | 🔄 | Alerts now **batched + VIN-upserted** (`upsertManheimAlerts_`); **scan chunking/continuation still TODO** for very large sweeps. |
+| 1.6 | VIN dedupe / upsert across scans (no duplicate deals) | ✅ | Done (session 2) — `upsertManheimAlerts_` updates in place by VIN (sheet) + `upsertDealsToGHL_` upserts by VIN (CRM). |
+| 1.7 | Time-driven triggers: scan + daily digest | ✅ | Done (session 2) — `Notify.gs` `sendDailyDigest` (Gmail + optional Chat) + 7 AM ET trigger in `setupTriggers`. |
+| 1.8 | Flag VINs with 0 MMR samples for §5 exotic comp sources | 🔄 | Exotics with no MMR are now surfaced + flagged ("no MMR comp"); piping them to §5 sources still TODO. |
+| 1.9 | System Log sheet + structured error handling on every external call | ✅ | Done (session 2) — `logError_` + System Log sheet; **429/5xx exponential backoff** on both Manheim and GHL fetchers. |
 | 1.10 | GHL→Sheets mirror + Command Center dashboard (read deals/buyers, move deal, RBAC, demo mode) | ✅ | Already built (`Api.gs`/`Sheets.gs`/`Auth.gs`) — was untracked in the old roadmap. |
 | 1.11 | Snapshot + token caching via `CacheService` | ✅ | Dashboard snapshot cached 90s; Manheim token cached. |
 
@@ -84,9 +85,9 @@ Engine ↔ GHL, API-first, idempotent, event-driven. Detail: `LUX-CRM-AUTOMATION
 
 | # | Task | Status |
 |---|---|---|
-| 2.1 | Create custom-field schema via GHL v2 API — *Lux Deal* + *Lux Buyer* folders | ⬜ |
+| 2.1 | Create custom-field schema via GHL v2 API — *Lux Deal* + *Lux Buyer* folders | 🔄 (deal fields coded — `setupGHLCustomFields_`/`adminSetupGHLFields`; buyer fields TODO) |
 | 2.2 | Provision GHL Private Integration token → GSM `lux-ghl-api-token` (engine reads `LC_API_TOKEN`) | ⬜ |
-| 2.3 | Engine → GHL upsert opportunities **by VIN**; store `opportunityId` keyed by VIN | ⬜ |
+| 2.3 | Engine → GHL upsert opportunities **by VIN**; store `opportunityId` keyed by VIN | 🔄 (code ready — `upsertDealsToGHL_` + VIN Index; activates when `LC_API_TOKEN`/`LC_LOCATION_ID` set) |
 | 2.4 | Backfill currently-scanned deals into the pipeline | ⬜ |
 | 2.5 | Workflow 1 — **Hot Deal Alert** (`lux_score ≥ 70` → alert + max bid) | ⬜ |
 | 2.6 | Workflow 2 — **Buyer Match & Outreach** (make/price/score match, 7-day dedupe) | ⬜ |
@@ -103,7 +104,7 @@ Engine ↔ GHL, API-first, idempotent, event-driven. Detail: `LUX-CRM-AUTOMATION
 
 | # | Task | Status |
 |---|---|---|
-| 3.1 | Buyer profiles (makes, max price, max mileage, min score, region) as GHL contacts | ⬜ |
+| 3.1 | Buyer profiles (makes, max price, max mileage, min score, region) as GHL contacts | 🔄 (`registerBuyer` creates buyer contacts w/ makes/max-price/role; min-score + mileage + matching TODO) |
 | 3.2 | Ranked match: every *Listed* deal matched to ≥1 buyer by fit score | ⬜ |
 | 3.3 | Drive **Vehicle Vault**: auto folder per VIN (`[YEAR] [MAKE] [MODEL] - [VIN]`) + subfolders | ⬜ (not in repo) |
 | 3.4 | Calendar sync: auction dates → "Lux Auto Auctions" calendar (VIN/bid/MMR/lane) | ⬜ (not in repo) |
@@ -205,14 +206,18 @@ buyer financing pre-qual links · photo AI condition grading · SMS alerts (if e
 
 ---
 
-## Immediate Next Actions (post-audit, native-only)
+## Immediate Next Actions (native-only)
 
-1. **VIN upsert (1.6)** — convert `appendManheimAlert_` to a batched upsert-by-VIN so re-scans update
-   in place. Highest impact, self-contained, enforces the prime directive.
-2. **Exotic no-gate scoring (1.4)** — in `runManheimScan`, stop dropping exotic makes below the 15%
-   discount threshold; add the mileage curve + rarity multiplier from CLAUDE.md §5.
-3. **Per-VIN MMR cache (1.3)** — wrap `getMMR` in `CacheService` (~6h) keyed by VIN.
-4. **Engine → GHL push (2.1–2.3)** — create the field schema via API, then upsert opportunities by VIN.
+*Session-2 fixes (1.3, 1.4, 1.6, 1.7, 1.9 + engine→GHL push) are written and structurally validated —
+they now need to run live:*
+
+1. **Deploy + smoke-test** — `clasp push`, then run `runManheimScan` (demo-safe without Manheim keys)
+   and `adminSendDigest`; confirm the Manheim Deals VIN-upsert, System Log, and digest behave.
+2. **Activate GHL push** — set `LC_API_TOKEN` + `LC_LOCATION_ID`, run `adminSetupGHLFields` once, then a
+   scan upserts opportunities by VIN.
+3. **Lux Buyer fields (2.1 remainder)** + buyer-match workflow (2.6) on top of `registerBuyer`.
+4. **Scan chunking (1.5)** — continuation tokens for very large sweeps under the 6-min cap.
+5. **⚠️ Verify Manheim ISWS/MMR endpoint mapping** against current docs (the field mapping is generic).
 
 ---
 
@@ -224,6 +229,13 @@ tasks, bump **Last reviewed** to today, and append a **Changelog** line. The wee
 primary. Don't change code without updating this file.
 
 ### Changelog
+- **2026-06-16 (session 2 — engine hardening)** — Implemented the audit's priority fixes in `webapp/`:
+  VIN-deduped batched alert upsert (`upsertManheimAlerts_`), exotic no-gate scoring + rarity/mileage
+  curve + max-bid (`Manheim.gs`/`Config.gs`), per-VIN MMR cache, 429/5xx backoff on both fetchers,
+  `logError_`+System Log, engine→GHL upsert-by-VIN (`upsertDealsToGHL_`) + idempotent custom-field setup
+  + VIN Index, and a daily digest (`Notify.gs`) with a 7 AM trigger. 'Max Bid' appended at the end of
+  the Manheim Deals sheet to keep `SellerPortal.gs` column indexes stable. All 9 `.gs` files pass a
+  structural syntax check; needs a live test run.
 - **2026-06-16 (session 2)** — Added `SellerPortal.gs`: `decodeVIN` (NHTSA + MMR enrichment),
   `submitSellerLead` (GHL contact + opportunity at Spotted), `getSellerLeads`, `registerBuyer`,
   `getManheimAlerts`, `getActivityLog`. Rewrote `CommandCenter.html` as a 5-view lazy-loading SPA:

@@ -7,6 +7,7 @@
  * Installed triggers:
  *   syncGHLToSheets   — every hour  (keeps Sheets mirror fresh)
  *   runManheimScan    — daily at 6 AM ET (deal alert sweep)
+ *   sendDailyDigest   — daily at 7 AM ET (email/Chat summary of new deals)
  *
  * Both functions are idempotent — calling setupTriggers() twice will not create
  * duplicate triggers because we check by handler name first.
@@ -48,6 +49,19 @@ function setupTriggers() {
     created.push('runManheimScan (daily 6 AM ET)');
   } else {
     skipped.push('runManheimScan');
+  }
+
+  // Daily digest at 7 AM ET (after the scan)
+  if (existing.indexOf('sendDailyDigest') === -1) {
+    ScriptApp.newTrigger('sendDailyDigest')
+      .timeBased()
+      .atHour(7)
+      .everyDays(1)
+      .inTimezone('America/New_York')
+      .create();
+    created.push('sendDailyDigest (daily 7 AM ET)');
+  } else {
+    skipped.push('sendDailyDigest');
   }
 
   var msg = 'Triggers set up.\n'
@@ -112,4 +126,16 @@ function adminSetupTriggers() {
 function adminGetTriggers() {
   assertAdmin_();
   return listTriggers();
+}
+
+/** Admin: create the GHL custom-field schema (idempotent). Run once after the token is set. */
+function adminSetupGHLFields() {
+  assertAdmin_();
+  return setupGHLCustomFields_();
+}
+
+/** Admin: send the daily digest immediately (test / on-demand). */
+function adminSendDigest() {
+  assertAdmin_();
+  return sendDailyDigest();
 }
