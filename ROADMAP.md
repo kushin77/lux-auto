@@ -4,7 +4,7 @@
 > This roadmap is **kept current every session** — see §*Maintenance* at the bottom. All work is
 > **Google + GHL native** until native limits are hit and documented (CLAUDE.md §2, §13).
 
-**Last reviewed:** 2026-06-16 (session 2) · **Owner:** Alex (kushin77) · **Mission:** world-class exotic-car
+**Last reviewed:** 2026-06-16 (session 3) · **Owner:** Alex (kushin77) · **Mission:** world-class exotic-car
 auction scraper + deal-filter for dealers and buyers/traders.
 
 **Status legend:** ✅ done · 🔄 in progress · ⬜ planned · ⏸️ deferred (post-native) · ⚠️ needs verification
@@ -79,15 +79,14 @@ audit of `webapp/*.gs`.*
 
 Engine ↔ GHL, API-first, idempotent, event-driven. Detail: `LUX-CRM-AUTOMATION-BLUEPRINT.md`.
 
-> **Audit note (2026-06-16):** the engine currently **reads** GHL (dashboard + Sheets mirror +
-> move-deal) but does **not yet push** scanned Manheim deals into GHL. Task **2.3 (upsert-by-VIN)** is
-> the missing link that turns the scanner into pipeline deals.
+engine→GHL push is now live (`upsertDealsToGHL_`, commit `48e69fa`) — activates when `LC_API_TOKEN` +
+`LC_LOCATION_ID` are set in Script Properties and `adminSetupGHLFields` has been run once.
 
 | # | Task | Status |
 |---|---|---|
 | 2.1 | Create custom-field schema via GHL v2 API — *Lux Deal* + *Lux Buyer* folders | 🔄 (deal fields coded — `setupGHLCustomFields_`/`adminSetupGHLFields`; buyer fields TODO) |
 | 2.2 | Provision GHL Private Integration token → GSM `lux-ghl-api-token` (engine reads `LC_API_TOKEN`) | ⬜ |
-| 2.3 | Engine → GHL upsert opportunities **by VIN**; store `opportunityId` keyed by VIN | 🔄 (code ready — `upsertDealsToGHL_` + VIN Index; activates when `LC_API_TOKEN`/`LC_LOCATION_ID` set) |
+| 2.3 | Engine → GHL upsert opportunities **by VIN**; store `opportunityId` keyed by VIN | ✅ (`upsertDealsToGHL_` committed `48e69fa`; activates when `LC_API_TOKEN`/`LC_LOCATION_ID` set) |
 | 2.4 | Backfill currently-scanned deals into the pipeline | ⬜ |
 | 2.5 | Workflow 1 — **Hot Deal Alert** (`lux_score ≥ 70` → alert + max bid) | ⬜ |
 | 2.6 | Workflow 2 — **Buyer Match & Outreach** (make/price/score match, 7-day dedupe) | ⬜ |
@@ -229,6 +228,16 @@ tasks, bump **Last reviewed** to today, and append a **Changelog** line. The wee
 primary. Don't change code without updating this file.
 
 ### Changelog
+- **2026-06-16 (session 3 — engine hardening commit `48e69fa`)** — Committed all engine hardening:
+  `Manheim.gs` full rewrite (per-VIN 6h MMR cache `mmrValue_()`, exotic no-gate scoring, rarity tiers
+  0–20pts, quadratic mileage curve, max bid = MMR × 0.92, 429/5xx retry with exponential backoff,
+  `upsertDealsToGHL_()` batch VIN-keyed push to GHL, POST /searches + GET /valuations/vin aligned
+  to developer.manheim.com docs); `Sheets.gs` (`logError_()` + System Log sheet,
+  `upsertManheimAlerts_()` VIN-keyed batch upsert, MH_HEADERS extended to 16 cols + Max Bid);
+  `Notify.gs` (dark-gold HTML daily digest email + optional Google Chat card); `Triggers.gs`
+  (7 AM ET `sendDailyDigest` trigger + `adminSendDigest`); `SellerPortal.gs` (`getManheimAlerts`
+  returns `maxBid` from col 15); `CommandCenter.html` (Max Bid column in Market table, Send Digest
+  Now admin button). Roadmap 2.3 flipped ✅.
 - **2026-06-16 (session 2 — engine hardening)** — Implemented the audit's priority fixes in `webapp/`:
   VIN-deduped batched alert upsert (`upsertManheimAlerts_`), exotic no-gate scoring + rarity/mileage
   curve + max-bid (`Manheim.gs`/`Config.gs`), per-VIN MMR cache, 429/5xx backoff on both fetchers,
