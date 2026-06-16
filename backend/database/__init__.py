@@ -1,58 +1,37 @@
 """
-Database module for Lux-Auto
+Database session registry.
 
-Provides database session management and models.
+``main.py`` builds the engine + ``SessionLocal`` and calls ``set_session_local``
+once at startup. Routers depend on ``get_db`` (a FastAPI dependency) so they
+never import ``main`` — avoiding a circular import and keeping them testable
+with an injected session factory.
 """
 
-from sqlalchemy.orm import Session
+from __future__ import annotations
 
+from typing import Iterator
 
-# Will be set by main.py
 _SessionLocal = None
 
 
-def set_session_local(session_factory):
-    """Set the session factory (called from main.py)."""
+def set_session_local(session_local) -> None:
+    """Register the app-wide ``sessionmaker``. Called once from ``main.py``."""
     global _SessionLocal
-    _SessionLocal = session_factory
+    _SessionLocal = session_local
 
 
-def get_db() -> Session:
-    """Get database session for dependency injection."""
+def get_session_local():
     if _SessionLocal is None:
-        raise RuntimeError("Database not initialized. Call set_session_local() first.")
-    db = _SessionLocal()
+        raise RuntimeError(
+            "SessionLocal is not initialized. Call set_session_local() at startup."
+        )
+    return _SessionLocal
+
+
+def get_db() -> Iterator:
+    """FastAPI dependency yielding a scoped session that always closes."""
+    db = get_session_local()()
     try:
         yield db
     finally:
         db.close()
-
-
-# Export models
-from backend.database.models import (
-    Base,
-    User,
-    UserSession,
-    AuditLog,
-    UserRole,
-    APIKey,
-    PortalUserPreferences,
-    Deal,
-    Buyer,
-    SystemConfig,
-)
-
-__all__ = [
-    "Base",
-    "User",
-    "UserSession",
-    "AuditLog",
-    "UserRole",
-    "APIKey",
-    "PortalUserPreferences",
-    "Deal",
-    "Buyer",
-    "SystemConfig",
-    "get_db",
-    "set_session_local",
-]

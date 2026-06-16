@@ -1,242 +1,71 @@
 """
-RBAC Service - Role-Based Access Control
+Role-based access control.
 
-Manages user roles, permissions, and access control enforcement.
+A small, explicit permission matrix keyed by ``UserRole``. Permissions use the
+``verb:resource`` convention (e.g. ``approve:deals``). Higher roles inherit the
+permissions of the roles below them.
 """
 
-from enum import Enum
-from typing import Dict, Set, List, Optional
-from uuid import UUID
-from datetime import datetime
-from sqlalchemy.orm import Session
-from sqlalchemy import and_
+from __future__ import annotations
 
-# Note: These would normally come from database models
-# For now, we define them here for the service
+import structlog
 
+from backend.auth.user_service import UserRole
 
-class PortalRole(Enum):
-    """Available user roles"""
-    VIEWER = "VIEWER"
-    ANALYST = "ANALYST"
-    ADMIN = "ADMIN"
-    SUPER_ADMIN = "SUPER_ADMIN"
+log = structlog.get_logger(__name__)
 
-
-class PortalPermission(Enum):
-    """Available permissions"""
-    READ_DEALS = "read:deals"
-    WRITE_DEALS = "write:deals"
-    APPROVE_DEALS = "approve:deals"
-    READ_ANALYTICS = "read:analytics"
-    READ_BUYERS = "read:buyers"
-    WRITE_BUYERS = "write:buyers"
-    READ_AUDIT = "read:audit"
-    MANAGE_USERS = "manage:users"
-    MANAGE_SETTINGS = "manage:settings"
-
-
-# Permission matrix: Role -> Set of Permissions
-ROLE_PERMISSIONS: Dict[PortalRole, Set[PortalPermission]] = {
-    PortalRole.VIEWER: {
-        PortalPermission.READ_DEALS,
-        PortalPermission.READ_ANALYTICS,
-        PortalPermission.READ_BUYERS,
-    },
-    PortalRole.ANALYST: {
-        PortalPermission.READ_DEALS,
-        PortalPermission.WRITE_DEALS,
-        PortalPermission.READ_ANALYTICS,
-        PortalPermission.READ_BUYERS,
-        PortalPermission.WRITE_BUYERS,
-    },
-    PortalRole.ADMIN: {
-        PortalPermission.READ_DEALS,
-        PortalPermission.WRITE_DEALS,
-        PortalPermission.APPROVE_DEALS,
-        PortalPermission.READ_ANALYTICS,
-        PortalPermission.READ_BUYERS,
-        PortalPermission.WRITE_BUYERS,
-        PortalPermission.READ_AUDIT,
-        PortalPermission.MANAGE_USERS,
-    },
-    PortalRole.SUPER_ADMIN: {
-        PortalPermission.READ_DEALS,
-        PortalPermission.WRITE_DEALS,
-        PortalPermission.APPROVE_DEALS,
-        PortalPermission.READ_ANALYTICS,
-        PortalPermission.READ_BUYERS,
-        PortalPermission.WRITE_BUYERS,
-        PortalPermission.READ_AUDIT,
-        PortalPermission.MANAGE_USERS,
-        PortalPermission.MANAGE_SETTINGS,
-    },
+# Permissions granted directly to each role (before inheritance).
+_DIRECT: dict[UserRole, set[str]] = {
+    UserRole.VIEWER: {"read:deals", "read:analytics"},
+    UserRole.USER: {"read:deals", "read:analytics", "read:buyers"},
+    UserRole.ANALYST: {"write:buyers", "export:analytics", "read:audit"},
+    UserRole.ADMIN: {"approve:deals", "reject:deals", "write:config", "manage:users"},
+    UserRole.SUPER_ADMIN: {"manage:roles", "manage:api_keys", "delete:any"},
 }
+
+# Inheritance chain (each role also gets everything from the previous one).
+_CHAIN = [
+    UserRole.VIEWER,
+    UserRole.USER,
+    UserRole.ANALYST,
+    UserRole.ADMIN,
+    UserRole.SUPER_ADMIN,
+]
+
+
+def _effective(role: UserRole) -> set[str]:
+    perms: set[str] = set()
+    for r in _CHAIN:
+        perms |= _DIRECT.get(r, set())
+        if r == role:
+            break
+    return perms
+
+
+# Pre-compute the effective permission set for every role.
+ROLE_PERMISSIONS: dict[UserRole, set[str]] = {r: _effective(r) for r in _CHAIN}
 
 
 class RBACService:
-    """Role-Based Access Control Service"""
-    
-    def __init__(self, db_session_factory):
-        """Initialize RBAC service"""
-        self.db = db_session_factory
-    
-    async def get_user_roles(self, user_id: UUID) -> List[PortalRole]:
-        """
-        Get all roles assigned to a user.
-        
-        Args:
-            user_id: The user's UUID
-            
-        Returns:
-            List of PortalRole enums assigned to the user
-        """
-        # TODO: Query user_roles table
-        # SELECT role FROM user_roles 
-        # WHERE user_id = ? AND (expires_at IS NULL OR expires_at > NOW())
-        return []
-    
-    async def get_user_permissions(self, user_id: UUID) -> Set[PortalPermission]:
-        """
-        Get all permissions for a user based on their roles.
-        
-        Args:
-            user_id: The user's UUID
-            
-        Returns:
-            Set of PortalPermission enums
-        """
-        roles = await self.get_user_roles(user_id)
-        permissions: Set[PortalPermission] = set()
-        
-        for role in roles:
-            permissions.update(ROLE_PERMISSIONS.get(PortalRole[role], set()))
-        
-        return permissions
-    
-    async def has_permission(
-        self,
-        user_id: UUID,
-        permission: PortalPermission
-    ) -> bool:
-        """
-        Check if user has specific permission.
-        
-        Args:
-            user_id: The user's UUID
-            permission: The PortalPermission to check
-            
-        Returns:
-            True if user has permission, False otherwise
-        """
-        permissions = await self.get_user_permissions(user_id)
-        return permission in permissions
-    
-    async def has_role(
-        self,
-        user_id: UUID,
-        role: PortalRole
-    ) -> bool:
-        """
-        Check if user has specific role.
-        
-        Args:
-            user_id: The user's UUID
-            role: The PortalRole to check
-            
-        Returns:
-            True if user has role, False otherwise
-        """
-        roles = await self.get_user_roles(user_id)
-        return role in roles
-    
-    async def assign_role(
-        self,
-        user_id: UUID,
-        role: PortalRole,
-        assigned_by: UUID,
-        expires_at: Optional[datetime] = None,
-    ) -> bool:
-        """
-        Assign a role to a user.
-        
-        Args:
-            user_id: The user to assign role to
-            role: The PortalRole to assign
-            assigned_by: The admin user ID who is assigning the role
-            expires_at: Optional expiration date for the role
-            
-        Returns:
-            True if assignment successful, False if role already exists
-        """
-        # TODO: Insert into user_roles table
-        # INSERT INTO user_roles (user_id, role, assigned_by, expires_at, assigned_at)
-        # VALUES (?, ?, ?, ?, NOW())
-        # ON CONFLICT (user_id, role) DO NOTHING
-        return True
-    
-    async def revoke_role(
-        self,
-        user_id: UUID,
-        role: PortalRole,
-    ) -> bool:
-        """
-        Revoke a role from a user.
-        
-        Args:
-            user_id: The user to revoke role from
-            role: The PortalRole to revoke
-            
-        Returns:
-            True if revocation successful, False if role not found
-        """
-        # TODO: Delete from user_roles table
-        # DELETE FROM user_roles 
-        # WHERE user_id = ? AND role = ?
-        return True
-    
-    async def ensure_admin_role(
-        self,
-        admin_email: str,
-    ) -> None:
-        """
-        Ensure at least one admin user has SUPER_ADMIN role.
-        Called during initialization.
-        
-        Args:
-            admin_email: Email of the admin user to ensure has SUPER_ADMIN role
-        """
-        # TODO: Find user by email
-        # If not found, create  user
-        # If found, ensure has SUPER_ADMIN role
-        pass
-    
-    def get_permission_description(self, permission: PortalPermission) -> str:
-        """Get human-readable description of a permission"""
-        descriptions = {
-            PortalPermission.READ_DEALS: "View deals in the system",
-            PortalPermission.WRITE_DEALS: "Create and edit deals",
-            PortalPermission.APPROVE_DEALS: "Approve/reject deals for bidding",
-            PortalPermission.READ_ANALYTICS: "View analytics and reporting dashboards",
-            PortalPermission.READ_BUYERS: "View buyer network",
-            PortalPermission.WRITE_BUYERS: "Create and edit buyer profiles",
-            PortalPermission.READ_AUDIT: "View audit logs and compliance data",
-            PortalPermission.MANAGE_USERS: "Manage user accounts and roles",
-            PortalPermission.MANAGE_SETTINGS: "Manage system settings and configuration",
-        }
-        return descriptions.get(permission, permission.value)
-    
-    def get_role_description(self, role: PortalRole) -> str:
-        """Get human-readable description of a role"""
-        descriptions = {
-            PortalRole.VIEWER: "Read-only access to deals, analytics, and buyers",
-            PortalRole.ANALYST: "Can score, bid, and manage buyer network",
-            PortalRole.ADMIN: "Can approve deals, manage users, and view audit logs",
-            PortalRole.SUPER_ADMIN: "Full system access including settings and configuration",
-        }
-        return descriptions.get(role, role.value)
+    """Stateless permission checks against ``ROLE_PERMISSIONS``."""
 
+    @staticmethod
+    def _coerce(role) -> UserRole:
+        return role if isinstance(role, UserRole) else UserRole(str(role))
 
-def get_rbac_service(db_session_factory) -> RBACService:
-    """Factory function to create RBACService instance"""
-    return RBACService(db_session_factory)
+    def permissions_for(self, role) -> set[str]:
+        return ROLE_PERMISSIONS.get(self._coerce(role), set())
+
+    def has_permission(self, role, permission: str) -> bool:
+        return permission in self.permissions_for(role)
+
+    def require_permission(self, role, permission: str) -> None:
+        """Raise 403 if ``role`` lacks ``permission``."""
+        if not self.has_permission(role, permission):
+            from fastapi import HTTPException, status
+
+            log.warning("rbac.denied", role=str(role), permission=permission)
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Permission denied: requires '{permission}'",
+            )

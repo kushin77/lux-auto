@@ -1,4 +1,3 @@
-"""Lux-Auto FastAPI Backend Package"""
+"""Lux-Auto backend package."""
 
-__version__ = "1.0.0"
-__all__ = ["main", "auth", "database"]
+__version__ = "2.0.0"

@@ -60,11 +60,11 @@ fetch_gsm_secret() {
 log "Starting secret retrieval from GSM..."
 log ""
 
-fetch_gsm_secret "lux-google-oauth-client-id" "GOOGLE_CLIENT_ID"
-fetch_gsm_secret "lux-google-oauth-client-secret" "GOOGLE_CLIENT_SECRET"
-fetch_gsm_secret "lux-oauth2-cookie-secret" "OAUTH2_PROXY_COOKIE_SECRET"
-fetch_gsm_secret "lux-fastapi-secret-key" "FASTAPI_SECRET_KEY"
-fetch_gsm_secret "lux-db-password" "DATABASE_PASSWORD"
+fetch_gsm_secret "lux-google-oauth-client-id"     "GOOGLE_CLIENT_ID"
+fetch_gsm_secret "lux-google-oauth-client-secret"  "GOOGLE_CLIENT_SECRET"
+fetch_gsm_secret "lux-oauth2-cookie-secret"         "OAUTH2_PROXY_COOKIE_SECRET"
+fetch_gsm_secret "lux-auto-secret-key"              "FASTAPI_SECRET_KEY"   # was: lux-fastapi-secret-key
+fetch_gsm_secret "lux-auto-db-password"             "DATABASE_PASSWORD"    # was: lux-db-password
 
 log ""
 log "✓ All secrets fetched successfully from GSM"
