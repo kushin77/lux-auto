@@ -2,14 +2,28 @@
  * Lux Auto — Command Center (Google Apps Script web app)
  * Config & Script Properties access.
  *
- * Secrets live in Script Properties (Project Settings → Script properties),
- * never in code and never sent to the browser:
- *   LC_API_TOKEN    — CRM backend Private Integration token
- *   LC_LOCATION_ID  — CRM backend location id
- *   ALLOWED_EMAILS  — comma-separated allowlist (optional; blank = anyone in domain)
- *   ADMIN_EMAILS    — comma-separated admins (can approve/reject)
+ * All secrets live in Script Properties (Project Settings → Script properties).
+ * They are NEVER in code and NEVER sent to the browser.
  *
- * The CRM vendor is an invisible backend. Nothing here is surfaced to the UI by name.
+ * ── Required ──────────────────────────────────────────────────────────────────
+ *   LC_API_TOKEN          — GHL Private Integration bearer token
+ *   LC_LOCATION_ID        — GHL location / sub-account ID
+ *
+ * ── Access control ────────────────────────────────────────────────────────────
+ *   ALLOWED_EMAILS        — comma-separated allowlist (blank = anyone in domain)
+ *   ADMIN_EMAILS          — comma-separated admins (can move deals, run scans)
+ *
+ * ── Manheim (optional — enables deal scan + MMR lookup) ──────────────────────
+ *   MANHEIM_CLIENT_ID     — Manheim developer API client ID
+ *   MANHEIM_CLIENT_SECRET — Manheim developer API client secret
+ *   MH_DEAL_THRESHOLD     — Min discount % to flag as deal (default: 0.15 = 15%)
+ *   MH_MAX_MILEAGE        — Skip vehicles above this mileage (default: 100000)
+ *   MH_SEARCH_QUERY       — Comma-separated makes to scan (default: exotic makes)
+ *
+ * ── Google Sheets (auto-managed) ─────────────────────────────────────────────
+ *   SHEETS_ID             — Spreadsheet ID (auto-created on first sync if blank)
+ *
+ * The CRM vendor is an invisible backend — nothing is surfaced to the UI by name.
  */
 
 var APP = Object.freeze({
