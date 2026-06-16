@@ -1,0 +1,83 @@
+name: Deploy to Cloud Run
+
+# Deploys the FastAPI backend (Dockerfile.backend) to Cloud Run.
+# - Manual runs (workflow_dispatch) let you pick app-only vs production.
+# - Auto-deploys app-only on push to main when backend/ changes.
+#
+# One-time setup (recommended: Workload Identity Federation — no long-lived keys):
+#   1. Create a deploy service account with roles:
+#        roles/run.admin, roles/cloudbuild.builds.editor,
+#        roles/artifactregistry.admin, roles/iam.serviceAccountUser,
+#        roles/secretmanager.secretAccessor, roles/cloudsql.client
+#   2. Configure WIF and set these repo secrets/vars:
+#        secrets.GCP_WIF_PROVIDER   = projects/<NUM>/locations/global/workloadIdentityPools/<POOL>/providers/<PROVIDER>
+#        secrets.GCP_DEPLOY_SA       = deploy@lux-auto.iam.gserviceaccount.com
+#      (Alternatively set secret GCP_SA_KEY with a JSON key and use the commented auth block.)
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "Deployment mode"
+        type: choice
+        options: [app-only, production]
+        default: app-only
+  push:
+    branches: [main]
+    paths: ["backend/**", "Dockerfile.backend", ".github/workflows/deploy-cloudrun.yml"]
+
+env:
+  PROJECT_ID: lux-auto
+  REGION: us-central1
+  SERVICE: lux-auto-api
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write   # required for Workload Identity Federation
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
+          service_account: ${{ secrets.GCP_DEPLOY_SA }}
+        # --- Service-account-key alternative (if not using WIF) ---
+        # with:
+        #   credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Stage Dockerfile
+        run: cp Dockerfile.backend Dockerfile
+
+      - name: Deploy (app-only)
+        if: github.event_name == 'push' || inputs.mode == 'app-only'
+        run: |
+          SECRET_KEY="$(openssl rand -base64 36)"
+          gcloud run deploy "$SERVICE" \
+            --source . --project "$PROJECT_ID" --region "$REGION" \
+            --port 8000 --allow-unauthenticated \
+            --memory 512Mi --cpu 1 --min-instances 0 --max-instances 3 \
+            --set-env-vars "DATABASE_URL=sqlite:////tmp/lux.db,FASTAPI_SECRET_KEY=${SECRET_KEY},ADMIN_USER_EMAIL=akushnir@bioenergystrategies.com,ENVIRONMENT=staging,LOG_LEVEL=INFO"
+
+      - name: Deploy (production)
+        if: github.event_name == 'workflow_dispatch' && inputs.mode == 'production'
+        run: |
+          CONN_NAME="$(gcloud sql instances describe lux-pg --project "$PROJECT_ID" --format='value(connectionName)')"
+          gcloud run deploy "$SERVICE" \
+            --source . --project "$PROJECT_ID" --region "$REGION" \
+            --port 8000 --no-allow-unauthenticated \
+            --add-cloudsql-instances "$CONN_NAME" \
+            --memory 1Gi --cpu 1 --min-instances 0 --max-instances 10 \
+            --set-secrets "DATABASE_URL=lux-database-url:latest,FASTAPI_SECRET_KEY=lux-fastapi-secret-key:latest" \
+            --set-env-vars "ADMIN_USER_EMAIL=akushnir@bioenergystrategies.com,ENVIRONMENT=production,LOG_LEVEL=INFO"
+
+      - name: Show URL + health
+        run: |
+          URL="$(gcloud run services describe "$SERVICE" --project "$PROJECT_ID" --region "$REGION" --format='value(status.url)')"
+          echo "Service URL: $URL"
+          curl -fsS "$URL/health" || echo "(health requires auth if deployed private)"
